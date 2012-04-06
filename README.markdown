@@ -7,4 +7,4 @@ Compiling
 
 Running
 ---------
-./emulator </path/to/dcpu/program>
+./emulator &lt;/path/to/dcpu/program&gt;
