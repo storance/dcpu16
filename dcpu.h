@@ -1,35 +1,35 @@
 #pragma once
 
-#define ARG_REGISTER_A 0x00
-#define ARG_REGISTER_B 0x01
-#define ARG_REGISTER_C 0x02
-#define ARG_REGISTER_X 0x03
-#define ARG_REGISTER_Y 0x04
-#define ARG_REGISTER_Z 0x05
-#define ARG_REGISTER_I 0x06
-#define ARG_REGISTER_J 0x07
-#define ARG_DEREF_REGISTER_A 0x08
-#define ARG_DEREF_REGISTER_B 0x09
-#define ARG_DEREF_REGISTER_C 0x0a
-#define ARG_DEREF_REGISTER_X 0x0b
-#define ARG_DEREF_REGISTER_Y 0x0c
-#define ARG_DEREF_REGISTER_Z 0x0d
-#define ARG_DEREF_REGISTER_I 0x0e
-#define ARG_DEREF_REGISTER_J 0x0f
-#define ARG_DEREF_NEXT_WORD_REGISTER_A 0x10
-#define ARG_DEREF_NEXT_WORD_REGISTER_B 0x11
-#define ARG_DEREF_NEXT_WORD_REGISTER_C 0x12
-#define ARG_DEREF_NEXT_WORD_REGISTER_X 0x13
-#define ARG_DEREF_NEXT_WORD_REGISTER_Y 0x14
-#define ARG_DEREF_NEXT_WORD_REGISTER_Z 0x15
-#define ARG_DEREF_NEXT_WORD_REGISTER_I 0x16
-#define ARG_DEREF_NEXT_WORD_REGISTER_J 0x17
+#define ARG_A 0x00
+#define ARG_B 0x01
+#define ARG_C 0x02
+#define ARG_X 0x03
+#define ARG_Y 0x04
+#define ARG_Z 0x05
+#define ARG_I 0x06
+#define ARG_J 0x07
+#define ARG_DEREF_A 0x08
+#define ARG_DEREF_B 0x09
+#define ARG_DEREF_C 0x0a
+#define ARG_DEREF_X 0x0b
+#define ARG_DEREF_Y 0x0c
+#define ARG_DEREF_Z 0x0d
+#define ARG_DEREF_I 0x0e
+#define ARG_DEREF_J 0x0f
+#define ARG_DEREF_NEXT_WORD_A 0x10
+#define ARG_DEREF_NEXT_WORD_B 0x11
+#define ARG_DEREF_NEXT_WORD_C 0x12
+#define ARG_DEREF_NEXT_WORD_X 0x13
+#define ARG_DEREF_NEXT_WORD_Y 0x14
+#define ARG_DEREF_NEXT_WORD_Z 0x15
+#define ARG_DEREF_NEXT_WORD_I 0x16
+#define ARG_DEREF_NEXT_WORD_J 0x17
 #define ARG_POP 0x18
 #define ARG_PEEK 0x19
 #define ARG_PUSH 0x1a
-#define ARG_REGISTER_SP 0x1b
-#define ARG_REGISTER_PC 0x1c
-#define ARG_REGISTER_O 0x1d
+#define ARG_SP 0x1b
+#define ARG_PC 0x1c
+#define ARG_O 0x1d
 #define ARG_DEREF_NEXT_WORD 0x1e
 #define ARG_NEXT_WORD 0x1f
 #define ARG_LITERAL_START 0x20
@@ -59,18 +59,23 @@
 #define TOTAL_REGISTERS 8
 #define TOTAL_MEMORY 65536
 
+#define S_CONTINUE 0
+#define S_HALT 1
+#define S_INVALID_OPCODE 2
+
 typedef uint16_t word_t;
 
 struct dcpu_s;
 
 typedef struct argument_s {
-	uint8_t arg_value;
+	uint8_t type;
+	uint8_t size;
 
 	word_t value;
 	word_t *location;
 } argument_t;
 
-typedef void (*op_handler_fn)(struct dcpu_s*, argument_t*, argument_t*);
+typedef uint8_t (*op_handler_fn)(struct dcpu_s*, argument_t*, argument_t*);
 
 typedef struct {
 	op_handler_fn handler;
@@ -98,6 +103,7 @@ word_t dcpu_read_register(dcpu_t*, uint8_t);
 void dcpu_resolve_argument(dcpu_t *, argument_t*);
 
 void dcpu_skip_next(dcpu_t*);
-void dcpu_execute(dcpu_t*);
+bool dcpu_execute(dcpu_t*, size_t);
+bool dcpu_load(dcpu_t *, const char*, size_t*);
+void dcpu_dump(dcpu_t*);
 
-void resolve_argument(dcpu_t*, uint8_t, argument_t*);

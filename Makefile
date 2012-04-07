@@ -1,22 +1,22 @@
 all: emulator disassembler
 
-emulator: main.o dcpu.o run_opcodes.o
-	gcc main.o dcpu.o run_opcodes.o -o emulator
+emulator: dcpu.o emulator.o
+	gcc dcpu.o emulator.o -o emulator
 
-disassembler: main.o dcpu.o print_opcodes.o
-	gcc main.o dcpu.o print_opcodes.o -o disassembler
+disassembler: dcpu.o disassembler.o
+	gcc dcpu.o disassembler.o -o disassembler
 
-dcpu.o: dcpu.c dcpu.h opcodes.h
-	gcc -std=c99 -g -c dcpu.c
+dcpu.o: dcpu.c dcpu.h
+	gcc -std=c99 -c dcpu.c
 
-run_opcodes.o: opcodes.h run_opcodes.c
-	gcc -std=c99 -g -c run_opcodes.c
+emulator.o: dcpu.h emulator.c
+	gcc -std=c99 -c emulator.c
 
-print_opcodes.o: opcodes.h print_opcodes.c
-	gcc -std=c99 -g -c print_opcodes.c
+disassembler.o: dcpu.h disassembler.c
+	gcc -std=c99 -c disassembler.c
 
 main.o: main.c
-	gcc -std=c99 -g -c main.c
+	gcc -std=c99 -c main.c
 
 clean:
 	rm *.o
