@@ -1,0 +1,24 @@
+DCPU-16 Emulator
+-------------------------
+
+Compile
+-------------------------
+Run make
+
+Emulator
+-------------------------
+./emulator </path/to/dcpu/program>
+
+Disassembler
+-------------------------
+./disassembler [-d|--decimal] [-h|--hex] [-c|--octal] [-o|--output <path/to/output/file>] </path/to/dcpu/program>
+
+-d,--decimal
+	Output all literals in decimal.
+-h, --hex
+	Output all literals in hexadecimal.  This is the default behavior
+-c, --octal
+	Output all literals in octal.
+-o, --output
+	File to write the disassemble source.  If no output file is specified, stdout is used.
+
