@@ -8,7 +8,9 @@
 #include <stdexcept>
 #include <getopt.h>
 
-#include "dcpu.h"
+#include <boost/format.hpp>
+
+#include "dcpu.hpp"
 
 using namespace std;
 
@@ -57,10 +59,17 @@ public:
 			return;
 		}
 
-		OpcodeType opcodeType = opcode.getOpcodeType();
+		uint8_t opcodeType = opcode.getType();
 
-		if (opcodeType == 0) {
-			executeNonBasic(cpu, opcode);
+		if (opcode.isNonBasic()) {
+			if (opcodeType == opcodes::RESERVED || opcodeType > opcodes::JSR) {
+				throw logic_error(str(boost::format("%04x: Invalid Non-basic "
+					"Opcode %#x") % opcode.getLocation() % (word_t)opcodeType));
+			}
+
+			out << non_basic_opcode_names[opcodeType] << " ";
+			printArgument(cpu, opcode.getA());
+			out << endl;
 		} else {
 			out << basic_opcode_names[opcodeType] << " ";
 			printArgument(cpu, opcode.getA());
@@ -70,53 +79,32 @@ public:
 		}
 	}
 private:
-	void printArgument(DCPU &cpu, OpcodeArgument &arg) {
-		uint8_t type = arg.getType();
+	void printArgument(DCPU &cpu, OpcodeArgument *arg) {
+		uint8_t type = arg->getType();
 
 		switch (type) {
-		case arg_a: case arg_b: case arg_c: case arg_x:
-		case arg_y: case arg_z: case arg_i: case arg_j:
+		REGISTER_CASES(arguments::A)
 			out << register_names[type];
 			break;
-		case arg_ptr_a: case arg_ptr_b: case arg_ptr_c: case arg_ptr_x:
-		case arg_ptr_y: case arg_ptr_z: case arg_ptr_i: case arg_ptr_j:
-			out << "[" << register_names[type - arg_ptr_a] << "]";
+		REGISTER_CASES(arguments::PTR_A)
+			out << "[" << register_names[type - arguments::PTR_A] << "]";
 			break;
-		case arg_ptr_offset_a: case arg_ptr_offset_b: case arg_ptr_offset_c:
-		case arg_ptr_offset_x: case arg_ptr_offset_y: case arg_ptr_offset_z:
-		case arg_ptr_offset_i: case arg_ptr_offset_j:
+		REGISTER_CASES(arguments::PTR_OFFSET_A)
 			out << "[" << cpu.getNextWord() << " + " 
-				<< register_names[type - arg_ptr_offset_a] << "]";
+				<< register_names[type - arguments::PTR_OFFSET_A] << "]";
 			break;
-		case arg_pop: out << "POP"; break;
-		case arg_peek: out << "PEEK"; break;
-		case arg_push: out << "PUSH"; break;
-		case arg_sp: out << "SP"; break;
-		case arg_pc: out << "PC"; break;
-		case arg_o: out << "O"; break;
-		case arg_ptr_next_word: out << "[" << cpu.getNextWord() << "]"; break;
-		case arg_next_word: out << cpu.getNextWord(); break;
-		default: out << (type - arg_literal); break;
+		case arguments::POP: out << "POP"; break;
+		case arguments::PEEK: out << "PEEK"; break;
+		case arguments::PUSH: out << "PUSH"; break;
+		case arguments::SP: out << "SP"; break;
+		case arguments::PC: out << "PC"; break;
+		case arguments::O: out << "O"; break;
+		case arguments::PTR_NEXT_WORD:
+			out << "[" << cpu.getNextWord() << "]";
+			break;
+		case arguments::NEXT_WORD: out << cpu.getNextWord(); break;
+		default: out << (type - arguments::LITERAL_START); break;
 		}
-	}
-
-	void executeNonBasic(DCPU &cpu, Opcode &opcode) {
-		uint8_t nbOpcode = opcode.getOpcodeType();
-		OpcodeArgument &a = opcode.getB();
-
-		if (nbOpcode == 0 || nbOpcode > op_jsr) {
-			word_t pc = cpu.pc - opcode.getSize();
-
-			stringstream buf;
-			buf << hex << setfill('0') << setw(4) << pc 
-				<< ": Invalid Non-basic Opcode 0x"
-				<< setw(2) << (word_t)nbOpcode;
-			throw logic_error(buf.str().c_str());
-		}
-
-		out << non_basic_opcode_names[nbOpcode] << " ";
-		printArgument(cpu, a);
-		out << endl;
 	}
 };
 

@@ -1,25 +1,28 @@
 all: emulator disassembler
 
-emulator: dcpu.o emulator.o
-	gcc dcpu.o emulator.o -o emulator
+emulator: target/dcpu.o target/emulator.o target/opcode.o
+	g++ target/dcpu.o target/emulator.o target/opcode.o -o emulator
 
-disassembler: dcpu.o disassembler.o
-	gcc dcpu.o disassembler.o -o disassembler
+disassembler: target/dcpu.o target/disassembler.o target/opcode.o
+	g++ target/dcpu.o target/disassembler.o target/opcode.o -o disassembler
 
-dcpu.o: dcpu.c dcpu.h
-	gcc -std=c99 -c dcpu.c
+target/dcpu.o: dcpu.cpp dcpu.hpp opcode.hpp common.hpp target
+	g++ -c dcpu.cpp -o target/dcpu.o
 
-emulator.o: dcpu.h emulator.c
-	gcc -std=c99 -c emulator.c
+target/opcode.o: opcode.cpp opcode.hpp dcpu.hpp common.hpp target
+	g++ -c opcode.cpp -o target/opcode.o
 
-disassembler.o: dcpu.h disassembler.c
-	gcc -std=c99 -c disassembler.c
+target/emulator.o: dcpu.hpp emulator.cpp common.hpp target 
+	g++ -c emulator.cpp -o target/emulator.o
 
-main.o: main.c
-	gcc -std=c99 -c main.c
+target/disassembler.o: dcpu.hpp disassembler.cpp common.hpp target
+	g++ -c disassembler.cpp -o target/disassembler.o
+
+target:
+	mkdir target
 
 clean:
-	rm *.o
+	rm -Rf target
 	rm emulator
 	rm disassembler
 

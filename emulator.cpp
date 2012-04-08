@@ -1,14 +1,14 @@
 #include <inttypes.h>
 #include <iostream>
-#include <fstream>
-#include <iomanip>
-#include <sstream>
 #include <string>
 #include <exception>
 #include <stdexcept>
 #include <csignal>
+#include <iomanip>
 
-#include "dcpu.h"
+#include <boost/format.hpp>
+
+#include "dcpu.hpp"
 
 using namespace std;
 
@@ -26,131 +26,127 @@ static uint8_t non_basic_cycles_table[2] = {
 class EmulatorOpcodeHandler : public OpcodeHandler {
 public:
 	virtual void execute(DCPU &cpu, Opcode& opcode) {
-		if (opcode.getOpcodeType() == 0) {
+		if (opcode.isNonBasic()) {
 			executeNonBasic(cpu, opcode);
 		} else {
-			OpcodeArgument &a = opcode.getA();
-			OpcodeArgument &b = opcode.getB();
+			OpcodeArgument *a = opcode.getA();
+			OpcodeArgument *b = opcode.getB();
 
-			a.resolve(cpu);
-			b.resolve(cpu);
+			a->resolve(cpu);
+			b->resolve(cpu);
 
-			switch (opcode.getOpcodeType()) {
-			case op_set:
-				a = *b;
+			uint8_t opcodeType = opcode.getType();
+			switch (opcodeType) {
+			case opcodes::SET:
+				*a = b->getValue();
 				break;
-			case op_add:
+			case opcodes::ADD:
 				{
-					uint32_t result = *a + *b;
+					uint32_t result = a->getValue() + b->getValue();
 					
 					cpu.o = result >> 16;
-					a = (word_t)result;
+					*a = (word_t)result;
 				}
 				break;
-			case op_sub:
+			case opcodes::SUB:
 				{
-					uint32_t result = *a - *b;
+					uint32_t result = a->getValue() - b->getValue();
 					
 					cpu.o = result >> 16;
-					a = (word_t)result;
+					*a = (word_t)result;
 				}
 				break;
-			case op_mul:
+			case opcodes::MUL:
 				{
-					uint32_t result = *a * *b;
+					uint32_t result = a->getValue() * b->getValue();
 					
 					cpu.o = (result >> 16) & 0xffff;
-					a = (word_t)result;
+					*a = (word_t)result;
 				}
 				break;
-			case op_div:
+			case opcodes::DIV:
 				{
-					if (*b == 0) {
+					if (b->getValue() == 0) {
 						cpu.o = 0;
-						a = 0;
+						*a = 0;
 					} else {
-						uint32_t result = (*a << 16) / *b;
+						uint32_t result = (a->getValue() << 16) / b->getValue();
 
 						cpu.o = result & 0xffff;
-						a = (word_t)(result >> 16);
+						*a = (word_t)(result >> 16);
 					} 
 				}
 				break;
-			case op_mod:
-				if (*b == 0) {
-					a = 0;
+			case opcodes::MOD:
+				if (b->getValue() == 0) {
+					*a = 0;
 				} else {
-					a = *a % *b;
+					*a = a->getValue() % b->getValue();
 				}
 				break;
-			case op_shl:
+			case opcodes::SHL:
 				{
-					uint32_t result = *a << *b;
+					uint32_t result = a->getValue() << b->getValue();
 					cpu.o = (result >> 16) & 0xffff;
-					a = (word_t)result;
+					*a = (word_t)result;
 				}
 				break;
-			case op_shr:
+			case opcodes::SHR:
 				{
-					uint32_t result = (*a << 16) >> *b; 
+					uint32_t result = (a->getValue() << 16) >> b->getValue(); 
 					cpu.o = result & 0xffff;
 					result = (word_t)result >> 16;
 				}
 				break;
-			case op_and:
-				a = *a & *b;
+			case opcodes::AND:
+				*a = a->getValue() & b->getValue();
 				break;
-			case op_bor:
-				a = *a | *b;
+			case opcodes::BOR:
+				*a = a->getValue() | b->getValue();
 				break;
-			case op_xor:
-				a = *a ^ *b;
+			case opcodes::XOR:
+				*a = a->getValue() ^ b->getValue();
 				break;
-			case op_ife:
-				if (*a != *b) {
+			case opcodes::IFE:
+				if (a->getValue() != b->getValue()) {
 					cpu.skipNext();
 				}
 				break;
-			case op_ifn:
-				if (*a == *b) {
+			case opcodes::IFN:
+				if (a->getValue() == b->getValue()) {
 					cpu.skipNext();
 				}
 				break;
-			case op_ifg:
-				if (*a <= *b) {
+			case opcodes::IFG:
+				if (a->getValue() <= b->getValue()) {
 					cpu.skipNext();
 				}
 				break;
-			case op_ifb:
-				if (*a & *b == 0) {
+			case opcodes::IFB:
+				if (a->getValue() & b->getValue() == 0) {
 					cpu.skipNext();
 				}
 				break;
 			}
 
-			cpu.addCycles(basic_cycles_table[opcode.getOpcodeType()] - 1);	
+			cpu.addCycles(basic_cycles_table[opcodeType] - 1);	
 		}
 	}
 private:
 	void executeNonBasic(DCPU &cpu, Opcode &opcode) {
-		uint8_t nbOpcode = opcode.getOpcodeType();
-		OpcodeArgument &a = opcode.getB();
+		uint8_t nbOpcode = opcode.getType();
+		OpcodeArgument *a = opcode.getA();
 
-		a.resolve(cpu);
+		a->resolve(cpu);
+
 		switch (nbOpcode) {
-		case op_jsr:
+		case opcodes::JSR:
 			cpu.pushStack(cpu.pc);
-			cpu.pc = *a;
+			cpu.pc = a->getValue();
 			break;
 		default:
-			{
-				word_t pc = cpu.pc - opcode.getSize();
-
-				stringstream buf;
-				buf << hex << setfill('0') << setw(4) << pc 
-					<< ": Invalid Opcode " << setw(2) << nbOpcode;
-				throw logic_error(buf.str().c_str());
-			}
+			throw logic_error(str(boost::format("%04x: Invalid Non-basic "
+				"Opcode %#x") % opcode.getLocation() % (word_t)nbOpcode));
 			break;
 		}
 
@@ -169,7 +165,7 @@ int main(int argc, char **argv) {
 	EmulatorOpcodeHandler handler;
 
 	if (argc < 2) {
-		printf("Usage: %s </path/to/dcpu/program>\n", argv[0]);
+		cerr << "Usage: " << argv[0] << " </path/to/dcpu/program>" << endl;
 		return 1;
 	}
 
