@@ -5,11 +5,12 @@ typedef uint16_t word_t;
 enum {
 	TOTAL_GENERAL_PURPOSE_REGISTERS = 8,
 	TOTAL_REGISTERS = 11,
-	TOTAL_MEMORY = 0x10000
+	TOTAL_MEMORY = 0x10000,
+	MAX_SHORT_LITERAL = 0x1f
 };
 
 namespace registers {
-	enum {
+	enum register_type {
 		A, B, C, X, Y, Z, I, J, SP, PC, O
 	};
 }
