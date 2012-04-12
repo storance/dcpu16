@@ -3,7 +3,6 @@
 #include <list>
 
 #include "ast.hpp"
-#include "opcode.hpp"
 
 class Compiler {
 private:

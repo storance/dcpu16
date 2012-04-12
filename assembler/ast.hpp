@@ -3,6 +3,7 @@
 #include <boost/variant/recursive_variant.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/io.hpp>
+#include <boost/fusion/include/nview.hpp>
 #include <boost/optional.hpp>
 
 #include "../common.hpp"
@@ -39,11 +40,14 @@ namespace ast {
 
 	struct register_argument {
 		register_argument() {}
-		register_argument(bool is_ptr, registers::register_type type) 
-			: is_ptr(is_ptr), type(type) {}
+		register_argument(bool is_ptr, registers::register_type type)
+			: is_ptr(is_ptr), type(type), offset(0) {}
+		register_argument(bool is_ptr, registers::register_type type,
+			word_t offset) : is_ptr(is_ptr), type(type), offset(offset) {}
 
 		bool is_ptr;
 		registers::register_type type;
+		word_t offset;
 	};
 
 	struct literal_argument {
@@ -91,7 +95,10 @@ BOOST_FUSION_ADAPT_STRUCT(
     ast::register_argument,
     (bool, is_ptr)
     (registers::register_type, type)
+    (word_t, offset)
 )
+
+typedef boost::fusion::result_of::as_nview<ast::register_argument, 2, 1, 0>::type reverse_register_argument;
 
 BOOST_FUSION_ADAPT_STRUCT(
     ast::literal_argument,

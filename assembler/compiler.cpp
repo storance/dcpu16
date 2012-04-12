@@ -29,7 +29,13 @@ public:
 		switch(r.type) {
 		REGISTER_CASES(registers::A)
 			if (r.is_ptr) {
-				return encoded_argument(arguments::PTR_A + r.type, next_word());
+				if (r.offset > 0) {
+					return encoded_argument(arguments::PTR_OFFSET_A + r.type,
+						next_word(r.offset));
+				} else {
+					return encoded_argument(arguments::PTR_A + r.type,
+						next_word());
+				}
 			} else {
 				return encoded_argument(arguments::A + r.type, next_word());
 			}
@@ -50,12 +56,15 @@ public:
 
     encoded_argument operator()(const ast::literal_argument &l) const {
     	if (l.is_ptr) {
-    		return encoded_argument(arguments::PTR_NEXT_WORD, next_word(l.value));
+    		return encoded_argument(arguments::PTR_NEXT_WORD,
+    			next_word(l.value));
     	} else {
 	    	if (l.value <= MAX_SHORT_LITERAL) {
-	    		return encoded_argument(l.value + arguments::LITERAL_START, next_word());
+	    		return encoded_argument(l.value + arguments::LITERAL_START,
+	    			next_word());
 	    	} else {
-	    		return encoded_argument(arguments::NEXT_WORD, next_word(l.value));
+	    		return encoded_argument(arguments::NEXT_WORD,
+	    			next_word(l.value));
 	    	}
 	    }
     }
