@@ -10,6 +10,7 @@
 
 #include "statement.hpp"
 #include "assembler.hpp"
+#include "compiler.hpp"
 
 using namespace std;
 namespace qi = boost::spirit::qi;
@@ -21,55 +22,6 @@ void SymbolTable::add(const string &label, word_t offset) {
 word_t *SymbolTable::lookup(const string &label) {
 	return NULL;
 }
-
-static const char *register_names[TOTAL_REGISTERS] = {
-	"A", "B", "C", "X", "Y", "Z", "I", "J", "SP", "PC", "O"
-};
-
-static const char *opcode_names[ast::TOTAl_OPCODES] = {
-	"SET", "ADD", "SUB", "MUL", "DIV", "MOD", "SHL", "SHR", "AND", "BOR",
-	"XOR", "IFE", "IFN", "IFG", "IFB", "JSR", "JMP", "PUSH", "POP"
-};
-
-class arg_visitor : public boost::static_visitor<void> 
-{
-public:
-    void operator()(const ast::register_argument &reg) const {
-        cout << register_names[reg.type];
-    }
-    
-    void operator()(const ast::register_ptr_argument &reg) const {
-        cout << "[" << register_names[reg.type] << "]";
-    }
-
-    void operator()(const ast::literal_argument &l) const {
-        cout << hex << showbase << l.value << dec;
-    }
-
-    void operator()(const ast::literal_ptr_argument &l) const {
-        cout << "[" << hex << showbase << l.value << dec << "]";
-    }
-};
-
-class stmt_visitor : public boost::static_visitor<void> 
-{
-public:
-    void operator()(const ast::instruction &i) const {
-        cout << opcode_names[i.opcode] << " ";
-        boost::apply_visitor(arg_visitor(), i.a);
-
-        if (i.b) {
-        	cout << ", ";
-			boost::apply_visitor(arg_visitor(), *i.b);        	
-        }
-
-        cout << endl;
-    }
-    
-    void operator()(const ast::label &l) const {
-        cout << ":" << l.name << endl;
-    }
-};
 
 list<ast::statement> parse_file(const string& filename) {
 	typedef std::string::const_iterator iterator_type;
@@ -106,7 +58,6 @@ int main(int argc, char **argv) {
 
 	list<ast::statement> result = parse_file(argv[1]);
 
-	for (list<ast::statement>::iterator it = result.begin(); it != result.end(); it++) {
-		boost::apply_visitor(stmt_visitor(), *it);
-	}
+	Compiler compiler;
+	compiler.compile(result);
 }

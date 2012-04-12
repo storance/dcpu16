@@ -9,8 +9,7 @@
 
 namespace ast {
 	enum opcode_type {
-		// two arg
-		SET,
+		SET=1,
 		ADD,
 		SUB,
 		MUL,
@@ -25,12 +24,10 @@ namespace ast {
 		IFN,
 		IFG,
 		IFB,
-
-		// one arg
 		JSR,
-		JMP, // alias for SET PC, a
-		PUSH, // alias for SET [--SP], a 
-		POP, // alias for SET [SP++], a
+		JMP,
+		PUSH,
+		POP,
 		TOTAl_OPCODES
 	};
 
@@ -42,33 +39,39 @@ namespace ast {
 
 	struct register_argument {
 		register_argument() {}
-		register_argument(registers::register_type type) : type(type) {}
-		registers::register_type type;
-	};
+		register_argument(bool is_ptr, registers::register_type type) 
+			: is_ptr(is_ptr), type(type) {}
 
-	struct register_ptr_argument {
-		register_ptr_argument() {}
-		register_ptr_argument(registers::register_type type) : type(type) {}
+		bool is_ptr;
 		registers::register_type type;
 	};
 
 	struct literal_argument {
 		literal_argument() {}
-		literal_argument(uint32_t value) : value(value) {}
+		literal_argument(bool is_ptr, uint32_t value) 
+			: is_ptr(is_ptr), value(value) {}
+
+		bool is_ptr;
 		uint32_t value;
 	};
 
-	struct literal_ptr_argument {
-		literal_ptr_argument() {}
-		literal_ptr_argument(uint32_t value) : value(value) {}
-		uint32_t value;
+	enum stack_type {
+		STACK_PUSH,
+		STACK_POP,
+		STACK_PEEK
+	};
+
+	struct stack_argument {
+		stack_argument() {}
+		stack_argument(stack_type type) : type(type) {}
+
+		stack_type type;
 	};
 
 	typedef boost::variant<
 			register_argument,
-			register_ptr_argument,
 			literal_argument,
-			literal_ptr_argument
+			stack_argument
 		> argument;
 
 	struct instruction {
@@ -82,6 +85,19 @@ namespace ast {
 		label
 		> statement;
 }
+
+
+BOOST_FUSION_ADAPT_STRUCT(
+    ast::register_argument,
+    (bool, is_ptr)
+    (registers::register_type, type)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+    ast::literal_argument,
+    (bool, is_ptr)
+    (uint32_t, value)
+)
 
 BOOST_FUSION_ADAPT_STRUCT(
     ast::instruction,
