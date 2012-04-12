@@ -114,7 +114,7 @@ size_t DCPU::load(const char *filename) {
 	}
 
 	size_t index = 0;
-	while (file) {
+	while (file && index <= TOTAL_MEMORY) {
 		uint8_t b1 = file.get();
 		uint8_t b2 = file.get();
 		if (file.bad()) {
@@ -132,7 +132,8 @@ size_t DCPU::load(const char *filename) {
 
 void DCPU::execute(OpcodeHandler* handler) {
 	while (!halted) {
-		Opcode opcode(getNextWord(), pc-1);
+		word_t nextWord = getNextWord();
+		Opcode opcode(nextWord, pc-1);
 		handler->execute(*this, opcode);
 	}
 }
