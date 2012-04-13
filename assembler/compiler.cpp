@@ -11,12 +11,20 @@ using namespace std;
 class CalculateArgumentSize : public boost::static_visitor<uint8_t> 
 {
 public:
-    uint8_t operator()(const ast::register_argument &reg) const {
+    uint8_t operator()(const ast::register_argument &r) const {
+    	if (r.is_ptr && r.offset > 0) {
+    		return 1;
+    	}
+
         return 0;
     }
 
     uint8_t operator()(const ast::literal_argument &l) const {
-    	return l.value <= MAX_SHORT_LITERAL ? 0 : 1;
+    	return !l.is_ptr && l.value <= MAX_SHORT_LITERAL ? 0 : 1;
+    }
+
+    uint8_t operator()(const ast::stack_argument &l) const {
+    	return 0;
     }
 };
 
@@ -166,7 +174,7 @@ public:
     }
     
     void operator()(const ast::label &l) {
-        
+        cout << "Found laebl: " << l.name << endl;
     }
 };
 

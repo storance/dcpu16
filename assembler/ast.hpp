@@ -32,6 +32,12 @@ namespace ast {
 		TOTAl_OPCODES
 	};
 
+	enum label_type {
+		GLOBAL_LABEL,
+		LOCAL_LABEL,
+		
+	};
+
 	struct label {
 		label() {}
 		label(const std::string &name) : name(name) {}

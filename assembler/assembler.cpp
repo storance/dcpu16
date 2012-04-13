@@ -5,6 +5,7 @@
 #include <exception>
 #include <stdexcept>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/variant.hpp>
 #include <boost/format.hpp>
 
@@ -40,13 +41,23 @@ list<ast::statement> parse_file(const string& filename) {
     iterator_type start = storage.begin();
     iterator_type end = storage.end();
 
-    grammar::statement<iterator_type> stmt_grammar;
+    ErrorHandler<iterator_type> errorHandler(filename, start, end);
+    grammar::Statement<iterator_type> stmt_grammar(errorHandler);
     grammar::skipper<iterator_type> skipper;
     list<ast::statement> result;
-    if (qi::phrase_parse(start, end, stmt_grammar, skipper, result)) {
+    bool success = qi::phrase_parse(start, end, stmt_grammar, skipper, result);
+
+    if (success && start == end) {
     	return result;
     } else {
-    	throw runtime_error("Failed to parse file");
+        if (success) {
+            string unrecognizedToken;
+            qi::parse(start, end, +(qi::char_ - ascii::space), unrecognizedToken);
+            errorHandler("Unrecognized ", unrecognizedToken, start);
+        } else {
+            cerr << "Parse failed" << endl;
+    	   //throw runtime_error("Failed to parse file");
+        }
     }
 }
 
