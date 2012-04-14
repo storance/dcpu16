@@ -27,10 +27,13 @@ protected:
     Location makeLocation();
 
     bool isHexDigit(char);
+    bool isOperatorChar(char);
+    bool isUnknownChar(char);
     bool isAllowedIdentifierChar(char);
     bool isAllowedIdentifierFirstChar(char);
 
     token_type parseNumber(std::string value);
+    token_type parseOperator(std::string value);
 public:
     Lexer(Iterator current, Iterator end, std::string sourceName);
 

@@ -15,6 +15,7 @@ enum class TokenType {
     COMMA,
     COLON,
     DOLLAR,
+    AT,
     LPAREN,
     RPAREN,
     LBRACKET,
@@ -43,9 +44,9 @@ public:
 
 class UnknownToken : public Token {
 public:
-    char value;
+    std::string value;
 
-    UnknownToken(Location, char);
+    UnknownToken(Location, std::string);
 };
 
 class NumberToken : public Token {
@@ -59,7 +60,9 @@ public:
 
 class OverflowNumberToken : public NumberToken {
 public:
-    OverflowNumberToken(Location);
+	std::string rawValue;
+
+    OverflowNumberToken(Location, std::string);
 };
 
 class InvalidNumberToken : public Token {

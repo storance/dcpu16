@@ -11,7 +11,7 @@ Lexer<Iterator>::Lexer(Iterator current, Iterator end, std::string sourceName)
 
 template<typename Iterator>
 void Lexer<Iterator>::skipWhitespace() {
-    skipUntil([] (char c) { return c != ' ' && c != '\t';});
+    skipUntil([] (char c) { return c != ' ' && c != '\t' && c != '\v' && c != '\f';});
 }
 
 template<typename Iterator> template<typename Predicate>
@@ -58,6 +58,12 @@ void Lexer<Iterator>::nextLine() {
 }
 
 template<typename Iterator>
+bool Lexer<Iterator>::isOperatorChar(char c) {
+	return c == '+' || c == '-' || c == '*' || c == '/' || c == '<' || c == '>' || c == '|' || c == '&'
+		|| c == '!' || c == '^' || c == '%';
+}
+
+template<typename Iterator>
 bool Lexer<Iterator>::isHexDigit(char c) {
     return isdigit(c) || tolower(c) >= 'a' && tolower(c) <= 'f';
 }
@@ -70,6 +76,26 @@ bool Lexer<Iterator>::isAllowedIdentifierChar(char c) {
 template<typename Iterator>
 bool Lexer<Iterator>::isAllowedIdentifierFirstChar(char c) {
     return isalpha(c) || c == '_' || c == '?' || c == '.';
+}
+template<typename Iterator>
+bool Lexer<Iterator>::isUnknownChar(char c) {
+	return !(isAllowedIdentifierFirstChar(c) || isOperatorChar(c) || isspace(c) || c == ':' || c == ',' || c == ';'
+		|| c == '$' || c == '@');
+}
+
+template<typename Iterator>
+typename Lexer<Iterator>::token_type Lexer<Iterator>::parseOperator(std::string value) {
+	if (value == "++") {
+		return std::make_shared<Token>(makeLocation(), TokenType::INCREMENT);
+	} else if (value == "--") {
+		return std::make_shared<Token>(makeLocation(), TokenType::DECREMENT);
+	} else if (value == "+") {
+		return std::make_shared<Token>(makeLocation(), TokenType::PLUS);
+	} else if (value == "-") {
+		return std::make_shared<Token>(makeLocation(), TokenType::MINUS);
+	} else {
+		return std::make_shared<UnknownToken>(makeLocation(), value);
+	}
 }
 
 template<typename Iterator>
@@ -98,7 +124,7 @@ typename Lexer<Iterator>::token_type Lexer<Iterator>::parseNumber(std::string va
     unsigned long l = strtoul(unprefixedValue.c_str(), &end, base);
 
     if ((errno == ERANGE && l == ULONG_MAX) || l > 0xffffffff) {
-        return std::make_shared<OverflowNumberToken>(makeLocation());
+        return std::make_shared<OverflowNumberToken>(makeLocation(), value);
     } else if (*end != '\0') {
         return std::make_shared<InvalidNumberToken>(makeLocation(), value, base);
     }
@@ -129,14 +155,17 @@ typename Lexer<Iterator>::token_type Lexer<Iterator>::nextToken() {
         return std::make_shared<Token>(makeLocation(), TokenType::LBRACKET);
     } else if (c == ']') {
         return std::make_shared<Token>(makeLocation(), TokenType::RBRACKET);
-    } else if (c == '+') {
-        char next = nextChar();
-        if (next == '+') {
-            return std::make_shared<Token>(makeLocation(), TokenType::INCREMENT);
-        } else {
-            moveBack();
-            return std::make_shared<Token>(makeLocation(), TokenType::PLUS);
-        }
+    } else if (c == '@') {
+		return std::make_shared<Token>(makeLocation(), TokenType::AT);
+    } else if (c == '(') {
+        return std::make_shared<Token>(makeLocation(), TokenType::LPAREN);
+    } else if (c == ')') {
+        return std::make_shared<Token>(makeLocation(), TokenType::RPAREN);
+    } else if (isOperatorChar(c)) {
+    	std::string value(1, c);
+        processUntil([this](char ch) { return !this->isOperatorChar(ch);}, [&] (char ch) { value += ch; });
+
+        return parseOperator(value);
     } else if (c == '-') {
         char next = nextChar();
         if (next == '-') {
@@ -164,16 +193,20 @@ typename Lexer<Iterator>::token_type Lexer<Iterator>::nextToken() {
         } else {
             moveBack();
 
-            return std::make_shared<UnknownToken>(makeLocation(), c);
+            return std::make_shared<UnknownToken>(makeLocation(), std::string(1, c));
         }
 
     } else if (c == '\n') {
         nextLine();
 
         return std::make_shared<Token>(makeLocation(), TokenType::NEWLINE);
-    }
+    } else {
+		std::string value(1, c);
 
-    return std::make_shared<UnknownToken>(makeLocation(), c);
+		processUntil([this](char ch) { return !this->isUnknownChar(ch); }, [&] (char ch) { value += ch; });
+
+		return std::make_shared<UnknownToken>(makeLocation(), value);
+    }
 }
 template<typename Iterator>
 std::vector<typename Lexer<Iterator>::token_type> Lexer<Iterator>::parse() {
