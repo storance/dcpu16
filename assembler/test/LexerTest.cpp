@@ -1,5 +1,6 @@
 #include "../Lexer.hpp"
 
+#include <iostream>
 #include <gtest/gtest.h>
 
 using namespace std;
@@ -8,266 +9,295 @@ typedef string::const_iterator iterator_type;
 typedef Lexer<iterator_type> lexer_type;
 typedef Lexer<iterator_type>::token_type token_type;
 
-void assertIdentifier(token_type token, string expectedName) {
-    EXPECT_EQ(TokenType::IDENTIFIER, token->type);
-
-    IdentifierToken *identifier = (IdentifierToken*)token.get();
-    EXPECT_EQ(expectedName, identifier->name);
+#define assertIdentifier(token, expectedName) { \
+	token_type t = token; \
+    ASSERT_EQ(TokenType::IDENTIFIER, t->type); \
+    IdentifierToken *identifier = (IdentifierToken*)t.get(); \
+    EXPECT_EQ(expectedName, identifier->name); \
 }
 
-void assertNumber(token_type token, uint32_t expectedValue) {
-    EXPECT_EQ(TokenType::NUMBER, token->type);
-
-    NumberToken *number = (NumberToken*)token.get();
-    EXPECT_EQ(expectedValue, number->value);
+#define assertNumber(token, expectedValue) { \
+	token_type t = token; \
+    ASSERT_EQ(TokenType::NUMBER, t->type); \
+    NumberToken *number = (NumberToken*)t.get(); \
+    EXPECT_EQ(expectedValue, number->value); \
 }
 
-void assertInvalidNumber(token_type token, std::string expectedValue, int expectedBase) {
-    EXPECT_EQ(TokenType::INVALID_NUMBER, token->type);
-
-    InvalidNumberToken *unknown = (InvalidNumberToken*)token.get();
-    EXPECT_EQ(expectedValue, unknown->value);
-    EXPECT_EQ(expectedBase, unknown->base);
+#define assertInvalidNumber(token, expectedValue, expectedBase) { \
+	token_type t = token; \
+    ASSERT_EQ(TokenType::INVALID_NUMBER, t->type); \
+    InvalidNumberToken *unknown = (InvalidNumberToken*)t.get(); \
+    EXPECT_EQ(expectedValue, unknown->value); \
+    EXPECT_EQ(expectedBase, unknown->base); \
 }
 
-void assertOverflowNumber(token_type token, std::string expectedValue) {
-    EXPECT_EQ(TokenType::OVERFLOW_NUMBER, token->type);
-
-    OverflowNumberToken *overflow = (OverflowNumberToken*)token.get();
-    EXPECT_EQ(expectedValue, overflow->rawValue);
-    EXPECT_EQ(0xffffffff, overflow->value);
+#define assertOverflowNumber(token, expectedValue) { \
+	token_type t = token; \
+    ASSERT_EQ(TokenType::OVERFLOW_NUMBER, t->type); \
+    OverflowNumberToken *overflow = (OverflowNumberToken*)t.get(); \
+    EXPECT_EQ(expectedValue, overflow->rawValue); \
+    EXPECT_EQ(0xffffffff, overflow->value); \
 }
 
-void assertUnknown(token_type token, std::string expectedValue) {
-    EXPECT_EQ(TokenType::UNKNOWN, token->type);
-
-    UnknownToken *unknown = (UnknownToken*)token.get();
-    EXPECT_EQ(expectedValue, unknown->value);
+#define assertUnknown(token, expectedValue) { \
+	token_type t = token; \
+    ASSERT_EQ(TokenType::UNKNOWN, t->type); \
+    UnknownToken *unknown = (UnknownToken*)t.get(); \
+    EXPECT_EQ(expectedValue, unknown->value); \
 }
 
-void assertEOI(token_type token) {
-    EXPECT_EQ(TokenType::END_OF_INPUT, token->type);
+#define assertEOI(token) ASSERT_EQ(TokenType::END_OF_INPUT, token->type)
+
+#define assertLeftBracket(token) ASSERT_EQ(TokenType::LBRACKET, token->type)
+
+#define assertRightBracket(token) ASSERT_EQ(TokenType::RBRACKET, token->type)
+
+#define assertLeftParenthesis(token) ASSERT_EQ(TokenType::LPAREN, token->type)
+
+#define assertRightParenthesis(token) ASSERT_EQ(TokenType::RPAREN, token->type)
+
+#define assertComma(token) ASSERT_EQ(TokenType::COMMA, token->type)
+
+#define assertColon(token) ASSERT_EQ(TokenType::COLON, token->type)
+
+#define assertDollar(token) ASSERT_EQ(TokenType::DOLLAR, token->type)
+
+#define assertAt(token) ASSERT_EQ(TokenType::AT, token->type)
+
+#define assertPlus(token) ASSERT_EQ(TokenType::PLUS, token->type)
+
+#define assertMinus(token) ASSERT_EQ(TokenType::MINUS, token->type)
+
+#define assertIncrement(token) ASSERT_EQ(TokenType::INCREMENT, token->type)
+
+#define assertDecrement(token) ASSERT_EQ(TokenType::DECREMENT, token->type)
+
+#define assertNewline(token) ASSERT_EQ(TokenType::NEWLINE, token->type)
+
+#define assertLocation(token, lineNum, columnNum) { \
+	token_type t = token; \
+	EXPECT_EQ("<LexerTest>", t->location.sourceName); \
+	EXPECT_EQ(lineNum, t->location.line); \
+	EXPECT_EQ(columnNum, t->location.column); \
 }
 
-void assertLeftBracket(token_type token) {
-    EXPECT_EQ(TokenType::LBRACKET, token->type);
-}
-void assertRightBracket(token_type token) {
-    EXPECT_EQ(TokenType::RBRACKET, token->type);
-}
+void runParser(string input, size_t expectedTokens, vector<token_type> &tokens) {
+	tokens.clear();
 
-void assertComma(token_type token) {
-    EXPECT_EQ(TokenType::COMMA, token->type);
-}
-
-void assertColon(token_type token) {
-    EXPECT_EQ(TokenType::COLON, token->type);
-}
-
-void assertPlus(token_type token) {
-    EXPECT_EQ(TokenType::PLUS, token->type);
-}
-
-void assertNewline(token_type token) {
-    EXPECT_EQ(TokenType::NEWLINE, token->type);
-}
-
-vector<token_type> run_parser(string input, size_t expectedTokens) {
 	lexer_type lexer(input.begin(), input.end(), "<LexerTest>");
-    vector<token_type> tokens = lexer.parse();
+    lexer.parse(tokens);
 
-	EXPECT_EQ(expectedTokens, tokens.size());
-
-	return tokens;
+    ASSERT_EQ(expectedTokens, tokens.size());
 }
 
 TEST(LexerTest, Identifier) {
-    vector<token_type> tokens = run_parser("_a1_?.$#@", 2);
+    vector<token_type> tokens;
+
+    ASSERT_NO_FATAL_FAILURE(runParser("_a1_?.$#@", 2, tokens));
 
     assertIdentifier(tokens[0], "_a1_?.$#@");
     assertEOI(tokens[1]);
 
-    tokens = run_parser(".aaa111", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser(".aaa111", 2, tokens));
 
     assertIdentifier(tokens[0], ".aaa111");
     assertEOI(tokens[1]);
 
-    tokens = run_parser("?aaa111", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("?aaa111", 2, tokens));
 
     assertIdentifier(tokens[0], "?aaa111");
     assertEOI(tokens[1]);
 
-    tokens = run_parser("aaa111", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("aaa111", 2, tokens));
 
     assertIdentifier(tokens[0], "aaa111");
     assertEOI(tokens[1]);
 }
 
 TEST(LexerTest, DecimalNumber) {
-    vector<token_type> tokens = run_parser("100", 2);
+    vector<token_type> tokens;
+
+    ASSERT_NO_FATAL_FAILURE(runParser("100", 2, tokens));
 
     assertNumber(tokens[0], 100);
     assertEOI(tokens[1]);
 }
 
 TEST(LexerTest, HexNumber) {
-    vector<token_type> tokens = run_parser("0xff", 2);
+    vector<token_type> tokens;
+    ASSERT_NO_FATAL_FAILURE(runParser("0xff", 2, tokens));
 
     assertNumber(tokens[0], 255);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("0X1D", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("0X1D", 2, tokens));
 
     assertNumber(tokens[0], 29);
     assertEOI(tokens[1]);
 }
 
 TEST(LexerTest, BinaryNumber) {
-    vector<token_type> tokens = run_parser("0b1011", 2);
+    vector<token_type> tokens;
+
+    ASSERT_NO_FATAL_FAILURE(runParser("0b1011", 2, tokens));
 
     assertNumber(tokens[0], 11);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("0B10001011", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("0B10001011", 2, tokens));
 
     assertNumber(tokens[0], 139);
     assertEOI(tokens[1]);
 }
 
 TEST(LexerTest, OctalNumber) {
-    vector<token_type> tokens = run_parser("0o32", 2);
+    vector<token_type> tokens;
+
+    ASSERT_NO_FATAL_FAILURE(runParser("0o32", 2, tokens));
 
     assertNumber(tokens[0], 26);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("0O27", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("0O27", 2, tokens));
 
     assertNumber(tokens[0], 23);
     assertEOI(tokens[1]);
 }
 
 TEST(LexerTest, InvalidNumber) {
-    vector<token_type> tokens = run_parser("100a3", 2);
+    vector<token_type> tokens;
+
+    ASSERT_NO_FATAL_FAILURE(runParser("100a3", 2, tokens));
 
     assertInvalidNumber(tokens[0], "100a3", 10);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("0X100Z3", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("0X100Z3", 2, tokens));
 
     assertInvalidNumber(tokens[0], "0X100Z3", 16);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("0o10093", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("0o10093", 2, tokens));
 
     assertInvalidNumber(tokens[0], "0o10093", 8);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("0o100a3", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("0o100a3", 2, tokens));
 
     assertInvalidNumber(tokens[0], "0o100a3", 8);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("0b1113", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("0b1113", 2, tokens));
 
     assertInvalidNumber(tokens[0], "0b1113", 2);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("0B111a", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("0B111a", 2, tokens));
 
     assertInvalidNumber(tokens[0], "0B111a", 2);
     assertEOI(tokens[1]);
 }
 
 TEST(LexerTest, OverflowNumber) {
-    vector<token_type> tokens = run_parser("4294967296", 2);
+    vector<token_type> tokens;
+
+    ASSERT_NO_FATAL_FAILURE(runParser("4294967296", 2, tokens));
 
     assertOverflowNumber(tokens[0], "4294967296");
     assertEOI(tokens[1]);
 }
 
 TEST(LexerTest, Operator) {
-    vector<token_type> tokens = run_parser("++", 2);
+    vector<token_type> tokens;
 
-    EXPECT_EQ(TokenType::INCREMENT, tokens[0]->type);
+    ASSERT_NO_FATAL_FAILURE(runParser("++", 2, tokens));
+
+    assertIncrement(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("--", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("--", 2, tokens));
 
-    EXPECT_EQ(TokenType::DECREMENT, tokens[0]->type);
+    assertDecrement(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("+", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("+", 2, tokens));
 
-    EXPECT_EQ(TokenType::PLUS, tokens[0]->type);
+    assertPlus(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("-", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("-", 2, tokens));
 
-    EXPECT_EQ(TokenType::MINUS, tokens[0]->type);
+    assertMinus(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("+++", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("+++", 2, tokens));
 
     assertUnknown(tokens[0], "+++");
     assertEOI(tokens[1]);
 }
 
 TEST(LexerTest, Newline) {
-	vector<token_type> tokens = run_parser("\n", 2);
+	vector<token_type> tokens;
+
+	ASSERT_NO_FATAL_FAILURE(runParser("\n", 2, tokens));
 
     assertNewline(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("\r\n", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("\r\n", 2, tokens));
 
     assertNewline(tokens[0]);
     assertEOI(tokens[1]);
 }
 
 TEST(LexerTest, MiscTokens) {
-	vector<token_type> tokens = run_parser(":", 2);
+	vector<token_type> tokens;
+
+	ASSERT_NO_FATAL_FAILURE(runParser(":", 2, tokens));
 
     assertColon(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("@", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("@", 2, tokens));
 
-    EXPECT_EQ(TokenType::AT, tokens[0]->type);
+    assertAt(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser(",", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser(",", 2, tokens));
 
     assertComma(tokens[0]);
     assertEOI(tokens[1]);
 
-	tokens = run_parser("$", 2);
+	ASSERT_NO_FATAL_FAILURE(runParser("$", 2, tokens));
 
-    EXPECT_EQ(TokenType::DOLLAR, tokens[0]->type);
+    assertDollar(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("[", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("[", 2, tokens));
 
     assertLeftBracket(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("]", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("]", 2, tokens));
 
     assertRightBracket(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser("(", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser("(", 2, tokens));
 
-    EXPECT_EQ(TokenType::LPAREN, tokens[0]->type);
+    assertLeftParenthesis(tokens[0]);
     assertEOI(tokens[1]);
 
-    tokens = run_parser(")", 2);
+    ASSERT_NO_FATAL_FAILURE(runParser(")", 2, tokens));
 
-    EXPECT_EQ(TokenType::RPAREN, tokens[0]->type);
+    assertRightParenthesis(tokens[0]);
     assertEOI(tokens[1]);
 }
 
 TEST(LexerTest, SkipLogic) {
-	vector<token_type> tokens = run_parser(" ;comment\n\t1 + 3", 5);
+	vector<token_type> tokens;
+
+	ASSERT_NO_FATAL_FAILURE(runParser(" ;comment\n\t1 + 3", 5, tokens));
 
 	assertNewline(tokens[0]);
 	assertNumber(tokens[1], 1);
@@ -277,7 +307,9 @@ TEST(LexerTest, SkipLogic) {
 }
 
 TEST(LexerTest, SimpleExpression) {
-	vector<token_type> tokens = run_parser("set A, b\nset [J], 0x400\nlabel: JSR label+4\n", 20);
+	vector<token_type> tokens;
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, b\nset [J], 0x400\nlabel: JSR label+4\n", 20, tokens));
 
 	int index = 0;
 	assertIdentifier(tokens[index++], "set");
@@ -303,4 +335,68 @@ TEST(LexerTest, SimpleExpression) {
 	assertNewline(tokens[index++]);
 
 	assertEOI(tokens[index++]);
+}
+
+TEST(LexerTest, Location) {
+	vector<token_type> tokens;
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, b\n  set [J], 0x400\n;a test comment\nSET I, 1\n", 19, tokens));
+
+	int index = 0;
+	assertIdentifier(tokens[index], "set");
+	assertLocation(tokens[index++], 1, 1);
+
+	assertIdentifier(tokens[index], "A");
+	assertLocation(tokens[index++], 1, 5);
+
+	assertComma(tokens[index]);
+	assertLocation(tokens[index++], 1, 6);
+
+	assertIdentifier(tokens[index], "b");
+	assertLocation(tokens[index++], 1, 8);
+
+	assertNewline(tokens[index]);
+	assertLocation(tokens[index++], 1, 9);
+
+	assertIdentifier(tokens[index], "set");
+	assertLocation(tokens[index++], 2, 3);
+
+	assertLeftBracket(tokens[index]);
+	assertLocation(tokens[index++], 2, 7);
+
+	assertIdentifier(tokens[index], "J");
+	assertLocation(tokens[index++], 2, 8);
+
+	assertRightBracket(tokens[index]);
+	assertLocation(tokens[index++], 2, 9);
+
+	assertComma(tokens[index]);
+	assertLocation(tokens[index++], 2, 10);
+
+	assertNumber(tokens[index], 0x400);
+	assertLocation(tokens[index++], 2, 12);
+
+	assertNewline(tokens[index]);
+	assertLocation(tokens[index++], 2, 17);
+
+	assertNewline(tokens[index]);
+	assertLocation(tokens[index++], 3, 16);
+
+	assertIdentifier(tokens[index], "SET");
+	assertLocation(tokens[index++], 4, 1);
+
+	assertIdentifier(tokens[index], "I");
+	assertLocation(tokens[index++], 4, 5);
+
+	assertComma(tokens[index]);
+	assertLocation(tokens[index++], 4, 6);
+
+	assertNumber(tokens[index], 1);
+	assertLocation(tokens[index++], 4, 8);
+
+	assertNewline(tokens[index]);
+	assertLocation(tokens[index++], 4, 9);
+
+	assertEOI(tokens[index]);
+	assertLocation(tokens[index++], 5, 0);
 }

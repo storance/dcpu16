@@ -32,12 +32,12 @@ protected:
     bool isAllowedIdentifierChar(char);
     bool isAllowedIdentifierFirstChar(char);
 
-    token_type parseNumber(std::string value);
-    token_type parseOperator(std::string value);
+    token_type parseNumber(Location, std::string value);
+    token_type parseOperator(Location, std::string value);
 public:
     Lexer(Iterator current, Iterator end, std::string sourceName);
 
-    std::vector<token_type> parse();
+    void parse(std::vector<token_type>&);
 };
 
 #include "Lexer.cpp"
