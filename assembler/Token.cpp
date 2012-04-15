@@ -2,6 +2,8 @@
 
 using namespace std;
 
+namespace dcpu {
+
 Location::Location(std::string sourceName, uint32_t line, uint32_t column)
     : sourceName(sourceName), line(line), column(column) {}
 
@@ -26,3 +28,4 @@ InvalidNumberToken::InvalidNumberToken(Location location, string value, int base
 IdentifierToken::IdentifierToken(Location location, std::string name)
     : Token(location, TokenType::IDENTIFIER), name(name) {}
 
+}

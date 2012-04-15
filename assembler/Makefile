@@ -17,7 +17,7 @@ $(OUTPUT)/Token.o: Token.cpp $(OUTPUT) Token.hpp
 $(OUTPUT):
 	mkdir $@
 
-$(OUTPUT)/LexerTest.o: test/LexerTest.cpp $(OUTPUT) Lexer.hpp Lexer.cpp
+$(OUTPUT)/LexerTest.o: test/LexerTest.cpp $(OUTPUT) Lexer.hpp Lexer.cpp Token.hpp
 	$(CXX) $(CPP_TEST_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT)/gtest-all.o : $(OUTPUT) $(GTEST_SRCS)

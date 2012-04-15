@@ -1,0 +1,25 @@
+set A, b
+ADD J, 0x3f
+JSR 4
+MUL j, 0b1101
+SHR I, 0o15
+ife A, 0
+SET C, [J]
+SET C, [0X800A]
+SET PUSH, 1
+SET A, POP
+SET B, PEEK
+
+; this is a comment
+
+label1:
+SET [--SP], 2 ; another comment
+label2: SET X, [sp ++]
+:label3 SET Y, [ SP ]
+ADD I, o
+ADD I, 0x4000
+:label4
+invalid Q, R
+SET X, [0x4000 + I]
+SET Z, [I + 0x5000]
+sub pc, 1

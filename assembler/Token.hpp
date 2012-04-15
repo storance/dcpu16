@@ -3,80 +3,82 @@
 #include <string>
 #include <cstdint>
 
-enum class TokenType {
-    NUMBER,
-    INVALID_NUMBER,
-    OVERFLOW_NUMBER,
-    IDENTIFIER,
-    INCREMENT,
-    DECREMENT,
-    PLUS,
-    MINUS,
-    COMMA,
-    COLON,
-    DOLLAR,
-    AT,
-    LPAREN,
-    RPAREN,
-    LBRACKET,
-    RBRACKET,
-    NEWLINE,
-    QUOTED_STRING,
-    UNKNOWN,
-    END_OF_INPUT
-};
+namespace dcpu {
 
-struct Location {
-    std::string sourceName;
-    std::uint32_t line;
-    std::uint32_t column;
+	enum class TokenType {
+		NUMBER,
+		INVALID_NUMBER,
+		OVERFLOW_NUMBER,
+		IDENTIFIER,
+		INCREMENT,
+		DECREMENT,
+		PLUS,
+		MINUS,
+		COMMA,
+		COLON,
+		DOLLAR,
+		AT,
+		LPAREN,
+		RPAREN,
+		LBRACKET,
+		RBRACKET,
+		NEWLINE,
+		QUOTED_STRING,
+		UNKNOWN,
+		END_OF_INPUT
+	};
 
-    Location(std::string, std::uint32_t, std::uint32_t);
-};
+	struct Location {
+		std::string sourceName;
+		std::uint32_t line;
+		std::uint32_t column;
 
-class Token {
-public:
-    Location location;
-    TokenType type;
+		Location(std::string, std::uint32_t, std::uint32_t);
+	};
 
-    Token(Location, TokenType);
-};
+	class Token {
+	public:
+		Location location;
+		TokenType type;
 
-class UnknownToken : public Token {
-public:
-    std::string value;
+		Token(Location, TokenType);
+	};
 
-    UnknownToken(Location, std::string);
-};
+	class UnknownToken : public Token {
+	public:
+		std::string value;
 
-class NumberToken : public Token {
-protected:
-    NumberToken(Location, TokenType, std::uint32_t);
-public:
-    std::uint32_t value;
+		UnknownToken(Location, std::string);
+	};
 
-    NumberToken(Location, std::uint32_t);
-};
+	class NumberToken : public Token {
+	protected:
+		NumberToken(Location, TokenType, std::uint32_t);
+	public:
+		std::uint32_t value;
 
-class OverflowNumberToken : public NumberToken {
-public:
-	std::string rawValue;
+		NumberToken(Location, std::uint32_t);
+	};
 
-    OverflowNumberToken(Location, std::string);
-};
+	class OverflowNumberToken : public NumberToken {
+	public:
+		std::string rawValue;
 
-class InvalidNumberToken : public Token {
-public:
-    std::string value;
-    int base;
+		OverflowNumberToken(Location, std::string);
+	};
 
-    InvalidNumberToken(Location, std::string, int);
-};
+	class InvalidNumberToken : public Token {
+	public:
+		std::string value;
+		int base;
 
-class IdentifierToken : public Token {
-public:
-    std::string name;
+		InvalidNumberToken(Location, std::string, int);
+	};
 
-    IdentifierToken(Location, std::string);
-};
+	class IdentifierToken : public Token {
+	public:
+		std::string name;
 
+		IdentifierToken(Location, std::string);
+	};
+}

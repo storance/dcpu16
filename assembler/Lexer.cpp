@@ -1,26 +1,21 @@
-#include <boost/algorithm/string/predicate.hpp>
-
-#include <cctype>
-#include <climits>
-
-template<typename Iterator>
-Lexer<Iterator>::Lexer(Iterator current, Iterator end, std::string sourceName)
+template<typename Iterator, typename Container>
+Lexer<Iterator, Container>::Lexer(Iterator current, Iterator end, std::string sourceName)
     : current(current), end(end), sourceName(sourceName), line(1), column(0) {
 
 }
 
-template<typename Iterator>
-void Lexer<Iterator>::skipWhitespace() {
+template<typename Iterator, typename Container>
+void Lexer<Iterator, Container>::skipWhitespace() {
     skipUntil([] (char c) { return !(isspace(c) && c != '\n');});
 }
 
-template<typename Iterator> template<typename Predicate>
-void Lexer<Iterator>::skipUntil(Predicate predicate) {
+template<typename Iterator, typename Container> template<typename Predicate>
+void Lexer<Iterator, Container>::skipUntil(Predicate predicate) {
     processUntil(predicate, [] (char ch) -> void {});
 }
 
-template<typename Iterator> template<typename Predicate, typename Action>
-void Lexer<Iterator>::processUntil(Predicate predicate, Action action) {
+template<typename Iterator, typename Container> template<typename Predicate, typename Action>
+void Lexer<Iterator, Container>::processUntil(Predicate predicate, Action action) {
     while (current != end) {
         char c = nextChar();
         if (predicate(c)) {
@@ -32,13 +27,13 @@ void Lexer<Iterator>::processUntil(Predicate predicate, Action action) {
     }
 }
 
-template<typename Iterator>
-Location Lexer<Iterator>::makeLocation() {
+template<typename Iterator, typename Container>
+Location Lexer<Iterator, Container>::makeLocation() {
     return Location(sourceName, line, column);
 }
 
-template<typename Iterator>
-char Lexer<Iterator>::nextChar() {
+template<typename Iterator, typename Container>
+char Lexer<Iterator, Container>::nextChar() {
     char c = *current;
     ++current;
     ++column;
@@ -46,46 +41,46 @@ char Lexer<Iterator>::nextChar() {
     return c;
 }
 
-template<typename Iterator>
-void Lexer<Iterator>::moveBack() {
+template<typename Iterator, typename Container>
+void Lexer<Iterator, Container>::moveBack() {
     --current;
     --column;
 }
 
-template<typename Iterator>
-void Lexer<Iterator>::nextLine() {
+template<typename Iterator, typename Container>
+void Lexer<Iterator, Container>::nextLine() {
     line++;
     column = 0;
 }
 
-template<typename Iterator>
-bool Lexer<Iterator>::isOperatorChar(char c) {
+template<typename Iterator, typename Container>
+bool Lexer<Iterator, Container>::isOperatorChar(char c) {
 	return c == '+' || c == '-' || c == '*' || c == '/' || c == '<' || c == '>' || c == '|' || c == '&'
 		|| c == '!' || c == '^' || c == '%';
 }
 
-template<typename Iterator>
-bool Lexer<Iterator>::isHexDigit(char c) {
+template<typename Iterator, typename Container>
+bool Lexer<Iterator, Container>::isHexDigit(char c) {
     return isdigit(c) || tolower(c) >= 'a' && tolower(c) <= 'f';
 }
 
-template<typename Iterator>
-bool Lexer<Iterator>::isAllowedIdentifierChar(char c) {
+template<typename Iterator, typename Container>
+bool Lexer<Iterator, Container>::isAllowedIdentifierChar(char c) {
     return isalnum(c) || c == '_' || c == '?' || c == '.' || c == '$' || c == '#' || c == '@';
 }
 
-template<typename Iterator>
-bool Lexer<Iterator>::isAllowedIdentifierFirstChar(char c) {
+template<typename Iterator, typename Container>
+bool Lexer<Iterator, Container>::isAllowedIdentifierFirstChar(char c) {
     return isalpha(c) || c == '_' || c == '?' || c == '.';
 }
-template<typename Iterator>
-bool Lexer<Iterator>::isUnknownChar(char c) {
+template<typename Iterator, typename Container>
+bool Lexer<Iterator, Container>::isUnknownChar(char c) {
 	return !(isAllowedIdentifierFirstChar(c) || isOperatorChar(c) || isspace(c) || c == ':' || c == ',' || c == ';'
 		|| c == '$' || c == '@');
 }
 
-template<typename Iterator>
-typename Lexer<Iterator>::token_type Lexer<Iterator>::parseOperator(Location start, std::string value) {
+template<typename Iterator, typename Container>
+token_type Lexer<Iterator, Container>::parseOperator(Location start, std::string value) {
 	if (value == "++") {
 		return std::make_shared<Token>(start, TokenType::INCREMENT);
 	} else if (value == "--") {
@@ -99,8 +94,8 @@ typename Lexer<Iterator>::token_type Lexer<Iterator>::parseOperator(Location sta
 	}
 }
 
-template<typename Iterator>
-typename Lexer<Iterator>::token_type Lexer<Iterator>::parseNumber(Location start, std::string value) {
+template<typename Iterator, typename Container>
+token_type Lexer<Iterator, Container>::parseNumber(Location start, std::string value) {
     std::string unprefixedValue;
 
     int base = 10;
@@ -134,8 +129,8 @@ typename Lexer<Iterator>::token_type Lexer<Iterator>::parseNumber(Location start
     return std::make_shared<NumberToken>(start, (std::uint32_t)l);
 }
 
-template<typename Iterator>
-typename Lexer<Iterator>::token_type Lexer<Iterator>::nextToken() {
+template<typename Iterator, typename Container>
+token_type Lexer<Iterator, Container>::nextToken() {
     skipWhitespace();
 
     if (current == end) {
@@ -200,8 +195,8 @@ typename Lexer<Iterator>::token_type Lexer<Iterator>::nextToken() {
 		return std::make_shared<UnknownToken>(start, value);
     }
 }
-template<typename Iterator>
-void Lexer<Iterator>::parse(std::vector<token_type> &tokens) {
+template<typename Iterator, typename Container>
+void Lexer<Iterator, Container>::parse() {
     while (true) {
         token_type token = nextToken();
         tokens.push_back(token);
@@ -210,4 +205,9 @@ void Lexer<Iterator>::parse(std::vector<token_type> &tokens) {
             break;
         }
     }
+}
+
+template<typename Iterator, typename Container>
+Container Lexer<Iterator, Container>::getTokens() {
+	return tokens;
 }

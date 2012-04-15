@@ -1,13 +1,14 @@
 #include "../Lexer.hpp"
 
-#include <iostream>
+#include <vector>
 #include <gtest/gtest.h>
 
 using namespace std;
+using namespace dcpu;
+using namespace dcpu::lexer;
 
 typedef string::const_iterator iterator_type;
-typedef Lexer<iterator_type> lexer_type;
-typedef Lexer<iterator_type>::token_type token_type;
+typedef Lexer<iterator_type, std::vector<token_type>> lexer_type;
 
 #define assertIdentifier(token, expectedName) { \
 	token_type t = token; \
@@ -82,10 +83,10 @@ typedef Lexer<iterator_type>::token_type token_type;
 }
 
 void runParser(string input, size_t expectedTokens, vector<token_type> &tokens) {
-	tokens.clear();
-
 	lexer_type lexer(input.begin(), input.end(), "<LexerTest>");
-    lexer.parse(tokens);
+    lexer.parse();
+
+    tokens = lexer.getTokens();
 
     ASSERT_EQ(expectedTokens, tokens.size());
 }
