@@ -5,8 +5,10 @@
 #include <list>
 #include <cctype>
 #include <climits>
+#include <cstdlib>
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/bind.hpp>
 
 #include "Token.hpp"
 
@@ -20,33 +22,28 @@ namespace dcpu { namespace lexer {
 		Iterator current, end;
 		std::string sourceName;
 		std::uint32_t line, column;
-		Container tokens;
 
-		void skipWhitespace();
-		template<typename Predicate> void skipUntil(Predicate);
-		template<typename Predicate, typename Action> void processUntil(Predicate, Action);
+		template<typename Predicate> std::string appendWhile(char, Predicate);
 
 		char nextChar();
 		void moveBack();
 		void nextLine();
+		bool consumeNextCharIf(char c);
 
 		token_type nextToken();
 		Location makeLocation();
 
-		bool isHexDigit(char);
-		bool isOperatorChar(char);
-		bool isUnknownChar(char);
-		bool isAllowedIdentifierChar(char);
-		bool isAllowedIdentifierFirstChar(char);
+		static bool isWhitespace(char);
+		static bool isAllowedIdentifierChar(char);
+		static bool isAllowedIdentifierFirstChar(char);
 
 		token_type parseNumber(Location, std::string value);
-		token_type parseOperator(Location, std::string value);
 	public:
+		Container tokens;
+
 		Lexer(Iterator current, Iterator end, std::string sourceName);
 
 		void parse();
-
-		Container getTokens();
 	};
 
 	#include "Lexer.cpp"
