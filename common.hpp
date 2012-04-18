@@ -9,11 +9,9 @@ enum {
 	MAX_SHORT_LITERAL = 0x1f
 };
 
-namespace registers {
-	enum register_type {
-		A, B, C, X, Y, Z, I, J, SP, PC, O
-	};
-}
+enum class Register {
+	A, B, C, X, Y, Z, I, J, SP, PC, O
+};
 
 namespace arguments {
 	enum {

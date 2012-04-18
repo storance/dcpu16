@@ -3,7 +3,7 @@
 #include <string>
 #include <cstdint>
 
-#include <boost/variant/variant.hpp>
+#include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
 #include "../common.hpp"
@@ -61,15 +61,14 @@ namespace dcpu { namespace ast {
 
 	typedef boost::variant<Register, LiteralArgument> IndirectArgument;
 
-	typedef boost::variant<IndirectArgument, Register, LiteralArgument, StackArgument> Argument;
+	typedef boost::variant<std::nullptr_t, IndirectArgument, Register, LiteralArgument, StackArgument> Argument;
 
 	class Instruction {
 	public:
 		Opcode opcode;
 		Argument a;
-		boost::optional<Argument> b;
+		Argument b;
 
-		Instruction(Opcode, Argument a);
 		Instruction(Opcode, Argument a, Argument b);
 	};
 

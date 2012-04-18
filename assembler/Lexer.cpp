@@ -112,7 +112,7 @@ token_type Lexer<Iterator, Container>::parseNumber(Location start, std::string v
 template<typename Iterator, typename Container>
 token_type Lexer<Iterator, Container>::nextToken() {
     if (current == end) {
-        return std::make_shared<Token>(makeLocation(), dcpu::TokenType::END_OF_INPUT, '\0');
+        return std::make_shared<Token>(makeLocation(), dcpu::TokenType::END_OF_INPUT, "");
     }
 
     char c = nextChar();
@@ -148,7 +148,7 @@ token_type Lexer<Iterator, Container>::nextToken() {
     } else if (c == '\n') {
         nextLine();
 
-        return std::make_shared<Token>(start, dcpu::TokenType::NEWLINE, '\n');
+        return std::make_shared<Token>(start, dcpu::TokenType::NEWLINE, "");
     }
 
     return std::make_shared<Token>(start, dcpu::TokenType::CHARACTER, c);

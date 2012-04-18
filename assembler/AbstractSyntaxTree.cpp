@@ -16,11 +16,8 @@ Label::Label(string name) : name(name) {
 	}
 }
 
-LiteralArgument::LiteralArgument(uint32_t value, bool forceLongMode)
-	: value(value), forceLongMode(forceLongMode) {}
-
-Instruction::Instruction(Opcode opcode, Argument a)
-	: opcode(opcode), a(a), b() {}
+LiteralArgument::LiteralArgument(uint32_t value, bool forceLongForm)
+	: value(value), forceLongForm(forceLongForm) {}
 
 Instruction::Instruction(Opcode opcode, Argument a, Argument b)
 	: opcode(opcode), a(a), b(b) {}
