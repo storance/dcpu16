@@ -11,7 +11,9 @@ GTEST_SRCS = $(GTEST_DIR)/src/*.cc $(GTEST_DIR)/src/*.h $(GTEST_HEADERS)
 
 OBJECTS = $(OUTPUT_DIR)/Parser.o \
 		  $(OUTPUT_DIR)/ErrorHandler.o \
-		  $(OUTPUT_DIR)/AbstractSyntaxTree.o \
+		  $(OUTPUT_DIR)/Statement.o \
+		  $(OUTPUT_DIR)/Argument.o \
+		  $(OUTPUT_DIR)/Expression.o \
 		  $(OUTPUT_DIR)/Token.o
 
 TEST_OBJECTS = $(OBJECTS) \
@@ -24,13 +26,19 @@ all:
 $(OUTPUT_DIR)/Token.o: Token.cpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/AbstractSyntaxTree.o: AbstractSyntaxTree.cpp AbstractSyntaxTree.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/Statement.o: ast/Statement.cpp ast/Statement.hpp ast/Argument.hpp ast/Expression.hpp Token.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/Argument.o: ast/Argument.cpp ast/Argument.hpp ast/Expression.hpp Token.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/Expression.o: ast/Expression.cpp ast/Expression.hpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/ErrorHandler.o: ErrorHandler.cpp ErrorHandler.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Parser.o: Parser.cpp Parser.hpp AbstractSyntaxTree.hpp Token.hpp Lexer.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/Parser.o: Parser.cpp Parser.hpp ast/*.hpp Token.hpp Lexer.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR):
@@ -39,7 +47,7 @@ $(OUTPUT_DIR):
 $(OUTPUT_DIR)/LexerTest.o: test/LexerTest.cpp Lexer.hpp Lexer.cpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_TEST_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandler.hpp AbstractSyntaxTree.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandler.hpp ast/*.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_TEST_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/gtest-all.o : $(GTEST_SRCS) | $(OUTPUT_DIR) 
