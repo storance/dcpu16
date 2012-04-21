@@ -75,7 +75,22 @@ bool Lexer<Iterator, Container>::isAllowedIdentifierFirstChar(char c) {
 }
 
 template<typename Iterator, typename Container>
-token_type Lexer<Iterator, Container>::parseNumber(Location start, std::string value) {
+void Lexer<Iterator, Container>::skipWhitespaceAndComments() {
+    bool inComment = false;
+
+    for (; current != end; current++, column++) {
+        if (!inComment && *current == ';') {
+            inComment = true;
+        } else if (!inComment && !isWhitespace(*current)) {
+            break;
+        } else if (inComment && *current == '\n') {
+            break;
+        }
+    }
+}
+
+template<typename Iterator, typename Container>
+std::shared_ptr<Token> Lexer<Iterator, Container>::parseNumber(Location start, std::string value) {
     std::string unprefixedValue;
 
     std::uint8_t base = 10;
@@ -97,20 +112,29 @@ token_type Lexer<Iterator, Container>::parseNumber(Location start, std::string v
         return std::make_shared<InvalidIntegerToken>(start, value, base);
     }
 
-    char *end;
-    unsigned long parsedValue = std::strtoul(unprefixedValue.c_str(), &end, base);
+    size_t pos;
+    try {
+        unsigned long parsedValue = std::stoul(unprefixedValue, &pos, base);
+        if (pos != unprefixedValue.size()) {
+            return std::make_shared<InvalidIntegerToken>(start, value, base);
+        }
 
-    if ((errno == ERANGE && parsedValue == ULONG_MAX) || parsedValue > UINT32_MAX) {
-        return std::make_shared<IntegerToken>(start, value, UINT32_MAX, true);
-    } else if (*end != '\0') {
+        if (parsedValue > UINT32_MAX) {
+            return std::make_shared<IntegerToken>(start, value, UINT32_MAX, true);
+        }
+
+        return std::make_shared<IntegerToken>(start, value, (std::uint32_t)parsedValue, false);
+    } catch (std::invalid_argument &ia) {
         return std::make_shared<InvalidIntegerToken>(start, value, base);
+    } catch (std::out_of_range &oor) {
+        return std::make_shared<IntegerToken>(start, value, UINT32_MAX, true);
     }
-
-    return std::make_shared<IntegerToken>(start, value, (std::uint32_t)parsedValue, false);
 }
 
 template<typename Iterator, typename Container>
-token_type Lexer<Iterator, Container>::nextToken() {
+std::shared_ptr<Token> Lexer<Iterator, Container>::nextToken() {
+    skipWhitespaceAndComments();
+
     if (current == end) {
         return std::make_shared<Token>(makeLocation(), dcpu::TokenType::END_OF_INPUT, "");
     }
@@ -118,13 +142,7 @@ token_type Lexer<Iterator, Container>::nextToken() {
     char c = nextChar();
     Location start = makeLocation();
 
-	if (isWhitespace(c)) {
-		return std::make_shared<Token>(start, dcpu::TokenType::WHITESPACE,
-			appendWhile(c, &Lexer<Iterator, Container>::isWhitespace));
-    } else if (c == ';') {
-        return std::make_shared<Token>(start, dcpu::TokenType::COMMENT,
-			appendWhile(c, [](char ch) { return ch != '\n'; }));
-    } else if (c == '+') {
+	if (c == '+') {
 		if (consumeNextCharIf('+')) {
 			return std::make_shared<Token>(start, dcpu::TokenType::INCREMENT, "++");
 		}
@@ -156,7 +174,7 @@ token_type Lexer<Iterator, Container>::nextToken() {
 template<typename Iterator, typename Container>
 void Lexer<Iterator, Container>::parse() {
     while (true) {
-        token_type token = nextToken();
+        std::shared_ptr<Token> token = nextToken();
         tokens.push_back(token);
 
         if (token->type == dcpu::TokenType::END_OF_INPUT) {

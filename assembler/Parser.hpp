@@ -4,55 +4,53 @@
 #include <stack>
 #include <cstdint>
 
-#include "../common.hpp"
-#include "AbstractSyntaxTree.hpp"
+#include "ast/Statement.hpp"
 #include "ErrorHandler.hpp"
 #include "Lexer.hpp"
 
 namespace dcpu { namespace parser {
 	struct OpcodeDefinition {
-		std::string mnemonic;
-		dcpu::ast::Opcode opcode;
-		std::uint8_t numArgs;
+		std::string _mnemonic;
+		ast::Opcode _opcode;
+		std::uint8_t _args;
 
-		OpcodeDefinition(dcpu::ast::Opcode opcode, std::uint8_t numArgs)
-			: opcode(opcode), numArgs(numArgs) {};
+		OpcodeDefinition(const std::string &mnemonic, ast::Opcode opcode, std::uint8_t args)
+			: _mnemonic(mnemonic), _opcode(opcode), _args(args) {}
 	};
 
 	struct RegisterDefinition {
-		Register registerType;
-		bool indirectable;
-		bool offsetIndirectable;
+		std::string _name;
+		common::Register _register;
+		bool _indirectable;
+		bool _offsetIndirectable;
 
-		RegisterDefinition(Register registerType, bool indirectable, bool offsetIndirectable)
-			: registerType(registerType), indirectable(indirectable), offsetIndirectable(offsetIndirectable) {}
+		RegisterDefinition(const std::string &name, common::Register reg, bool indirectable, bool offsetIndirectable)
+			: _name(name), _register(reg), _indirectable(indirectable), _offsetIndirectable(offsetIndirectable) {}
 	};
 
 
 	class Parser {
 	protected:
-		typedef std::list<lexer::token_type>::const_iterator Iterator;
+		typedef std::list<std::shared_ptr<Token>>::iterator Iterator;
 
-		dcpu::ErrorHandler &errorHandler;
-		Iterator current, end;
+		dcpu::ErrorHandler &_errorHandler;
+		Iterator _current, _end;
 
-		boost::optional<ast::Statement> parseStatement();
-		boost::optional<ast::Label> parseLabel(lexer::token_type);
-		boost::optional<ast::Instruction> parseInstruction(lexer::token_type);
-		ast::Argument parseArgument(lexer::token_type);
+		bool parseLabel(std::shared_ptr<Token>);
+		bool parseInstruction(std::shared_ptr<Token>);
+		bool parseArgument(std::shared_ptr<Token>, std::shared_ptr<ast::Argument>&);
 
-		boost::optional<OpcodeDefinition> lookupOpcode(std::string);
-		boost::optional<RegisterDefinition> lookupRegister(std::string);
+		OpcodeDefinition* lookupOpcode(std::string);
+		RegisterDefinition* lookupRegister(std::string);
 
-		std::string concatTokens(lexer::token_type initial, Iterator end, bool inclusive);
-		template<typename Predicate> Iterator findToken(Predicate pred);
-
-		bool isEndOfStatement(Iterator it);
 		void advanceToEndOfLine();
-		lexer::token_type nextToken(bool skipWsComments=true, bool skipNewline=false);
+		std::shared_ptr<Token> nextToken();
 		void rewind();
+
+		void addLabel(const Location&, const std::string &labelName);
+		void addInstruction(const Location&, ast::Opcode, std::shared_ptr<ast::Argument>, std::shared_ptr<ast::Argument>);
 	public:
-		std::list<ast::Statement> statements;
+		std::list<std::shared_ptr<ast::Statement>> _statements;
 
 		Parser(Iterator start, Iterator end, dcpu::ErrorHandler &errorHandler);
 

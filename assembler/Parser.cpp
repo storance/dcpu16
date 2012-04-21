@@ -9,6 +9,7 @@
 #include <boost/algorithm/string.hpp>
 
 using namespace std;
+using namespace dcpu::common;
 using namespace dcpu::lexer;
 using namespace dcpu::ast;
 
@@ -16,275 +17,222 @@ namespace dcpu { namespace parser {
 
 // TODO: switch to initializer list
 static map<std::string, OpcodeDefinition> opcodes = {
-	{"set", OpcodeDefinition(Opcode::SET, 2)},
-	{"add", OpcodeDefinition(Opcode::ADD, 2)},
-	{"sub", OpcodeDefinition(Opcode::SUB, 2)},
-	{"mul", OpcodeDefinition(Opcode::MUL, 2)},
-	{"div", OpcodeDefinition(Opcode::DIV, 2)},
-	{"mod", OpcodeDefinition(Opcode::MOD, 2)},
-	{"shr", OpcodeDefinition(Opcode::SHR, 2)},
-	{"shl", OpcodeDefinition(Opcode::SHL, 2)},
-	{"and", OpcodeDefinition(Opcode::AND, 2)},
-	{"bor", OpcodeDefinition(Opcode::BOR, 2)},
-	{"xor", OpcodeDefinition(Opcode::XOR, 2)},
-	{"ife", OpcodeDefinition(Opcode::IFE, 2)},
-	{"ifn", OpcodeDefinition(Opcode::IFN, 2)},
-	{"ifg", OpcodeDefinition(Opcode::IFG, 2)},
-	{"ifb", OpcodeDefinition(Opcode::IFB, 2)},
-	{"jsr", OpcodeDefinition(Opcode::JSR, 1)},
-	{"jmp", OpcodeDefinition(Opcode::JMP, 1)},
-	{"push", OpcodeDefinition(Opcode::PUSH, 1)},
-	{"pop", OpcodeDefinition(Opcode::POP, 1)}
+	{"set", OpcodeDefinition("SET", Opcode::SET, 2)},
+	{"add", OpcodeDefinition("ADD", Opcode::ADD, 2)},
+	{"sub", OpcodeDefinition("SUB", Opcode::SUB, 2)},
+	{"mul", OpcodeDefinition("MUL", Opcode::MUL, 2)},
+	{"div", OpcodeDefinition("DIV", Opcode::DIV, 2)},
+	{"mod", OpcodeDefinition("MOD", Opcode::MOD, 2)},
+	{"shr", OpcodeDefinition("SHR", Opcode::SHR, 2)},
+	{"shl", OpcodeDefinition("SHL", Opcode::SHL, 2)},
+	{"and", OpcodeDefinition("AND", Opcode::AND, 2)},
+	{"bor", OpcodeDefinition("BOR", Opcode::BOR, 2)},
+	{"xor", OpcodeDefinition("XOR", Opcode::XOR, 2)},
+	{"ife", OpcodeDefinition("IFE", Opcode::IFE, 2)},
+	{"ifn", OpcodeDefinition("IFN", Opcode::IFN, 2)},
+	{"ifg", OpcodeDefinition("IFG", Opcode::IFG, 2)},
+	{"ifb", OpcodeDefinition("IFB", Opcode::IFB, 2)},
+	{"jsr", OpcodeDefinition("JSR", Opcode::JSR, 1)},
+	{"jmp", OpcodeDefinition("JMP", Opcode::JMP, 1)},
+	{"push", OpcodeDefinition("PUSH", Opcode::PUSH, 1)},
+	{"pop", OpcodeDefinition("POP", Opcode::POP, 1)}
 };
 
 static map<std::string, RegisterDefinition> registers = {
-	{"a",  RegisterDefinition(Register::A, true, true)},
-	{"b",  RegisterDefinition(Register::B, true, true)},
-	{"c",  RegisterDefinition(Register::C, true, true)},
-	{"x",  RegisterDefinition(Register::X, true, true)},
-	{"y",  RegisterDefinition(Register::Y, true, true)},
-	{"z",  RegisterDefinition(Register::Z, true, true)},
-	{"i",  RegisterDefinition(Register::I, true, true)},
-	{"j",  RegisterDefinition(Register::J, true, true)},
-	{"sp", RegisterDefinition(Register::SP, true, false)},
-	{"pc", RegisterDefinition(Register::PC, false, false)},
-	{"o",  RegisterDefinition(Register::O, false, false)}
+	{"a",  RegisterDefinition("A", Register::A, true, true)},
+	{"b",  RegisterDefinition("B", Register::B, true, true)},
+	{"c",  RegisterDefinition("C", Register::C, true, true)},
+	{"x",  RegisterDefinition("X", Register::X, true, true)},
+	{"y",  RegisterDefinition("Y", Register::Y, true, true)},
+	{"z",  RegisterDefinition("X", Register::Z, true, true)},
+	{"i",  RegisterDefinition("I", Register::I, true, true)},
+	{"j",  RegisterDefinition("J", Register::J, true, true)},
+	{"sp", RegisterDefinition("SP", Register::SP, true, false)},
+	{"pc", RegisterDefinition("PC", Register::PC, false, false)},
+	{"o",  RegisterDefinition("O", Register::O, false, false)}
 };
 
-
 Parser::Parser(Iterator start, Iterator end, ErrorHandler &errorHandler)
-	: current(start), end(end), errorHandler(errorHandler) {
+	: _current(start), _end(end), _errorHandler(errorHandler) {
 }
 
-boost::optional<OpcodeDefinition> Parser::lookupOpcode(std::string opcodeName) {
+OpcodeDefinition* Parser::lookupOpcode(std::string opcodeName) {
 	boost::algorithm::to_lower(opcodeName);
 
 	auto it = opcodes.find(opcodeName);
 	if (it == opcodes.end()) {
-		return boost::optional<OpcodeDefinition>();
+		return nullptr;
 	}
 
-	return boost::optional<OpcodeDefinition>(it->second);
+	return &it->second;
 }
 
-boost::optional<RegisterDefinition> Parser::lookupRegister(std::string registerName) {
+RegisterDefinition* Parser::lookupRegister(std::string registerName) {
 	boost::algorithm::to_lower(registerName);
 
 	auto it = registers.find(registerName);
 	if (it == registers.end()) {
-		return boost::optional<RegisterDefinition>();
+		return nullptr;
 	}
 
-	return boost::optional<RegisterDefinition>(it->second);
+	return &it->second;
 }
 
-template<typename Predicate> Parser::Iterator Parser::findToken(Predicate pred) {
-	for (auto it = current; it != end; it++) {
-		auto currentToken = *it;
-
-		if (pred(*it)) {
-			return it;
-		}
+bool Parser::parseInstruction(std::shared_ptr<Token> currentToken) {
+	if (currentToken->isStatementTerminator()) {
+		return false;
 	}
 
-	return end;
-}
-
-string Parser::concatTokens(token_type initial, Iterator end, bool inclusive) {
-	string content = initial->content;
-
-	Iterator realEnd = inclusive ? ++end : end;
-	for (; current != realEnd; current++) {
-		if ((*current)->isComment()) {
-			continue;
-		}
-
-		content += (*current)->content;
-	}
-
-	return content;
-}
-
-bool Parser::isEndOfStatement(Iterator it) {
-	return it == end || (*it)->isNewline() || (*it)->isEOI();
-}
-
-boost::optional<Instruction> Parser::parseInstruction(token_type currentToken) {
-	boost::optional<OpcodeDefinition> opcodeDef = lookupOpcode(currentToken->content);
+	OpcodeDefinition* opcodeDef = lookupOpcode(currentToken->content);
 
 	if (!opcodeDef) {
-		return boost::optional<Instruction>();
+		_errorHandler.error(currentToken->location, 
+					boost::format("Unrecognized instruction '%s'") % opcodeDef->_mnemonic);
+		return false;
 	}
 
-	Argument a, b;
-	if (opcodeDef->numArgs > 0) {
-		a = parseArgument(nextToken());	
-	} 
+	shared_ptr<Argument> a, b;
+	if (opcodeDef->_args > 0 && !parseArgument(nextToken(), a)) {
+		advanceToEndOfLine();
+		return false;
+	}
 
-	if (opcodeDef->numArgs > 1) {
+	if (opcodeDef->_args > 1) {
 		auto token = nextToken();
 
 		if (!token->isCharacter(',')) {
 			if (token->isNewline()) {
-				errorHandler.error(token->location, 
-					str(boost::format("Instruction %s requires 2 arguments.") % currentToken->content));
-
-				b = Argument(nullptr);
+				_errorHandler.error(token->location, 
+					boost::format("Instruction '%s' requires two arguments.") % currentToken->content);
 			} else {
-				errorHandler.error(token->location, 
-					str(boost::format("Unexpected '%s', expected ','.") % token->content)); 
-
-				b = parseArgument(token);
+				_errorHandler.error(token->location, boost::format("Expected ',' but found '%s'") % token->content);
 			}
-		} else {
-			b = parseArgument(nextToken());
+
+			advanceToEndOfLine();
+			return false;
 		}
+
+		if (!parseArgument(nextToken(), b)) {
+			advanceToEndOfLine();
+			return false;
+		} 
 	}
-	
-	return Instruction(opcodeDef->opcode, a, b);
+
+	addInstruction(currentToken->location, opcodeDef->_opcode, a, b);
+	return true;
 }
 
-Argument Parser::parseArgument(token_type currentToken) {
+bool Parser::parseArgument(std::shared_ptr<Token> currentToken, shared_ptr<ast::Argument>& arg) {
 	if (currentToken->isCharacter(',')) {
-		errorHandler.error(currentToken->location, "Unexpected ',', expected an instruction argument.");
-		return Argument(nullptr);
+		_errorHandler.error(currentToken->location, "Unexpected ','; expected an instruction argument.");
+		return false;
 	}
 
-	auto argumentEnd = findToken([](token_type token) {
-		return token->isCharacter(',') || token->isNewline() || token->isEOI();
-	});
+	if (currentToken->isStatementTerminator()) {
+		_errorHandler.error(currentToken->location, "Unexpected newline; expected an instruction argument.");
+		return false;
+	}
 
 	if (currentToken->isIdentifier()) {
 		auto registerDef = lookupRegister(currentToken->content);
 		if (registerDef) {
-			return Argument(registerDef->registerType);
+			arg = make_shared<ast::ExpressionArgument>(make_shared<ast::RegisterOperand>(
+				currentToken->location, registerDef->_register));
+			return true;
 		}
 	}
 
-	errorHandler.error(currentToken->location, str(boost::format("Unrecognized instruction argument '%s'") 
-		% concatTokens(currentToken, argumentEnd, false)));
-	return Argument(nullptr);
+	_errorHandler.error(currentToken->location, boost::format("Unrecognized instruction argument '%s'") 
+		% currentToken->content);
+	return false;
 }
 
-boost::optional<Label> Parser::parseLabel(token_type currentToken) {
+void Parser::addLabel(const Location& location, const std::string &labelName) {
+	_statements.push_back(make_shared<ast::Label>(location, labelName));
+}
+
+void Parser::addInstruction(const Location& location, ast::Opcode opcode, shared_ptr<ast::Argument> a,
+	shared_ptr<ast::Argument> b) {
+
+	_statements.push_back(make_shared<ast::Instruction>(location, opcode, a, b));
+}
+
+bool Parser::parseLabel(std::shared_ptr<Token> currentToken) {
 	if (currentToken->isCharacter(':')) {
-		auto idToken = nextToken(false);
-		if (idToken->isIdentifier()) {
-			return Label(idToken->content);
+		auto token = nextToken();
+
+		if (token->isIdentifier()) {
+			addLabel(currentToken->location, token->content);
+			return true;
+		} else if (token->isStatementTerminator()) {
+			_errorHandler.error(token->location, boost::format(
+				"Unexpected token '%s', expected a label name.") % token->content);
+			return false;
+		} else {
+			_errorHandler.error(currentToken->location, "Unexpected token ':', expected a label or instruction.");
+			advanceToEndOfLine();
+			return false;
 		}
-
-		auto nextIdentifier = findToken([](token_type token) {
-			return token->isIdentifier() || token->isNewline();
-		});
-		if (isEndOfStatement(nextIdentifier)) {
-			errorHandler.error(currentToken->location, "Unexpected ':', expected a label or instruction .");
-			return boost::optional<Label>();
-		}
-
-		string labelName = concatTokens(idToken, nextIdentifier, true);
-		errorHandler.error(currentToken->location, str(boost::format("Invalid label definition '%s'") % labelName));
-
-		return boost::optional<Label>();
 	} else if (currentToken->isIdentifier()) {
-		auto colonToken = nextToken(false);
-		if (colonToken->isCharacter(':')) {
-			return Label(currentToken->content);
-		}
+		auto token = nextToken();
 
-		auto nextColon = findToken([](token_type token) {
-			return token->isCharacter(':') || token->isNewline();
-		});
-		if (isEndOfStatement(nextColon)) {
+		if (token->isCharacter(':')) {
+			addLabel(currentToken->location, currentToken->content);
+			return true;
+		} else {
 			rewind();
-			return boost::optional<Label>();
+			return false;
 		}
-
-		string labelName = concatTokens(colonToken, nextColon, false);
-		errorHandler.error(currentToken->location, str(boost::format("Invalid label definition '%s'") % labelName));
-
-		return boost::optional<Label>();
+	} else {
+		_errorHandler.error(currentToken->location, boost::format(
+			"Unexpected token '%s', expected a label or instruction.") % currentToken->content);
+		advanceToEndOfLine();
+		return false;
 	}
-}
-
-boost::optional<Statement> Parser::parseStatement() {
-	token_type currentToken = nextToken(true, true);
-
-	if (currentToken->isEOI()) {
-		return boost::optional<Statement>();
-	}
-
-	if (!currentToken->isCharacter(':') && !currentToken->isIdentifier()) {
-		auto nextValidToken = findToken([](token_type token) {
-			return token->isCharacter(':') || token->isIdentifier();
-		});
-
-		string invalidContent = concatTokens(currentToken, nextValidToken, false);
-		errorHandler.error(currentToken->location,
-			str(boost::format("Unexpected '%s', expected a label or instruction.") % invalidContent));
-
-		return parseStatement();
-	}
-
-	boost::optional<Label> label = parseLabel(currentToken);
-	if (label) {
-		return boost::optional<Statement>(*label);
-	}
-
-	boost::optional<Instruction> instruction = parseInstruction(currentToken);
-	if (instruction) {
-		return boost::optional<Statement>(*instruction);
-	}
-
-	errorHandler.error(currentToken->location,
-		str(boost::format("Unrecognized instruction '%s'.") % currentToken->content));
-
-	advanceToEndOfLine();
-	return parseStatement();
 }
 
 void Parser::advanceToEndOfLine() {
-	while (current != end) {
-		if ((*current)->isNewline() || (*current)->isEOI()) {
+	while (_current != _end) {
+		if ((*_current)->isNewline() || (*_current)->isEOI()) {
 			break;
 		}
+
+		_current++;
 	}
 }
 
 void Parser::rewind() {
-	--current;
+	--_current;
 }
 
-token_type Parser::nextToken(bool skipWsComments, bool skipNewline) {
-	while(current != end) {
-		token_type token = *current;
-		++current;
-
-		if (skipWsComments && (token->isWhitespace() || token->isComment())) {
-			continue;
-		}
-
-		if (skipNewline && token->isNewline()) {
-			continue;
-		}
-
-		return token;
+std::shared_ptr<Token> Parser::nextToken() {
+	if ((*_current)->isEOI()) {
+		return *_current;
 	}
 
-	// Return the end of input token
-	auto eoi = end; --eoi;
-	return *eoi;
+	return *_current++;
 }
 
 void Parser::parse() {
-	while (current != end) {
-		auto statement = parseStatement();
+	while (_current != _end) {
+		std::shared_ptr<Token> currentToken = nextToken();
 
-		if (!statement) {
+		// we've reached the end
+		if (currentToken->isEOI()) {
 			break;
 		}
 
-		statements.push_back(*statement);
+		// skip empty lines
+		if (currentToken->isNewline()) {
+			continue;
+		}
+
+		if (parseLabel(currentToken)) {
+			currentToken = nextToken();
+		}
+
+		parseInstruction(currentToken);
 	}
 }
 
-} }
+}}

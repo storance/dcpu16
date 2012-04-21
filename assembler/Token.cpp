@@ -9,6 +9,11 @@ namespace dcpu {
 Location::Location(std::string sourceName, uint32_t line, uint32_t column)
     : sourceName(sourceName), line(line), column(column) {}
 
+ostream& operator<< (ostream& stream, const Location& location) {
+	stream << location.sourceName << ":" << location.line << ":" << location.column;
+	return stream;
+}
+
 Token::Token(Location location, TokenType type, string content)
     : location(location), type(type), content(content) {}
 
@@ -51,10 +56,6 @@ bool Token::isCharacter(char c) const {
 	return false;
 }
 
-bool Token::isWhitespace() const {
-	return type == TokenType::WHITESPACE;
-}
-
 bool Token::isNewline() const {
 	return type == TokenType::NEWLINE;
 }
@@ -63,8 +64,8 @@ bool Token::isEOI() const {
 	return type == TokenType::END_OF_INPUT;
 }
 
-bool Token::isComment() const {
-	return type == TokenType::COMMENT;
+bool Token::isStatementTerminator() const {
+	return isEOI() || isNewline();
 }
 
 IntegerToken::IntegerToken(Location location, std::string content, uint32_t value, bool overflow)

@@ -9,9 +9,13 @@ enum {
 	MAX_SHORT_LITERAL = 0x1f
 };
 
+namespace dcpu { namespace common {
+
 enum class Register {
 	A, B, C, X, Y, Z, I, J, SP, PC, O
 };
+
+} }
 
 namespace arguments {
 	enum {

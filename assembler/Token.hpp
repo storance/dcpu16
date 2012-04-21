@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ostream>
 #include <string>
 #include <memory>
 #include <cstdint>
@@ -15,8 +16,6 @@ namespace dcpu {
 		SHIFT_LEFT,
 		SHIFT_RIGHT,
 		CHARACTER,
-		COMMENT,
-		WHITESPACE,
 		NEWLINE,
 		END_OF_INPUT
 	};
@@ -28,6 +27,8 @@ namespace dcpu {
 
 		Location(std::string, std::uint32_t, std::uint32_t);
 	};
+
+	std::ostream& operator<< (std::ostream& stream, const Location& location);
 
 	class Token {
 	public:
@@ -46,10 +47,9 @@ namespace dcpu {
 		bool isShiftLeft() const;
 		bool isShiftRight() const;
 		bool isCharacter(char c) const;
-		bool isWhitespace() const;
 		bool isNewline() const;
 		bool isEOI() const;
-		bool isComment() const;
+		bool isStatementTerminator() const;
 	};
 
 	class IntegerToken : public Token {

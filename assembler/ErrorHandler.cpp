@@ -1,33 +1,41 @@
 #include "ErrorHandler.hpp"
 
-#include <iostream>
-
 using namespace std;
 
 namespace dcpu {
-	void ErrorHandler::error(Location location, string message) {
-		++totalErrors;
-		cerr << location.sourceName << ":" << location.line << ":" << location.column
-			<< ": error: " << message << endl;
+	ErrorHandler::ErrorHandler() : _out(cerr) {}
+
+	ErrorHandler::ErrorHandler(ostream &out) : _out(out) {}
+
+	void ErrorHandler::error(const Location &location, const string &message) {
+		++_totalErrors;
+		_out << location << ": error: " << message << endl;
 	}
 
-	void ErrorHandler::warning(Location location, string message) {
-		++totalWarnings;
-		cerr << location.sourceName << ":" << location.line << ":" << location.column
-			<< ": warning: " << message << endl;
+	void ErrorHandler::error(const Location& location, const boost::basic_format<char> &fmt) {
+		error(location, str(fmt));
 	}
 
-	bool ErrorHandler::isFailed() {
-		return totalErrors > 0;
+	void ErrorHandler::warning(const Location &location, const string &message) {
+		++_totalWarnings;
+		_out << location << ": warning: " << message << endl;
+	}
+
+	void ErrorHandler::warning(const Location& location, const boost::basic_format<char> &fmt) {
+		warning(location, str(fmt));
+	}
+
+	bool ErrorHandler::hasErrors() {
+		return _totalErrors > 0;
 	}
 
 	void ErrorHandler::summary() {
-		if (totalErrors > 0) {
-			cerr << totalErrors << " error(s)" << endl;
+		if (_totalErrors > 0) {
+			_out << _totalErrors << " error(s)" << endl;
 		}
 
-		if (totalWarnings > 0) {
-			cerr << totalWarnings << " warning(s)" << endl;
+		if (_totalWarnings > 0) {
+			_out << _totalWarnings << " warning(s)" << endl;
 		}
 	}
 }
