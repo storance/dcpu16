@@ -128,3 +128,101 @@ TEST(ParserTest, ParseInstruction) {
 			&verifyArgumentIsNull);
 	}
 }
+
+TEST(ParserTest, LabelTest) {
+	list<shared_ptr<Statement>> statements;
+
+	ASSERT_NO_FATAL_FAILURE(runParser("label1:\n:label2\nlabel3: SET A, B\n:label4 SET A, B", 6, statements));
+
+	auto it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		verifyLabel(it, "label1");
+	}
+
+	{
+		SCOPED_TRACE("Statement: 2"); 
+		verifyLabel(it, "label2");
+	}
+
+	{
+		SCOPED_TRACE("Statement: 3"); 
+		verifyLabel(it, "label3");
+	}
+
+	{
+		SCOPED_TRACE("Statement: 4"); 
+		verifyInstruction(it, Opcode::SET,
+			[](shared_ptr<Argument> arg) {
+				verifyArgumentIsExpression(arg, isRegisterA);
+			},
+			[](shared_ptr<Argument> arg) {
+				verifyArgumentIsExpression(arg, isRegisterB);
+			});
+	}
+
+	{
+		SCOPED_TRACE("Statement: 5"); 
+		verifyLabel(it, "label4");
+	}
+
+	{
+		SCOPED_TRACE("Statement: 6"); 
+		verifyInstruction(it, Opcode::SET,
+			[](shared_ptr<Argument> arg) {
+				verifyArgumentIsExpression(arg, isRegisterA);
+			},
+			[](shared_ptr<Argument> arg) {
+				verifyArgumentIsExpression(arg, isRegisterB);
+			});
+	}
+}
+
+TEST(ParserTest, LabelWithSpaceTest) {
+	list<shared_ptr<Statement>> statements;
+
+	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n: label2\nlabel3 : SET A, B\n: label4 SET A, B", 6, statements));
+
+	auto it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		verifyLabel(it, "label1");
+	}
+
+	{
+		SCOPED_TRACE("Statement: 2"); 
+		verifyLabel(it, "label2");
+	}
+
+	{
+		SCOPED_TRACE("Statement: 3"); 
+		verifyLabel(it, "label3");
+	}
+
+	{
+		SCOPED_TRACE("Statement: 4"); 
+		verifyInstruction(it, Opcode::SET,
+			[](shared_ptr<Argument> arg) {
+				verifyArgumentIsExpression(arg, isRegisterA);
+			},
+			[](shared_ptr<Argument> arg) {
+				verifyArgumentIsExpression(arg, isRegisterB);
+			});
+	}
+
+	{
+		SCOPED_TRACE("Statement: 5"); 
+		verifyLabel(it, "label4");
+	}
+
+	{
+		SCOPED_TRACE("Statement: 6"); 
+		verifyInstruction(it, Opcode::SET,
+			[](shared_ptr<Argument> arg) {
+				verifyArgumentIsExpression(arg, isRegisterA);
+			},
+			[](shared_ptr<Argument> arg) {
+				verifyArgumentIsExpression(arg, isRegisterB);
+			});
+	}
+}
