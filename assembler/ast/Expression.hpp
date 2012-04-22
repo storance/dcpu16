@@ -27,15 +27,6 @@ namespace dcpu { namespace ast {
 		NOT
 	};
 
-	enum class ExpressionType : std::uint8_t {
-		UNARY_OPERATION,
-		BINARY_OPERATION,
-		REGISTER,
-		LITERAL,
-		LABEL,
-		INVALID
-	};
-
 	std::string str(UnaryOperator op);
 	std::string str(BinaryOperator op);
 
@@ -46,7 +37,7 @@ namespace dcpu { namespace ast {
 		//virtual void evaluate()=0;
 		//virtual bool isNextWordRequired()=0;
 		virtual bool isEvalsToLiteral()=0;
-		virtual ExpressionType getType()=0;
+		virtual bool isSimple()=0;
 
 		Expression(const Location&);
 		virtual ~Expression();
@@ -59,7 +50,7 @@ namespace dcpu { namespace ast {
 		std::shared_ptr<Expression> _operand;
 
 		virtual bool isEvalsToLiteral();
-		virtual ExpressionType getType();
+		virtual bool isSimple();
 
 		UnaryOperation(const Location&, UnaryOperator, std::shared_ptr<Expression>);
 	};
@@ -72,7 +63,7 @@ namespace dcpu { namespace ast {
 		std::shared_ptr<Expression> _right;
 
 		virtual bool isEvalsToLiteral();
-		virtual ExpressionType getType();
+		virtual bool isSimple();
 
 		BinaryOperation(const Location&, BinaryOperator, std::shared_ptr<Expression>, std::shared_ptr<Expression>);
 	};
@@ -82,7 +73,7 @@ namespace dcpu { namespace ast {
 		common::Register _register;
 
 		virtual bool isEvalsToLiteral();
-		virtual ExpressionType getType();
+		virtual bool isSimple();
 
 		RegisterOperand(const Location&, common::Register);
 	};
@@ -92,7 +83,7 @@ namespace dcpu { namespace ast {
 		std::uint32_t _value;
 
 		virtual bool isEvalsToLiteral();
-		virtual ExpressionType getType();
+		virtual bool isSimple();
 
 		LiteralOperand(const Location&, std::uint32_t);
 	};
@@ -102,7 +93,7 @@ namespace dcpu { namespace ast {
 		std::string _label;
 
 		virtual bool isEvalsToLiteral();
-		virtual ExpressionType getType();
+		virtual bool isSimple();
 
 		LabelReferenceOperand(const Location&, const std::string&);
 		LabelReferenceOperand(std::shared_ptr<Token> token);
@@ -111,7 +102,7 @@ namespace dcpu { namespace ast {
 	class InvalidExpression : public Expression {
 	public:
 		virtual bool isEvalsToLiteral();
-		virtual ExpressionType getType();
+		virtual bool isSimple();
 
 		InvalidExpression(const Location&);
 	};

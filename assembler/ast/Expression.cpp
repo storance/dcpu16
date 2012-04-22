@@ -17,8 +17,8 @@ namespace dcpu { namespace ast {
 		return _cachedEvalsToLiteral;
 	}
 	
-	ExpressionType UnaryOperation::getType() {
-		return ExpressionType::UNARY_OPERATION;
+	bool UnaryOperation::isSimple() {
+		return false;
 	}
 
 	BinaryOperation::BinaryOperation(const Location& location, BinaryOperator op, shared_ptr<Expression> left,
@@ -30,8 +30,8 @@ namespace dcpu { namespace ast {
 		return _cachedEvalsToLiteral;
 	}
 	
-	ExpressionType BinaryOperation::getType() {
-		return ExpressionType::BINARY_OPERATION;
+	bool BinaryOperation::isSimple() {
+		return false;
 	}
 
 	RegisterOperand::RegisterOperand(const Location& location, common::Register reg) 
@@ -41,8 +41,8 @@ namespace dcpu { namespace ast {
 		return false;
 	}
 	
-	ExpressionType RegisterOperand::getType() {
-		return ExpressionType::REGISTER;
+	bool RegisterOperand::isSimple() {
+		return true;
 	}
 
 	LiteralOperand::LiteralOperand(const Location& location, uint32_t value)
@@ -52,8 +52,8 @@ namespace dcpu { namespace ast {
 		return true;
 	}
 	
-	ExpressionType LiteralOperand::getType() {
-		return ExpressionType::LITERAL;
+	bool LiteralOperand::isSimple() {
+		return true;
 	}
 
 	LabelReferenceOperand::LabelReferenceOperand(const Location& location, const std::string& label)
@@ -66,8 +66,8 @@ namespace dcpu { namespace ast {
 		return true;
 	}
 	
-	ExpressionType LabelReferenceOperand::getType() {
-		return ExpressionType::LABEL;
+	bool LabelReferenceOperand::isSimple() {
+		return true;
 	}
 
 	InvalidExpression::InvalidExpression(const Location& location) : Expression(location) {}
@@ -76,8 +76,8 @@ namespace dcpu { namespace ast {
 		return true;
 	}
 	
-	ExpressionType InvalidExpression::getType() {
-		return ExpressionType::INVALID;
+	bool InvalidExpression::isSimple() {
+		return true;
 	}
 
 	std::string str(UnaryOperator op) {

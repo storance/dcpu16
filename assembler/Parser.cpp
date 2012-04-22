@@ -1,11 +1,11 @@
 #include "Parser.hpp"
 
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <map>
 
 #include <boost/format.hpp>
-#include <boost/assign.hpp>
 #include <boost/algorithm/string.hpp>
 
 using namespace std;
@@ -189,7 +189,7 @@ bool Parser::parseArgument(shared_ptr<Token> currentToken, shared_ptr<ast::Argum
 	}
 
 	auto expr = parseExpression(currentToken, false);
-	if (expr->getType() != ExpressionType::REGISTER && !expr->isEvalsToLiteral()) {
+	if (!expr->isSimple() && !expr->isEvalsToLiteral()) {
 		_errorHandler.error(expr->_location, "Expressions involving registers are not supported outside of "
 			"an indirection");
 		return false;
@@ -380,7 +380,7 @@ shared_ptr<Expression> Parser::parseUnaryOperation(shared_ptr<Token> currentToke
 	}
 
 	auto operand = parsePrimaryExpression(nextToken(), indirect);
-	if (_operator != UnaryOperator::PLUS && !operand->isEvalsToLiteral()) {
+	if (!operand->isEvalsToLiteral()) {
 		_errorHandler.error(currentToken->location, boost::format("Unary '%s' may only be used with an expression that "
 			"evaluates to a literal.") % str(_operator));
 		return make_shared<InvalidExpression>(currentToken->location);
@@ -490,9 +490,7 @@ RegisterDefinition* Parser::lookupRegister(const string &registerName) {
 }
 
 bool Parser::isNextTokenChar(char c) {
-	return isNextToken([=](shared_ptr<Token> token) {
-		return token->isCharacter(c);
-	});
+	return isNextToken(bind(&Token::isCharacter, placeholders::_1, c));
 }
 
 template<typename Predicate> bool Parser::isNextToken(Predicate predicate) {
