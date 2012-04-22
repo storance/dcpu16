@@ -36,12 +36,23 @@ namespace dcpu { namespace parser {
 		dcpu::ErrorHandler &_errorHandler;
 		Iterator _current, _end;
 
+		std::shared_ptr<ast::Expression> parsePrimaryExpression(std::shared_ptr<Token>, bool);
+		std::shared_ptr<ast::Expression> parseUnaryOperation(std::shared_ptr<Token>, bool);
+		std::shared_ptr<ast::Expression> parseMultiplyOperation(std::shared_ptr<Token>, bool);
+		std::shared_ptr<ast::Expression> parseAddOperation(std::shared_ptr<Token>, bool);
+		std::shared_ptr<ast::Expression> parseBitwiseShiftOperation(std::shared_ptr<Token>, bool);
+		std::shared_ptr<ast::Expression> parseBitwiseAndOperation(std::shared_ptr<Token>, bool);
+		std::shared_ptr<ast::Expression> parseBitwiseXorOperation(std::shared_ptr<Token>, bool);
+		std::shared_ptr<ast::Expression> parseBitwiseOrOperation(std::shared_ptr<Token>, bool);
+		std::shared_ptr<ast::Expression> parseExpression(std::shared_ptr<Token>, bool);
+
 		bool parseLabel(std::shared_ptr<Token>);
 		bool parseInstruction(std::shared_ptr<Token>);
+		bool parseIndirectStackArgument(std::shared_ptr<Token>, std::shared_ptr<ast::Argument>&);
 		bool parseArgument(std::shared_ptr<Token>, std::shared_ptr<ast::Argument>&);
 
-		OpcodeDefinition* lookupOpcode(std::string);
-		RegisterDefinition* lookupRegister(std::string);
+		OpcodeDefinition* lookupOpcode(const std::string&);
+		RegisterDefinition* lookupRegister(const std::string&);
 
 		void advanceToEndOfLine();
 		std::shared_ptr<Token> nextToken();

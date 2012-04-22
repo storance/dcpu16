@@ -75,4 +75,9 @@ namespace dcpu { namespace ast {
 
 		LabelReferenceOperand(const Location&, const std::string&);
 	};
-} }
+
+	class InvalidExpression : public Expression {
+	public:
+		InvalidExpression(const Location&);
+	};
+}}

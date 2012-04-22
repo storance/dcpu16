@@ -21,4 +21,6 @@ namespace dcpu { namespace ast {
 
 	LabelReferenceOperand::LabelReferenceOperand(const Location& location, const std::string& label)
 		: Expression(location), _label(label) {}
+
+	InvalidExpression::InvalidExpression(const Location& location) : Expression(location) {}
 }}
