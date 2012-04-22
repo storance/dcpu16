@@ -85,11 +85,10 @@ bool Parser::parseLabel(shared_ptr<Token> currentToken) {
 			addLabel(currentToken->location, token->content);
 			return true;
 		} else if (token->isStatementTerminator()) {
-			_errorHandler.error(token->location, boost::format(
-				"Unexpected token '%s', expected a label name.") % token->content);
+			_errorHandler.errorUnexpectedToken(token, "a label name");
 			return false;
 		} else {
-			_errorHandler.error(currentToken->location, "Unexpected token ':', expected a label or instruction.");
+			_errorHandler.errorUnexpectedToken(currentToken, "a label or instruction");
 			advanceUntil(mem_fn(&Token::isStatementTerminator));
 			return false;
 		}
@@ -102,8 +101,7 @@ bool Parser::parseLabel(shared_ptr<Token> currentToken) {
 			return false;
 		}
 	} else {
-		_errorHandler.error(currentToken->location, boost::format(
-			"Unexpected token '%s', expected a label or instruction.") % currentToken->content);
+		_errorHandler.errorUnexpectedToken(currentToken, "a label or instruction");
 		advanceUntil(mem_fn(&Token::isStatementTerminator));
 		return false;
 	}
