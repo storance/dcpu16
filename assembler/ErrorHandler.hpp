@@ -21,6 +21,9 @@ namespace dcpu {
 		void warning(const Location&, const std::string&);
 		void warning(const Location&, const boost::basic_format<char> &);
 
+		void errorUnexpectedToken(std::shared_ptr<Token> token, char c);
+		void errorUnexpectedToken(std::shared_ptr<Token> token, const std::string &expected);
+
 		bool hasErrors();
 		void summary();
 

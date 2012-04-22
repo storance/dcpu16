@@ -22,10 +22,9 @@ namespace dcpu { namespace parser {
 		std::string _name;
 		common::Register _register;
 		bool _indirectable;
-		bool _offsetIndirectable;
 
-		RegisterDefinition(const std::string &name, common::Register reg, bool indirectable, bool offsetIndirectable)
-			: _name(name), _register(reg), _indirectable(indirectable), _offsetIndirectable(offsetIndirectable) {}
+		RegisterDefinition(const std::string &name, common::Register reg, bool indirectable)
+			: _name(name), _register(reg), _indirectable(indirectable) {}
 	};
 
 
@@ -36,6 +35,10 @@ namespace dcpu { namespace parser {
 		dcpu::ErrorHandler &_errorHandler;
 		Iterator _current, _end;
 
+		std::shared_ptr<ast::Expression> parseGroupedExpression(std::shared_ptr<Token>, bool);
+		std::shared_ptr<ast::Expression> parseIdentifierExpression(std::shared_ptr<Token>, bool);
+		std::shared_ptr<ast::Expression> parseLabelExpression(std::shared_ptr<Token>);
+		std::shared_ptr<ast::Expression> parseLiteralExpression(std::shared_ptr<Token>);
 		std::shared_ptr<ast::Expression> parsePrimaryExpression(std::shared_ptr<Token>, bool);
 		std::shared_ptr<ast::Expression> parseUnaryOperation(std::shared_ptr<Token>, bool);
 		std::shared_ptr<ast::Expression> parseMultiplyOperation(std::shared_ptr<Token>, bool);
@@ -54,9 +57,10 @@ namespace dcpu { namespace parser {
 		OpcodeDefinition* lookupOpcode(const std::string&);
 		RegisterDefinition* lookupRegister(const std::string&);
 
-		void advanceToEndOfLine();
+		bool isNextTokenChar(char);
+		template<typename Predicate> bool isNextToken(Predicate);
 		std::shared_ptr<Token> nextToken();
-		void rewind();
+		template<typename Predicate> void advanceUntil(Predicate);
 
 		void addLabel(const Location&, const std::string &labelName);
 		void addInstruction(const Location&, ast::Opcode, std::shared_ptr<ast::Argument>, std::shared_ptr<ast::Argument>);

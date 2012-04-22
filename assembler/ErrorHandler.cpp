@@ -16,6 +16,14 @@ namespace dcpu {
 		error(location, str(fmt));
 	}
 
+	void ErrorHandler::errorUnexpectedToken(std::shared_ptr<Token> token, char c) {
+		error(token->location, boost::format("Unexpected token '%s'; expected '%s'") % token->content % c);
+	}
+
+	void ErrorHandler::errorUnexpectedToken(std::shared_ptr<Token> token, const std::string &expected) {
+		error(token->location, boost::format("Unexpected token '%s'; expected %s") % token->content % expected);
+	}
+
 	void ErrorHandler::warning(const Location &location, const string &message) {
 		++_totalWarnings;
 		_out << location << ": warning: " << message << endl;

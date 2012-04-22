@@ -8,7 +8,7 @@
 #include "../Token.hpp"
 
 namespace dcpu { namespace ast {
-	enum class BinaryOperator {
+	enum class BinaryOperator : std::uint8_t {
 		PLUS,
 		MINUS,
 		MULTIPLY,
@@ -21,11 +21,23 @@ namespace dcpu { namespace ast {
 		XOR
 	};
 
-	enum class UnaryOperator {
+	enum class UnaryOperator : std::uint8_t {
 		PLUS,
 		MINUS,
 		NOT
 	};
+
+	enum class ExpressionType : std::uint8_t {
+		UNARY_OPERATION,
+		BINARY_OPERATION,
+		REGISTER,
+		LITERAL,
+		LABEL,
+		INVALID
+	};
+
+	std::string str(UnaryOperator op);
+	std::string str(BinaryOperator op);
 
 	class Expression {
 	public:
@@ -33,24 +45,34 @@ namespace dcpu { namespace ast {
 
 		//virtual void evaluate()=0;
 		//virtual bool isNextWordRequired()=0;
+		virtual bool isEvalsToLiteral()=0;
+		virtual ExpressionType getType()=0;
 
 		Expression(const Location&);
 		virtual ~Expression();
 	};
 
 	class UnaryOperation : public Expression {
+		bool _cachedEvalsToLiteral;
 	public:
 		UnaryOperator _operator;
 		std::shared_ptr<Expression> _operand;
+
+		virtual bool isEvalsToLiteral();
+		virtual ExpressionType getType();
 
 		UnaryOperation(const Location&, UnaryOperator, std::shared_ptr<Expression>);
 	};
 
 	class BinaryOperation : public Expression {
+		bool _cachedEvalsToLiteral;
 	public:
 		BinaryOperator _operator;
 		std::shared_ptr<Expression> _left;
 		std::shared_ptr<Expression> _right;
+
+		virtual bool isEvalsToLiteral();
+		virtual ExpressionType getType();
 
 		BinaryOperation(const Location&, BinaryOperator, std::shared_ptr<Expression>, std::shared_ptr<Expression>);
 	};
@@ -59,12 +81,18 @@ namespace dcpu { namespace ast {
 	public:
 		common::Register _register;
 
+		virtual bool isEvalsToLiteral();
+		virtual ExpressionType getType();
+
 		RegisterOperand(const Location&, common::Register);
 	};
 
 	class LiteralOperand : public Expression {
 	public:
 		std::uint32_t _value;
+
+		virtual bool isEvalsToLiteral();
+		virtual ExpressionType getType();
 
 		LiteralOperand(const Location&, std::uint32_t);
 	};
@@ -73,11 +101,18 @@ namespace dcpu { namespace ast {
 	public:
 		std::string _label;
 
+		virtual bool isEvalsToLiteral();
+		virtual ExpressionType getType();
+
 		LabelReferenceOperand(const Location&, const std::string&);
+		LabelReferenceOperand(std::shared_ptr<Token> token);
 	};
 
 	class InvalidExpression : public Expression {
 	public:
+		virtual bool isEvalsToLiteral();
+		virtual ExpressionType getType();
+
 		InvalidExpression(const Location&);
 	};
 }}
