@@ -136,7 +136,7 @@ std::shared_ptr<Token> Lexer<Iterator, Container>::nextToken() {
     skipWhitespaceAndComments();
 
     if (current == end) {
-        return std::make_shared<Token>(makeLocation(), dcpu::TokenType::END_OF_INPUT, "");
+        return std::make_shared<Token>(makeLocation(), dcpu::TokenType::END_OF_INPUT, "end of file");
     }
 
     char c = nextChar();
@@ -166,7 +166,7 @@ std::shared_ptr<Token> Lexer<Iterator, Container>::nextToken() {
     } else if (c == '\n') {
         nextLine();
 
-        return std::make_shared<Token>(start, dcpu::TokenType::NEWLINE, "");
+        return std::make_shared<Token>(start, dcpu::TokenType::NEWLINE, "newline");
     }
 
     return std::make_shared<Token>(start, dcpu::TokenType::CHARACTER, c);
