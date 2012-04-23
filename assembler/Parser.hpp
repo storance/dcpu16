@@ -27,8 +27,6 @@ namespace dcpu { namespace parser {
 			: _mnemonic(mnemonic), _register(reg), _indirectable(indirectable) {}
 	};
 
-	typedef std::unique_ptr<ast::Statement> StatementPtr;
-
 	class Parser {
 	protected:
 		typedef std::list<std::shared_ptr<Token>>::iterator Iterator;
@@ -55,21 +53,21 @@ namespace dcpu { namespace parser {
 
 		bool parseLabel(std::shared_ptr<Token>);
 		bool parseInstruction(std::shared_ptr<Token>);
-		bool parseIndirectStackArgument(std::shared_ptr<Token>, std::shared_ptr<ast::Argument>&);
-		bool parseArgument(std::shared_ptr<Token>, std::shared_ptr<ast::Argument>&);
+		bool parseIndirectStackArgument(std::shared_ptr<Token>, ast::ArgumentPtr&);
+		bool parseArgument(std::shared_ptr<Token>, ast::ArgumentPtr&);
 
 		OpcodeDefinition* lookupOpcode(const std::string&);
 		RegisterDefinition* lookupRegister(const std::string&);
 
 		bool isNextTokenChar(char);
-		template<typename Predicate> bool isNextToken(Predicate);
+		bool isNextToken(std::function<bool (const Token&)>);
 		std::shared_ptr<Token> nextToken();
-		template<typename Predicate> void advanceUntil(Predicate);
+		void advanceUntil(std::function<bool (const Token&)>);
 
 		void addLabel(const Location&, const std::string &labelName);
-		void addInstruction(const Location&, ast::Opcode, std::shared_ptr<ast::Argument>, std::shared_ptr<ast::Argument>);
+		void addInstruction(const Location&, ast::Opcode, ast::ArgumentPtr&, ast::ArgumentPtr&);
 	public:
-		std::list<StatementPtr> _statements;
+		ast::StatementList _statements;
 
 		Parser(Iterator start, Iterator end, dcpu::ErrorHandler &errorHandler);
 

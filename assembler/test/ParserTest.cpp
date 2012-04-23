@@ -13,10 +13,10 @@ using namespace dcpu::ast;
 using namespace dcpu::parser;
 using namespace dcpu::lexer;
 
-typedef list<StatementPtr>::iterator StatementIterator;
+typedef StatementList::iterator StatementIterator;
 
-typedef std::function<void (shared_ptr<Argument>)> ArgumentFunc;
-typedef std::function<void (ExpressionPtr&)> ExpressionFunc;
+typedef function<void (ArgumentPtr&)> ArgumentFunc;
+typedef function<void (ExpressionPtr&)> ExpressionFunc;
 
 
 void assertLabel(StatementIterator &it, const string &expectedName) {
@@ -45,8 +45,8 @@ void assertInstruction(StatementIterator &it, Opcode opcode, ArgumentFunc verify
 }
 
 ArgumentFunc assertArgumentIsExpression(ExpressionFunc assertFunc) {
-	return [=] (shared_ptr<Argument> arg) {
-		shared_ptr<ExpressionArgument> exprArg = dynamic_pointer_cast<ExpressionArgument>(arg);
+	return [=] (ArgumentPtr& arg) {
+		ExpressionArgument *exprArg = dynamic_cast<ExpressionArgument*>(arg.get());
 
 		ASSERT_TRUE((bool)exprArg);
 		{
@@ -57,10 +57,10 @@ ArgumentFunc assertArgumentIsExpression(ExpressionFunc assertFunc) {
 }
 
 ArgumentFunc assertArgumentIsIndirect(ExpressionFunc assertFunc) {
-	return [=] (shared_ptr<Argument> arg) {
-		shared_ptr<IndirectArgument> exprArg = dynamic_pointer_cast<IndirectArgument>(arg);
+	return [=] (ArgumentPtr& arg) {
+		IndirectArgument *exprArg = dynamic_cast<IndirectArgument*>(arg.get());
 
-		ASSERT_TRUE((bool)exprArg);
+		ASSERT_TRUE(exprArg != nullptr);
 		{
 			SCOPED_TRACE("Verify Indirect Argument");
 			assertFunc(exprArg->_expr);
@@ -69,7 +69,7 @@ ArgumentFunc assertArgumentIsIndirect(ExpressionFunc assertFunc) {
 }
 
 ArgumentFunc assertArgumentIsNull() {
-	return [=] (shared_ptr<Argument> arg) {
+	return [=] (ArgumentPtr& arg) {
 		EXPECT_FALSE(arg);
 	};
 }

@@ -23,6 +23,8 @@ namespace dcpu { namespace ast {
 		virtual ~Argument();
 	};
 
+	typedef std::unique_ptr<Argument> ArgumentPtr;
+
 	class StackArgument : public Argument {
 	public:
 		StackOperation _operation;

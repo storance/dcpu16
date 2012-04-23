@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <list>
 #include <cstdint>
 
 #include "Argument.hpp"
@@ -45,13 +46,17 @@ namespace dcpu { namespace ast {
 		virtual ~Statement();
 	};
 
+	typedef std::unique_ptr<ast::Statement> StatementPtr;
+	typedef std::list<StatementPtr> StatementList;
+
 	class Instruction : public Statement {
 	public:
 		Opcode _opcode;
-		std::shared_ptr<Argument> _a;
-		std::shared_ptr<Argument> _b;
+		ArgumentPtr _a;
+		ArgumentPtr _b;
 
-		Instruction(const Location&, Opcode, std::shared_ptr<Argument> a, std::shared_ptr<Argument> b);
+		Instruction(const Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
+		Instruction(const Location&, Opcode, ArgumentPtr &&a, ArgumentPtr &&b);
 	};
 
 	class Label : public Statement {

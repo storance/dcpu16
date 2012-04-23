@@ -20,6 +20,9 @@ namespace dcpu { namespace ast {
 		}
 	}
 
-	Instruction::Instruction(const Location &location, Opcode opcode, shared_ptr<Argument> a, shared_ptr<Argument> b)
-		: Statement(location), _opcode(opcode), _a(a), _b(b) {}
+	Instruction::Instruction(const Location &location, Opcode opcode, ArgumentPtr& a, ArgumentPtr& b)
+		: Statement(location), _opcode(opcode), _a(move(a)), _b(move(b)) {}
+
+	Instruction::Instruction(const Location &location, Opcode opcode, ArgumentPtr&& a, ArgumentPtr&& b)
+		: Statement(location), _opcode(opcode), _a(move(a)), _b(move(b)) {}
 }}

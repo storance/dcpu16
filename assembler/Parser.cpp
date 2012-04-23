@@ -121,11 +121,11 @@ bool Parser::parseInstruction(shared_ptr<Token> currentToken) {
 		return false;
 	}
 
-	shared_ptr<Argument> a, b;
+	ArgumentPtr a, b;
 	if (opcodeDef->_args > 0) {
 		if (!parseArgument(nextToken(), a)) {
-			advanceUntil([] (shared_ptr<Token> token) {
-				return token->isCharacter(',') || token->isStatementTerminator();
+			advanceUntil([] (const Token& token) {
+				return token.isCharacter(',') || token.isStatementTerminator();
 			});
 			return false;
 		}
@@ -154,7 +154,7 @@ bool Parser::parseInstruction(shared_ptr<Token> currentToken) {
 	return true;
 }
 
-bool Parser::parseArgument(shared_ptr<Token> currentToken, shared_ptr<ast::Argument>& arg) {
+bool Parser::parseArgument(shared_ptr<Token> currentToken, ArgumentPtr& arg) {
 	if (currentToken->isCharacter(',') || currentToken->isStatementTerminator()) {
 		_errorHandler.errorUnexpectedToken(currentToken, "an instruction argument");
 		return false;
@@ -164,7 +164,7 @@ bool Parser::parseArgument(shared_ptr<Token> currentToken, shared_ptr<ast::Argum
 		auto startPos = _current;
 		if (!parseIndirectStackArgument(nextToken(), arg)) {
 			_current = startPos;
-			arg = make_shared<IndirectArgument>(parseExpression(currentToken, true));
+			arg = move(ArgumentPtr(new IndirectArgument(parseExpression(currentToken, true))));
 		}
 
 		if (!isNextTokenChar(']')) {
@@ -176,13 +176,13 @@ bool Parser::parseArgument(shared_ptr<Token> currentToken, shared_ptr<ast::Argum
 		return true;
 	} else if (currentToken->isIdentifier()) {
 		if (boost::algorithm::iequals(currentToken->content, "PUSH")) {
-			arg = make_shared<StackArgument>(currentToken->location, StackOperation::PUSH);
+			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::PUSH)));
 			return true;
 		} else if (boost::algorithm::iequals(currentToken->content, "POP")) {
-			arg = make_shared<StackArgument>(currentToken->location, StackOperation::POP);
+			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::POP)));
 			return true;
 		} else if (boost::algorithm::iequals(currentToken->content, "PEEK")) {
-			arg = make_shared<StackArgument>(currentToken->location, StackOperation::PEEK);
+			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::PEEK)));
 			return true;
 		}
 	}
@@ -192,22 +192,22 @@ bool Parser::parseArgument(shared_ptr<Token> currentToken, shared_ptr<ast::Argum
 		_errorHandler.error(expr->_location, "Registers may not be operands in expressions outside of an indirection");
 		return false;
 	}
-	arg = make_shared<ExpressionArgument>(expr);
+	arg = move(ArgumentPtr(new ExpressionArgument(expr)));
 	return true;
 }
 
-bool Parser::parseIndirectStackArgument(shared_ptr<Token> currentToken, shared_ptr<ast::Argument>& arg) {
+bool Parser::parseIndirectStackArgument(shared_ptr<Token> currentToken, ArgumentPtr& arg) {
 	if (currentToken->isIdentifier()) {
 		if (!boost::algorithm::iequals(currentToken->content, "SP")) {
 			return false;
 		}
 
 		if (isNextTokenChar(']')) {
-			arg = make_shared<StackArgument>(currentToken->location, StackOperation::PEEK);
+			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::PEEK)));
 			return true;
 		} else if (isNextToken(mem_fn(&Token::isIncrement))) {
 			nextToken();
-			arg = make_shared<StackArgument>(currentToken->location, StackOperation::POP);
+			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::POP)));
 			return true;
 		}
 
@@ -215,7 +215,7 @@ bool Parser::parseIndirectStackArgument(shared_ptr<Token> currentToken, shared_p
 	} else if (currentToken->isDecrement()) {
 		auto nxtToken = nextToken();
 		if (nxtToken->isIdentifier() && boost::algorithm::iequals(nxtToken->content, "SP")) {
-			arg = make_shared<StackArgument>(currentToken->location, StackOperation::PUSH);
+			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::PUSH)));
 			return true;
 		}
 
@@ -392,15 +392,15 @@ void Parser::addLabel(const Location& location, const string &labelName) {
 	_statements.push_back(StatementPtr(new Label(location, labelName)));
 }
 
-void Parser::addInstruction(const Location& location, ast::Opcode opcode, shared_ptr<ast::Argument> a,
-	shared_ptr<ast::Argument> b) {
+void Parser::addInstruction(const Location& location, ast::Opcode opcode, ArgumentPtr &a,
+	ArgumentPtr &b) {
 
 	_statements.push_back(StatementPtr(new Instruction(location, opcode, a, b)));
 }
 
-template<typename Predicate> void Parser::advanceUntil(Predicate predicate) {
+void Parser::advanceUntil(function<bool (const Token&)> predicate) {
 	while (_current != _end) {
-		if (predicate(*_current)) {
+		if (predicate(**_current)) {
 			break;
 		}
 
@@ -430,12 +430,12 @@ bool Parser::isNextTokenChar(char c) {
 	return isNextToken(bind(&Token::isCharacter, placeholders::_1, c));
 }
 
-template<typename Predicate> bool Parser::isNextToken(Predicate predicate) {
+bool Parser::isNextToken(function<bool (const Token&)> predicate) {
 	if (_current == _end) {
 		return false;
 	}
 
-	return predicate(*_current);
+	return predicate(**_current);
 }
 
 shared_ptr<Token> Parser::nextToken() {
