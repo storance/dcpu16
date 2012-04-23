@@ -32,15 +32,17 @@ namespace dcpu { namespace ast {
 
 	class IndirectArgument : public Argument {
 	public:
-		std::shared_ptr<Expression> _expr;
+		ExpressionPtr _expr;
 
-		IndirectArgument(std::shared_ptr<Expression>);
+		IndirectArgument(ExpressionPtr&&);
+		IndirectArgument(ExpressionPtr&);
 	};
 
 	class ExpressionArgument : public Argument {
 	public:
-		std::shared_ptr<Expression> _expr;
+		ExpressionPtr _expr;
 
-		ExpressionArgument(std::shared_ptr<Expression>);
+		ExpressionArgument(ExpressionPtr&&);
+		ExpressionArgument(ExpressionPtr&);
 	};
 } }

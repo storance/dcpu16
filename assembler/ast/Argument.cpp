@@ -10,9 +10,15 @@ namespace dcpu { namespace ast {
 	StackArgument::StackArgument(const Location& location, StackOperation operation) 
 		: Argument(location), _operation(operation) {}
 
-	IndirectArgument::IndirectArgument(shared_ptr<Expression> expr)
-		: Argument(expr->_location), _expr(expr) {}
+	IndirectArgument::IndirectArgument(ExpressionPtr& expr)
+		: Argument(expr->_location), _expr(move(expr)) {}
 
-	ExpressionArgument::ExpressionArgument(shared_ptr<Expression> expr)
-		: Argument(expr->_location), _expr(expr) {}
+	IndirectArgument::IndirectArgument(ExpressionPtr&& expr)
+		: Argument(expr->_location), _expr(move(expr)) {}
+
+	ExpressionArgument::ExpressionArgument(ExpressionPtr& expr)
+		: Argument(expr->_location), _expr(move(expr)) {}
+
+	ExpressionArgument::ExpressionArgument(ExpressionPtr&& expr)
+		: Argument(expr->_location), _expr(move(expr)) {}
 }}

@@ -9,6 +9,7 @@
 
 namespace dcpu { namespace ast {
 	enum class BinaryOperator : std::uint8_t {
+		NONE,
 		PLUS,
 		MINUS,
 		MULTIPLY,
@@ -22,13 +23,11 @@ namespace dcpu { namespace ast {
 	};
 
 	enum class UnaryOperator : std::uint8_t {
+		NONE,
 		PLUS,
 		MINUS,
 		NOT
 	};
-
-	std::string str(UnaryOperator op);
-	std::string str(BinaryOperator op);
 
 	class Expression {
 	public:
@@ -39,33 +38,38 @@ namespace dcpu { namespace ast {
 		virtual bool isEvalsToLiteral()=0;
 		virtual bool isSimple()=0;
 
+		Expression(Expression&&);
 		Expression(const Location&);
 		virtual ~Expression();
 	};
+
+	typedef std::unique_ptr<Expression> ExpressionPtr;
 
 	class UnaryOperation : public Expression {
 		bool _cachedEvalsToLiteral;
 	public:
 		UnaryOperator _operator;
-		std::shared_ptr<Expression> _operand;
+		ExpressionPtr _operand;
 
 		virtual bool isEvalsToLiteral();
 		virtual bool isSimple();
 
-		UnaryOperation(const Location&, UnaryOperator, std::shared_ptr<Expression>);
+		UnaryOperation(UnaryOperation&&);
+		UnaryOperation(const Location&, UnaryOperator, ExpressionPtr&);
 	};
 
 	class BinaryOperation : public Expression {
 		bool _cachedEvalsToLiteral;
 	public:
 		BinaryOperator _operator;
-		std::shared_ptr<Expression> _left;
-		std::shared_ptr<Expression> _right;
+		ExpressionPtr _left;
+		ExpressionPtr _right;
 
 		virtual bool isEvalsToLiteral();
 		virtual bool isSimple();
 
-		BinaryOperation(const Location&, BinaryOperator, std::shared_ptr<Expression>, std::shared_ptr<Expression>);
+		BinaryOperation(BinaryOperation&&);
+		BinaryOperation(const Location&, BinaryOperator, ExpressionPtr&, ExpressionPtr&);
 	};
 
 	class RegisterOperand : public Expression {
@@ -106,4 +110,7 @@ namespace dcpu { namespace ast {
 
 		InvalidExpression(const Location&);
 	};
+
+	std::string str(UnaryOperator op);
+	std::string str(BinaryOperator op);
 }}

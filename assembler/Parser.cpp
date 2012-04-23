@@ -164,8 +164,7 @@ bool Parser::parseArgument(shared_ptr<Token> currentToken, shared_ptr<ast::Argum
 		auto startPos = _current;
 		if (!parseIndirectStackArgument(nextToken(), arg)) {
 			_current = startPos;
-			auto expr = parseExpression(currentToken, true);
-			arg = make_shared<IndirectArgument>(expr);
+			arg = make_shared<IndirectArgument>(parseExpression(currentToken, true));
 		}
 
 		if (!isNextTokenChar(']')) {
@@ -188,10 +187,9 @@ bool Parser::parseArgument(shared_ptr<Token> currentToken, shared_ptr<ast::Argum
 		}
 	}
 
-	auto expr = parseExpression(currentToken, false);
+	ExpressionPtr expr = move(parseExpression(currentToken, false));
 	if (!expr->isSimple() && !expr->isEvalsToLiteral()) {
-		_errorHandler.error(expr->_location, "Expressions involving registers are not supported outside of "
-			"an indirection");
+		_errorHandler.error(expr->_location, "Registers may not be operands in expressions outside of an indirection");
 		return false;
 	}
 	arg = make_shared<ExpressionArgument>(expr);
@@ -227,146 +225,85 @@ bool Parser::parseIndirectStackArgument(shared_ptr<Token> currentToken, shared_p
 	return false;
 }
 
-shared_ptr<Expression> Parser::parseExpression(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseExpression(shared_ptr<Token> currentToken, bool indirect) {
 	return parseBitwiseOrOperation(currentToken, indirect);
 }
 
-shared_ptr<Expression> Parser::parseBitwiseOrOperation(shared_ptr<Token> currentToken, bool indirect) {
-	auto left = parseBitwiseXorOperation(currentToken, indirect);
+ExpressionPtr Parser::parseBitwiseOrOperation(shared_ptr<Token> currentToken, bool indirect) {
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseXorOperation,
+		{{BinaryOperator::OR, [this] { return this->isNextTokenChar('|'); }}});
+}
 
-	BinaryOperator _operator;
-	if (isNextTokenChar('|')) {
-		_operator = BinaryOperator::OR;
-	} else {
-		return left;
+ExpressionPtr Parser::parseBitwiseXorOperation(shared_ptr<Token> currentToken, bool indirect) {
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseAndOperation,
+		{{BinaryOperator::XOR, [this] { return this->isNextTokenChar('^'); }}});
+}
+
+ExpressionPtr Parser::parseBitwiseAndOperation(shared_ptr<Token> currentToken, bool indirect) {
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseShiftOperation,
+		{{BinaryOperator::AND, [this] { return this->isNextTokenChar('&'); }}});
+}
+
+ExpressionPtr Parser::parseBitwiseShiftOperation(shared_ptr<Token> currentToken, bool indirect) {
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseAddOperation,
+		{
+			{BinaryOperator::SHIFT_LEFT, [this] { return this->isNextToken(mem_fn(&Token::isShiftLeft)); }},
+			{BinaryOperator::SHIFT_RIGHT, [this] { return this->isNextToken(mem_fn(&Token::isShiftRight)); }}
+		});
+}
+
+ExpressionPtr Parser::parseAddOperation(shared_ptr<Token> currentToken, bool indirect) {
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseMultiplyOperation,
+		{
+			{BinaryOperator::PLUS, [this] { return this->isNextTokenChar('+'); }},
+			{BinaryOperator::MINUS, [this] { return this->isNextTokenChar('-'); }}
+		});
+}
+
+ExpressionPtr Parser::parseMultiplyOperation(shared_ptr<Token> currentToken, bool indirect) {
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseUnaryOperation,
+		{
+			{BinaryOperator::MULTIPLY, [this] { return this->isNextTokenChar('*'); }},
+			{BinaryOperator::DIVIDE, [this] { return this->isNextTokenChar('/'); }},
+			{BinaryOperator::MODULO, [this] { return this->isNextTokenChar('%'); }}
+		});
+}
+
+ExpressionPtr Parser::parseBinaryOperation(shared_ptr<Token> currentToken, bool indirect,
+	ExpressionParser parseFunc, OperatorDefinition definitions) {
+
+	ExpressionPtr left = (this->*parseFunc)(currentToken, indirect);
+
+	BinaryOperator _operator = BinaryOperator::NONE;
+	for (auto definition : definitions) {
+		if (definition.second()) {
+			_operator = definition.first;
+		}
+	}
+
+	if (_operator == BinaryOperator::NONE) {
+		return move(left);
 	}
 
 	auto operatorToken = nextToken();
-	auto right = parseBitwiseXorOperation(nextToken(), indirect);
-	if (!left->isEvalsToLiteral() || !right->isEvalsToLiteral()) {
-		_errorHandler.error(operatorToken->location, boost::format("Operator '%s' may only be used in expressions "
-			"that evaluate to a literal.") % str(_operator));
-		return make_shared<InvalidExpression>(currentToken->location);
+	ExpressionPtr right = (this->*parseFunc)(nextToken(), indirect);
+
+	if (_operator != BinaryOperator::PLUS && !left->isEvalsToLiteral()) {
+		_errorHandler.error(left->_location, boost::format("The left-hand expression of the operator '%s' "
+			"must evaluate to a literal.") % str(_operator));
+		return ExpressionPtr(new InvalidExpression(left->_location));
 	}
 
-	return make_shared<BinaryOperation>(operatorToken->location, _operator, left, right);
+	if (_operator != BinaryOperator::PLUS && _operator != BinaryOperator::MINUS && !right->isEvalsToLiteral()) {
+		_errorHandler.error(right->_location, boost::format("The right-hand expression of the operator '%s' "
+			"must evaluate to a literal.") % str(_operator));
+		return ExpressionPtr(new InvalidExpression(left->_location));
+	}
+
+	return ExpressionPtr(new BinaryOperation(operatorToken->location, _operator, left, right));
 }
 
-shared_ptr<Expression> Parser::parseBitwiseXorOperation(shared_ptr<Token> currentToken, bool indirect) {
-	auto left = parseBitwiseAndOperation(currentToken, indirect);
-
-	BinaryOperator _operator;
-	if (isNextTokenChar('^')) {
-		_operator = BinaryOperator::XOR;
-	} else {
-		return left;
-	}
-
-	auto operatorToken = nextToken();
-	auto right = parseBitwiseAndOperation(nextToken(), indirect);
-	if (!left->isEvalsToLiteral() || !right->isEvalsToLiteral()) {
-		_errorHandler.error(operatorToken->location, boost::format("Operator '%s' may only be used in expressions "
-			"that evaluate to a literal.") % str(_operator));
-		return make_shared<InvalidExpression>(currentToken->location);
-	}
-
-	return make_shared<BinaryOperation>(operatorToken->location, _operator, left, right);
-}
-
-shared_ptr<Expression> Parser::parseBitwiseAndOperation(shared_ptr<Token> currentToken, bool indirect) {
-	auto left = parseBitwiseShiftOperation(currentToken, indirect);
-
-	BinaryOperator _operator;
-	if (isNextTokenChar('&')) {
-		_operator = BinaryOperator::AND;
-	} else {
-		return left;
-	}
-
-	auto operatorToken = nextToken();
-	auto right = parseBitwiseShiftOperation(nextToken(), indirect);
-	if (!left->isEvalsToLiteral() || !right->isEvalsToLiteral()) {
-		_errorHandler.error(operatorToken->location, boost::format("Operator '%s' may only be used in expressions "
-			"that evaluate to a literal.") % str(_operator));
-		return make_shared<InvalidExpression>(currentToken->location);
-	}
-
-	return make_shared<BinaryOperation>(operatorToken->location, _operator, left, right);
-}
-
-shared_ptr<Expression> Parser::parseBitwiseShiftOperation(shared_ptr<Token> currentToken, bool indirect) {
-	auto left = parseAddOperation(currentToken, indirect);
-
-	BinaryOperator _operator;
-	if (isNextToken(mem_fn(&Token::isShiftLeft))) {
-		_operator = BinaryOperator::SHIFT_LEFT;
-	} else if (isNextToken(mem_fn(&Token::isShiftRight))) {
-		_operator = BinaryOperator::SHIFT_RIGHT;
-	} else {
-		return left;
-	}
-
-	auto operatorToken = nextToken();
-	auto right = parseAddOperation(nextToken(), indirect);
-	if (!left->isEvalsToLiteral() || !right->isEvalsToLiteral()) {
-		_errorHandler.error(operatorToken->location, boost::format("Operator '%s' may only be used in expressions "
-			"that evaluate to a literal.") % str(_operator));
-		return make_shared<InvalidExpression>(currentToken->location);
-	}
-
-	return make_shared<BinaryOperation>(operatorToken->location, _operator, left, right);
-}
-
-shared_ptr<Expression> Parser::parseAddOperation(shared_ptr<Token> currentToken, bool indirect) {
-	auto left = parseMultiplyOperation(currentToken, indirect);
-
-	BinaryOperator _operator;
-	if (isNextTokenChar('+')) {
-		_operator = BinaryOperator::PLUS;
-	} else if (isNextTokenChar('-')) {
-		_operator = BinaryOperator::MINUS;
-	} else {
-		return left;
-	}
-
-	auto operatorToken = nextToken();
-	auto right = parseMultiplyOperation(nextToken(), indirect);
-
-	if (!left->isEvalsToLiteral()) {
-		_errorHandler.error(operatorToken->location, boost::format("The expression to the left of the operator "
-			"'-' must evaluate to a literal."));
-		return make_shared<InvalidExpression>(currentToken->location);
-	}
-
-	return make_shared<BinaryOperation>(operatorToken->location, _operator, left, right);
-}
-
-shared_ptr<Expression> Parser::parseMultiplyOperation(shared_ptr<Token> currentToken, bool indirect) {
-	auto left = parseUnaryOperation(currentToken, indirect);
-
-	BinaryOperator _operator;
-	if (isNextTokenChar('*')) {
-		_operator = BinaryOperator::MULTIPLY;
-	} else if (isNextTokenChar('/')) {
-		_operator = BinaryOperator::DIVIDE;
-	} else if (isNextTokenChar('%')) {
-		_operator = BinaryOperator::MODULO;
-	} else {
-		return left;
-	}
-
-	auto operatorToken = nextToken();
-	auto right = parseUnaryOperation(nextToken(), indirect);
-	if (!left->isEvalsToLiteral() || !right->isEvalsToLiteral()) {
-		_errorHandler.error(operatorToken->location, boost::format("Operator '%s' may only be used in expressions "
-			"that evaluate to a literal.") % str(_operator));
-		return make_shared<InvalidExpression>(currentToken->location);
-	}
-
-	return make_shared<BinaryOperation>(operatorToken->location, _operator, left, right);
-}
-
-shared_ptr<Expression> Parser::parseUnaryOperation(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseUnaryOperation(shared_ptr<Token> currentToken, bool indirect) {
 	UnaryOperator _operator;
 
 	if (currentToken->isCharacter('+')) {
@@ -379,17 +316,17 @@ shared_ptr<Expression> Parser::parseUnaryOperation(shared_ptr<Token> currentToke
 		return parsePrimaryExpression(currentToken, indirect);
 	}
 
-	auto operand = parsePrimaryExpression(nextToken(), indirect);
+	ExpressionPtr operand = parsePrimaryExpression(nextToken(), indirect);
 	if (!operand->isEvalsToLiteral()) {
 		_errorHandler.error(currentToken->location, boost::format("Unary '%s' may only be used with an expression that "
 			"evaluates to a literal.") % str(_operator));
-		return make_shared<InvalidExpression>(currentToken->location);
+		return ExpressionPtr(new InvalidExpression(currentToken->location));
 	}
 
-	return make_shared<UnaryOperation>(currentToken->location, _operator, operand);
+	return ExpressionPtr(new UnaryOperation(currentToken->location, _operator, operand));
 }
 
-shared_ptr<Expression> Parser::parsePrimaryExpression(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parsePrimaryExpression(shared_ptr<Token> currentToken, bool indirect) {
 	if (currentToken->isCharacter('(')) {
 		return parseGroupedExpression(nextToken(), indirect);
 	} else if (currentToken->isIdentifier()) {
@@ -400,12 +337,12 @@ shared_ptr<Expression> Parser::parsePrimaryExpression(shared_ptr<Token> currentT
 		return parseLiteralExpression(currentToken);
 	} else {
 		_errorHandler.errorUnexpectedToken(currentToken, "a label name, register, or literal");
-		return make_shared<InvalidExpression>(currentToken->location);
+		return ExpressionPtr(new InvalidExpression(currentToken->location));
 	}
 }
 
-shared_ptr<Expression> Parser::parseGroupedExpression(shared_ptr<Token> currentToken, bool indirect) {
-	auto expr = parseExpression(currentToken, indirect);
+ExpressionPtr Parser::parseGroupedExpression(shared_ptr<Token> currentToken, bool indirect) {
+	ExpressionPtr expr = parseExpression(currentToken, indirect);
 
 	if (!isNextTokenChar(')')) {
 		_errorHandler.errorUnexpectedToken(*_current, ')');
@@ -416,49 +353,49 @@ shared_ptr<Expression> Parser::parseGroupedExpression(shared_ptr<Token> currentT
 	return expr;
 }
 
-shared_ptr<Expression> Parser::parseIdentifierExpression(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseIdentifierExpression(shared_ptr<Token> currentToken, bool indirect) {
 	auto registerDef = lookupRegister(currentToken->content);
 	if (registerDef) {
 		if (indirect && !registerDef->_indirectable) {
 			_errorHandler.error(currentToken->location, boost::format("Register %s can't be used in an indirection") 
-				% registerDef->_name);
-			return make_shared<InvalidExpression>(currentToken->location);
+				% registerDef->_mnemonic);
+			return ExpressionPtr(new InvalidExpression(currentToken->location));
 		}
 		
-		return make_shared<RegisterOperand>(currentToken->location, registerDef->_register);
+		return ExpressionPtr(new RegisterOperand(currentToken->location, registerDef->_register));
 	}
 
-	return make_shared<LabelReferenceOperand>(currentToken);
+	return ExpressionPtr(new LabelReferenceOperand(currentToken));
 }
 
-shared_ptr<Expression> Parser::parseLabelExpression(shared_ptr<Token> currentToken) {
+ExpressionPtr Parser::parseLabelExpression(shared_ptr<Token> currentToken) {
 	if (!isNextToken(mem_fn(&Token::isIdentifier))) {
 		_errorHandler.errorUnexpectedToken(*_current, "a label name");
 
-		return make_shared<InvalidExpression>(currentToken->location);	
+		return ExpressionPtr(new InvalidExpression(currentToken->location));
 	}
 
-	return make_shared<LabelReferenceOperand>(nextToken());
+	return ExpressionPtr(new LabelReferenceOperand(nextToken()));
 }
 
-shared_ptr<Expression> Parser::parseLiteralExpression(shared_ptr<Token> currentToken) {
+ExpressionPtr Parser::parseLiteralExpression(shared_ptr<Token> currentToken) {
 	shared_ptr<IntegerToken> intToken = asInteger(currentToken);
 	if (intToken->overflow) {
 		_errorHandler.warning(intToken->location, boost::format(
 			"%s is larger than the maximum intermediary value (%d).") % intToken->content % UINT32_MAX);
 	}
 
-	return make_shared<LiteralOperand>(intToken->location, intToken->value);
+	return ExpressionPtr(new LiteralOperand(intToken->location, intToken->value));
 }
 
 void Parser::addLabel(const Location& location, const string &labelName) {
-	_statements.push_back(make_shared<ast::Label>(location, labelName));
+	_statements.push_back(StatementPtr(new Label(location, labelName)));
 }
 
 void Parser::addInstruction(const Location& location, ast::Opcode opcode, shared_ptr<ast::Argument> a,
 	shared_ptr<ast::Argument> b) {
 
-	_statements.push_back(make_shared<ast::Instruction>(location, opcode, a, b));
+	_statements.push_back(StatementPtr(new Instruction(location, opcode, a, b)));
 }
 
 template<typename Predicate> void Parser::advanceUntil(Predicate predicate) {

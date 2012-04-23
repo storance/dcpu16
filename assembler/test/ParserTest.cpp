@@ -13,22 +13,25 @@ using namespace dcpu::ast;
 using namespace dcpu::parser;
 using namespace dcpu::lexer;
 
-typedef list<shared_ptr<Statement>>::iterator StatementIterator;
+typedef list<StatementPtr>::iterator StatementIterator;
 
-void verifyLabel(StatementIterator &it, const string &expectedName) {
-	shared_ptr<ast::Statement> statement = *it++;
+typedef std::function<void (shared_ptr<Argument>)> ArgumentFunc;
+typedef std::function<void (ExpressionPtr&)> ExpressionFunc;
 
-	shared_ptr<ast::Label> label = dynamic_pointer_cast<ast::Label>(statement);
-	ASSERT_TRUE((bool)label);
+
+void assertLabel(StatementIterator &it, const string &expectedName) {
+	auto& statement = *it++;
+
+	Label* label = dynamic_cast<Label*>(statement.get());
+	ASSERT_TRUE(label != nullptr);
 	EXPECT_EQ(expectedName, label->_name);
 }
 
-template <typename FunctionA, typename FunctionB>
-void verifyInstruction(StatementIterator &it, Opcode opcode, FunctionA verifyA, FunctionB verifyB) {
-	shared_ptr<ast::Statement> statement = *it++;
+void assertInstruction(StatementIterator &it, Opcode opcode, ArgumentFunc verifyA, ArgumentFunc verifyB) {
+	auto& statement = *it++;
 
-	shared_ptr<ast::Instruction> instruction = dynamic_pointer_cast<ast::Instruction>(statement);
-	ASSERT_TRUE((bool)instruction);
+	Instruction* instruction = dynamic_cast<ast::Instruction*>(statement.get());
+	ASSERT_TRUE(instruction != nullptr);
 	EXPECT_EQ(opcode, instruction->_opcode);
 
 	{
@@ -41,188 +44,177 @@ void verifyInstruction(StatementIterator &it, Opcode opcode, FunctionA verifyA, 
 	}
 }
 
-template <typename Function>
-void verifyArgumentIsExpression(shared_ptr<Argument> arg, Function verifyArg) {
-	shared_ptr<ExpressionArgument> exprArg = dynamic_pointer_cast<ExpressionArgument>(arg);
+ArgumentFunc assertArgumentIsExpression(ExpressionFunc assertFunc) {
+	return [=] (shared_ptr<Argument> arg) {
+		shared_ptr<ExpressionArgument> exprArg = dynamic_pointer_cast<ExpressionArgument>(arg);
 
-	ASSERT_TRUE((bool)exprArg);
-	{
-		SCOPED_TRACE("Verify Expression Argument");
-		verifyArg(exprArg->_expr);
-	}
+		ASSERT_TRUE((bool)exprArg);
+		{
+			SCOPED_TRACE("Verify Expression Argument");
+			assertFunc(exprArg->_expr);
+		}
+	};
 }
 
-void verifyExpressionIsRegister(shared_ptr<Expression> expr, common::Register expectedRegister) {
-	shared_ptr<RegisterOperand> registerOp = dynamic_pointer_cast<RegisterOperand>(expr);
+ArgumentFunc assertArgumentIsIndirect(ExpressionFunc assertFunc) {
+	return [=] (shared_ptr<Argument> arg) {
+		shared_ptr<IndirectArgument> exprArg = dynamic_pointer_cast<IndirectArgument>(arg);
 
-	ASSERT_TRUE((bool)registerOp);
-	EXPECT_EQ(expectedRegister, registerOp->_register);
+		ASSERT_TRUE((bool)exprArg);
+		{
+			SCOPED_TRACE("Verify Indirect Argument");
+			assertFunc(exprArg->_expr);
+		}
+	};
 }
 
-void verifyArgumentIsNull(shared_ptr<Argument> arg) {
-	EXPECT_FALSE(arg);
+ArgumentFunc assertArgumentIsNull() {
+	return [=] (shared_ptr<Argument> arg) {
+		EXPECT_FALSE(arg);
+	};
+}
+
+ExpressionFunc assertIsBinaryOperation(BinaryOperator expectedOperation,
+	ExpressionFunc assertLeft, ExpressionFunc assertRight) {
+
+	return [=] (ExpressionPtr& expr) {
+		BinaryOperation* binaryOp = dynamic_cast<BinaryOperation*>(expr.get());
+
+		ASSERT_TRUE(binaryOp != nullptr);
+		EXPECT_EQ(expectedOperation, binaryOp->_operator);
+		{
+			SCOPED_TRACE("Verify left-hand expression");
+			assertLeft(binaryOp->_left);
+		}
+		{
+			SCOPED_TRACE("Verify right-hand expression");
+			assertRight(binaryOp->_right);
+		}
+	};
+}
+
+ExpressionFunc assertIsLabelRef(const string &labelName) {
+	return [=] (ExpressionPtr& expr) {
+		LabelReferenceOperand* labelRefOp = dynamic_cast<LabelReferenceOperand*>(expr.get());
+
+		ASSERT_TRUE(labelRefOp != nullptr);
+		EXPECT_EQ(labelName, labelRefOp->_label);
+	};
+}
+
+ExpressionFunc assertIsRegister(common::Register expectedRegister) {
+	return [=] (ExpressionPtr& expr) {
+		RegisterOperand* registerOp = dynamic_cast<RegisterOperand*>(expr.get());
+
+		ASSERT_TRUE(registerOp != nullptr);
+		EXPECT_EQ(expectedRegister, registerOp->_register);
+	};
+}
+
+ExpressionFunc assertIsLiteral(uint32_t expectedValue) {
+	return [=] (ExpressionPtr& expr) {
+		LiteralOperand* literalOp = dynamic_cast<LiteralOperand*>(expr.get());
+
+		ASSERT_TRUE(literalOp != nullptr);
+		EXPECT_EQ(expectedValue, literalOp->_value);
+	};
 }
 
 typedef string::const_iterator lexer_iterator;
 
-void runParser(string content, int expectedStatements, list<shared_ptr<Statement>> &statements) {
+void runParser(const string &content, int expectedStatements, unique_ptr<Parser> &parser) {
 	Lexer<lexer_iterator> lexer(content.begin(), content.end(), "<ParserTest>");
 	lexer.parse();
 
 	ErrorHandler errorHandler;
 
-	Parser parser(lexer.tokens.begin(), lexer.tokens.end(), errorHandler);
-	parser.parse();	
+	parser.reset(new Parser(lexer.tokens.begin(), lexer.tokens.end(), errorHandler));
+	parser->parse();
 
-	statements = parser._statements;
-	ASSERT_EQ(expectedStatements, statements.size());
+	ASSERT_EQ(expectedStatements, parser->_statements.size());
 }
-
-auto isRegisterA  = bind(&verifyExpressionIsRegister, _1, Register::A);
-auto isRegisterB  = bind(&verifyExpressionIsRegister, _1, Register::B);
-auto isRegisterC  = bind(&verifyExpressionIsRegister, _1, Register::C);
-auto isRegisterX  = bind(&verifyExpressionIsRegister, _1, Register::X);
-auto isRegisterY  = bind(&verifyExpressionIsRegister, _1, Register::Y);
-auto isRegisterZ  = bind(&verifyExpressionIsRegister, _1, Register::Z);
-auto isRegisterI  = bind(&verifyExpressionIsRegister, _1, Register::I);
-auto isRegisterJ  = bind(&verifyExpressionIsRegister, _1, Register::J);
-auto isRegisterPC = bind(&verifyExpressionIsRegister, _1, Register::PC);
-auto isRegisterSP = bind(&verifyExpressionIsRegister, _1, Register::SP);
-auto isRegisterO  = bind(&verifyExpressionIsRegister, _1, Register::O);
 
 
 TEST(ParserTest, ParseInstruction) {
-	list<shared_ptr<Statement>> statements;
+	unique_ptr<Parser> parser;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("SET A, B\n   add pc  ,\ti\n\njsr X", 3, statements));
+	ASSERT_NO_FATAL_FAILURE(runParser("SET A, 1\n   add pc  ,\ti\n\njsr X", 3, parser));
 
-	auto it = statements.begin();
+	auto it = parser->_statements.begin();
 	{
-		SCOPED_TRACE("First Statement"); 
-		verifyInstruction(it, Opcode::SET,
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterA);
-			},
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterB);
-			});
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(assertIsLiteral(1)));
 	}
 
 	{
-		SCOPED_TRACE("Second Statement"); 
-		verifyInstruction(it, Opcode::ADD,
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterPC);
-			},
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterI);
-			});
+		SCOPED_TRACE("Statement: 2"); 
+		assertInstruction(it, Opcode::ADD,
+			assertArgumentIsExpression(assertIsRegister(Register::PC)),
+			assertArgumentIsExpression(assertIsRegister(Register::I)));
 	}
 
 	{
-		SCOPED_TRACE("Third Statement"); 
-		verifyInstruction(it, Opcode::JSR,
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterX);
-			},
-			&verifyArgumentIsNull);
+		SCOPED_TRACE("Statement: 3"); 
+		assertInstruction(it, Opcode::JSR,
+			assertArgumentIsExpression(assertIsRegister(Register::X)),
+			assertArgumentIsNull());
 	}
 }
 
 TEST(ParserTest, LabelTest) {
-	list<shared_ptr<Statement>> statements;
+	unique_ptr<Parser> parser;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("label1:\n:label2\nlabel3: SET A, B\n:label4 SET A, B", 6, statements));
+	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n:label2\nlabel3: SET A, B\n: label4 SET A, B", 6, parser));
 
-	auto it = statements.begin();
+	auto it = parser->_statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
-		verifyLabel(it, "label1");
+		assertLabel(it, "label1");
 	}
 
 	{
 		SCOPED_TRACE("Statement: 2"); 
-		verifyLabel(it, "label2");
+		assertLabel(it, "label2");
 	}
 
 	{
 		SCOPED_TRACE("Statement: 3"); 
-		verifyLabel(it, "label3");
+		assertLabel(it, "label3");
 	}
 
 	{
 		SCOPED_TRACE("Statement: 4"); 
-		verifyInstruction(it, Opcode::SET,
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterA);
-			},
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterB);
-			});
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(assertIsRegister(Register::B)));
 	}
 
 	{
 		SCOPED_TRACE("Statement: 5"); 
-		verifyLabel(it, "label4");
+		assertLabel(it, "label4");
 	}
 
 	{
 		SCOPED_TRACE("Statement: 6"); 
-		verifyInstruction(it, Opcode::SET,
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterA);
-			},
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterB);
-			});
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(assertIsRegister(Register::B)));
 	}
 }
 
-TEST(ParserTest, LabelWithSpaceTest) {
-	list<shared_ptr<Statement>> statements;
+TEST(ParserTest, SimpleExpressionTest) {
+	unique_ptr<Parser> parser;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n: label2\nlabel3 : SET A, B\n: label4 SET A, B", 6, statements));
-
-	auto it = statements.begin();
+	ASSERT_NO_FATAL_FAILURE(runParser("set 4 * 2, 1 + 2", 1, parser));
+	auto it = parser->_statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
-		verifyLabel(it, "label1");
-	}
-
-	{
-		SCOPED_TRACE("Statement: 2"); 
-		verifyLabel(it, "label2");
-	}
-
-	{
-		SCOPED_TRACE("Statement: 3"); 
-		verifyLabel(it, "label3");
-	}
-
-	{
-		SCOPED_TRACE("Statement: 4"); 
-		verifyInstruction(it, Opcode::SET,
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterA);
-			},
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterB);
-			});
-	}
-
-	{
-		SCOPED_TRACE("Statement: 5"); 
-		verifyLabel(it, "label4");
-	}
-
-	{
-		SCOPED_TRACE("Statement: 6"); 
-		verifyInstruction(it, Opcode::SET,
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterA);
-			},
-			[](shared_ptr<Argument> arg) {
-				verifyArgumentIsExpression(arg, isRegisterB);
-			});
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(
+				assertIsBinaryOperation(BinaryOperator::MULTIPLY, assertIsLiteral(4), assertIsLiteral(2))),
+			assertArgumentIsExpression(
+				assertIsBinaryOperation(BinaryOperator::PLUS, assertIsLiteral(1), assertIsLiteral(2))));
 	}
 }

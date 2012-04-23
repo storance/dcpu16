@@ -5,13 +5,18 @@ using namespace std;
 namespace dcpu { namespace ast {
 	Expression::Expression(const Location& location) : _location(location) {}
 
+	Expression::Expression(Expression&& other) : _location(move(other._location)) {}
+
 	Expression::~Expression() {}
 
-	UnaryOperation::UnaryOperation(const Location& location, UnaryOperator op, shared_ptr<Expression> operand)
-		: Expression(location), _operator(op), _operand(operand) {
+	UnaryOperation::UnaryOperation(const Location& location, UnaryOperator op, ExpressionPtr& operand)
+		: Expression(location), _operator(op), _operand(move(operand)) {
 
 		_cachedEvalsToLiteral = _operand->isEvalsToLiteral();
 	}
+
+	UnaryOperation::UnaryOperation(UnaryOperation&& other)
+		:  Expression(other._location), _operator(other._operator), _operand(move(other._operand)) {}
 
 	bool UnaryOperation::isEvalsToLiteral() {
 		return _cachedEvalsToLiteral;
@@ -21,10 +26,14 @@ namespace dcpu { namespace ast {
 		return false;
 	}
 
-	BinaryOperation::BinaryOperation(const Location& location, BinaryOperator op, shared_ptr<Expression> left,
-		shared_ptr<Expression> right) : Expression(location), _operator(op), _left(left), _right(right) {
+	BinaryOperation::BinaryOperation(const Location& location, BinaryOperator op, ExpressionPtr& left,
+		ExpressionPtr& right) : Expression(location), _operator(op), _left(move(left)), _right(move(right)) {
 		_cachedEvalsToLiteral = _left->isEvalsToLiteral() && _right->isEvalsToLiteral();
 	}
+
+	BinaryOperation::BinaryOperation(BinaryOperation&& other)
+		:  Expression(other._location), _operator(other._operator), _left(move(other._left)),
+		 _right(move(other._right)) {}
 
 	bool BinaryOperation::isEvalsToLiteral() {
 		return _cachedEvalsToLiteral;
