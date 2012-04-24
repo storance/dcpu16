@@ -231,14 +231,14 @@ TEST(ParserTest, SimpleExpressionTest) {
 TEST(ParserTest, IndirectionTest) {
 	StatementList statements;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("set [A], [1 + 2]", 1, statements));
+	ASSERT_NO_FATAL_FAILURE(runParser("set [A], [label * 2]", 1, statements));
 	auto it = statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
 			assertArgumentIsIndirect(assertIsRegister(Register::A)),
 			assertArgumentIsIndirect(
-				assertIsBinaryOperation(BinaryOperator::PLUS, assertIsLiteral(1), assertIsLiteral(2))));
+				assertIsBinaryOperation(BinaryOperator::MULTIPLY, assertIsLabel("label"), assertIsLiteral(2))));
 	}
 
 	ASSERT_NO_FATAL_FAILURE(runParser("set [B - 4], [5 + J]", 1, statements));
