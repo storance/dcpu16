@@ -9,7 +9,6 @@
 
 namespace dcpu { namespace ast {
 	enum class BinaryOperator : std::uint8_t {
-		NONE,
 		PLUS,
 		MINUS,
 		MULTIPLY,
@@ -35,8 +34,9 @@ namespace dcpu { namespace ast {
 
 		//virtual void evaluate()=0;
 		//virtual bool isNextWordRequired()=0;
-		virtual bool isEvalsToLiteral()=0;
-		virtual bool isSimple()=0;
+		virtual bool isEvalsToLiteral() const=0;
+		virtual bool isSimple() const=0;
+		virtual std::string str() const=0;
 
 		Expression(Expression&&);
 		Expression(const lexer::Location&);
@@ -51,8 +51,9 @@ namespace dcpu { namespace ast {
 		UnaryOperator _operator;
 		ExpressionPtr _operand;
 
-		virtual bool isEvalsToLiteral();
-		virtual bool isSimple();
+		virtual bool isEvalsToLiteral() const;
+		virtual bool isSimple() const;
+		virtual std::string str() const;
 
 		UnaryOperation(UnaryOperation&&);
 		UnaryOperation(const lexer::Location&, UnaryOperator, ExpressionPtr&);
@@ -65,8 +66,9 @@ namespace dcpu { namespace ast {
 		ExpressionPtr _left;
 		ExpressionPtr _right;
 
-		virtual bool isEvalsToLiteral();
-		virtual bool isSimple();
+		virtual bool isEvalsToLiteral() const;
+		virtual bool isSimple() const;
+		virtual std::string str() const;
 
 		BinaryOperation(BinaryOperation&&);
 		BinaryOperation(const lexer::Location&, BinaryOperator, ExpressionPtr&, ExpressionPtr&);
@@ -76,8 +78,9 @@ namespace dcpu { namespace ast {
 	public:
 		common::Register _register;
 
-		virtual bool isEvalsToLiteral();
-		virtual bool isSimple();
+		virtual bool isEvalsToLiteral() const;
+		virtual bool isSimple() const;
+		virtual std::string str() const;
 
 		RegisterOperand(const lexer::Location&, common::Register);
 	};
@@ -86,8 +89,9 @@ namespace dcpu { namespace ast {
 	public:
 		std::uint32_t _value;
 
-		virtual bool isEvalsToLiteral();
-		virtual bool isSimple();
+		virtual bool isEvalsToLiteral() const;
+		virtual bool isSimple() const;
+		virtual std::string str() const;
 
 		LiteralOperand(const lexer::Location&, std::uint32_t);
 	};
@@ -96,8 +100,9 @@ namespace dcpu { namespace ast {
 	public:
 		std::string _label;
 
-		virtual bool isEvalsToLiteral();
-		virtual bool isSimple();
+		virtual bool isEvalsToLiteral() const;
+		virtual bool isSimple() const;
+		virtual std::string str() const;
 
 		LabelReferenceOperand(const lexer::Location&, const std::string&);
 		LabelReferenceOperand(lexer::TokenPtr& token);
@@ -105,12 +110,17 @@ namespace dcpu { namespace ast {
 
 	class InvalidExpression : public Expression {
 	public:
-		virtual bool isEvalsToLiteral();
-		virtual bool isSimple();
+		virtual bool isEvalsToLiteral() const;
+		virtual bool isSimple() const;
+		virtual std::string str() const;
 
 		InvalidExpression(const lexer::Location&);
 	};
 
-	std::string str(UnaryOperator op);
-	std::string str(BinaryOperator op);
+	std::string str(UnaryOperator);
+	std::string str(BinaryOperator);
+	std::string str(common::Register);
+
+	std::string str(const Expression&);
+	std::string str(ExpressionPtr&);
 }}
