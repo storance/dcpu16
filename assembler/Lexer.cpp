@@ -1,5 +1,6 @@
 #include "Lexer.hpp"
 
+#include <string>
 #include <cctype>
 #include <cstdlib>
 #include <climits>
@@ -12,6 +13,48 @@ using namespace std;
 namespace dcpu { namespace lexer {
     Lexer::Lexer(Iterator current, Iterator end, const string &sourceName)
         : _current(current), _end(end), _sourceName(sourceName), _line(1), _column(0) {}
+
+    void Lexer::parse() {
+        while (true) {
+            TokenPtr token = nextToken();
+            tokens.push_back(move(token));
+
+            if (token->isEOI()) {
+                break;
+            }
+        }
+    }
+
+    TokenPtr Lexer::nextToken() {
+        skipWhitespaceAndComments();
+
+        if (_current == _end) {
+            return TokenPtr(new Token(makeLocation(), TokenType::END_OF_INPUT, "end of file"));
+        }
+
+        char c = nextChar();
+        Location start = makeLocation();
+
+        if (c == '+' && consumeNextCharIf('+')) {
+            return TokenPtr(new Token(start, TokenType::INCREMENT, "++"));
+        } else if (c == '-' && consumeNextCharIf('-')) {
+            return TokenPtr(new Token(start, TokenType::DECREMENT, "--"));
+        } else if (c == '<' && consumeNextCharIf('<')) {
+            return TokenPtr(new Token(start, TokenType::SHIFT_LEFT, "<<"));
+        } else if (c == '>' && consumeNextCharIf('>')) {
+            return TokenPtr(new Token(start, TokenType::SHIFT_RIGHT, ">>"));
+        } else if (isAllowedIdentifierFirstChar(c)) {
+            return TokenPtr(new Token(start, TokenType::IDENTIFIER, appendWhile(c, &Lexer::isAllowedIdentifierChar)));
+        } else if (isdigit(c)) {
+            return parseNumber(start, appendWhile(c, &Lexer::isAllowedIdentifierChar));
+        } else if (c == '\n') {
+            nextLine();
+
+            return TokenPtr(new Token(start, TokenType::NEWLINE, "newline"));
+        }
+
+        return TokenPtr(new Token(start, TokenType::CHARACTER, c));
+    }
 
     string Lexer::appendWhile(char initial, function<bool (char)> predicate) {
     	string content;
@@ -111,7 +154,7 @@ namespace dcpu { namespace lexer {
 
         size_t pos;
         try {
-            unsigned long parsedValue = stoul(unprefixedValue, &pos, base);
+            unsigned long parsedValue = std::stoul(unprefixedValue, &pos, base);
             if (pos != unprefixedValue.size()) {
                 return TokenPtr(new InvalidIntegerToken(start, value, base));
             }
@@ -125,47 +168,6 @@ namespace dcpu { namespace lexer {
             return TokenPtr(new InvalidIntegerToken(start, value, base));
         } catch (out_of_range &oor) {
             return TokenPtr(new IntegerToken(start, value, UINT32_MAX, true));
-        }
-    }
-
-    TokenPtr Lexer::nextToken() {
-        skipWhitespaceAndComments();
-
-        if (_current == _end) {
-            return TokenPtr(new Token(makeLocation(), TokenType::END_OF_INPUT, "end of file"));
-        }
-
-        char c = nextChar();
-        Location start = makeLocation();
-
-    	if (c == '+' && consumeNextCharIf('+')) {
-    		return TokenPtr(new Token(start, TokenType::INCREMENT, "++"));
-        } else if (c == '-' && consumeNextCharIf('-')) {
-    		return TokenPtr(new Token(start, TokenType::DECREMENT, "--"));
-        } else if (c == '<' && consumeNextCharIf('<')) {
-    		return TokenPtr(new Token(start, TokenType::SHIFT_LEFT, "<<"));
-        } else if (c == '>' && consumeNextCharIf('>')) {
-    		return TokenPtr(new Token(start, TokenType::SHIFT_RIGHT, ">>"));
-        } else if (isAllowedIdentifierFirstChar(c)) {
-            return TokenPtr(new Token(start, TokenType::IDENTIFIER, appendWhile(c, &Lexer::isAllowedIdentifierChar)));
-        } else if (isdigit(c)) {
-            return parseNumber(start, appendWhile(c, &Lexer::isAllowedIdentifierChar));
-        } else if (c == '\n') {
-            nextLine();
-
-            return TokenPtr(new Token(start, TokenType::NEWLINE, "newline"));
-        }
-
-        return TokenPtr(new Token(start, TokenType::CHARACTER, c));
-    }
-    void Lexer::parse() {
-        while (true) {
-            TokenPtr token = nextToken();
-            tokens.push_back(move(token));
-
-            if (token->isEOI()) {
-                break;
-            }
         }
     }
 }}

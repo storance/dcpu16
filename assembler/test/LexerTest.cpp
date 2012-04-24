@@ -1,29 +1,23 @@
 #include "../Lexer.hpp"
 
 #include <iostream>
-#include <vector>
 #include <gtest/gtest.h>
 
 using namespace std;
 using namespace dcpu;
 using namespace dcpu::lexer;
 
-#define ASSERT_LOCATION(token, lineNum, columnNum) { \
-	SCOPED_TRACE("Location"); \
-	assertLocation(token, lineNum, columnNum); \
+void assertInvalidInteger(TokenPtr &token, const std::string &expectedContent, uint8_t expectedBase) {
+	ASSERT_TRUE(token->isInvalidInteger());
+
+	InvalidIntegerToken* integerToken = asInvalidInteger(token);
+	EXPECT_EQ(expectedContent, integerToken->content);
+	EXPECT_EQ(expectedBase, integerToken->base);
 }
 
-#define EXPECT_INTEGER(token, expectedValue, expectedOverflow) { \
-	SCOPED_TRACE("Integer"); \
-	expectInteger(token, expectedVaue, expectedOverflow); \
-}
+void assertInteger(TokenPtr &token, uint32_t expectedValue, bool expectedOverflow) {
+	ASSERT_TRUE(token->isInteger());
 
-#define EXPECT_INVALID_INTEGER(token, expectedContent, expectedBase) { \
-	SCOPED_TRACE("Invalid Integer"); \
-	expectInvaidInteger(token ,expectedContent, expectedBase); \
-}
-
-void expectInteger(TokenPtr &token, uint32_t expectedValue, bool expectedOverflow) {
 	IntegerToken *integerToken = asInteger(token);
 	EXPECT_EQ(expectedValue, integerToken->value); 
 	if (expectedOverflow)  {
@@ -31,12 +25,6 @@ void expectInteger(TokenPtr &token, uint32_t expectedValue, bool expectedOverflo
 	} else {
 		EXPECT_FALSE(integerToken->overflow);
 	}
-}
-
-void expectInvalidInteger(TokenPtr &ptr, const std::string &expectedContent, uint8_t expectedBase) {
-	InvalidIntegerToken* integerToken = asInvalidInteger(token);
-	EXPECT_EQ(expectedContent, integerToken->content);
-	EXPECT_EQ(expectedBase, integerToken->base);
 }
 
 void assertLocation(TokenPtr &token, uint32_t expectedLine, uint32_t expectedColumn) {
@@ -50,8 +38,38 @@ void assertIdentifier(TokenPtr &token, const string &expectedContent) {
 	EXPECT_EQ(expectedContent, token->content);
 }
 
+void assertIncrement(TokenPtr &token) {
+	ASSERT_TRUE(token->isIncrement());
+	EXPECT_EQ("++", token->content);
+}
+
+void assertDecrement(TokenPtr &token) {
+	ASSERT_TRUE(token->isDecrement());
+	EXPECT_EQ("--", token->content);
+}
+
+void assertShiftLeft(TokenPtr &token) {
+	ASSERT_TRUE(token->isShiftLeft());
+	EXPECT_EQ("<<", token->content);
+}
+
+void assertShiftRight(TokenPtr &token) {
+	ASSERT_TRUE(token->isShiftRight());
+	EXPECT_EQ(">>", token->content);
+}
+
+void assertCharacter(TokenPtr &token, char c) {
+	ASSERT_TRUE(token->isCharacter(c));
+}
+
+void assertNewline(TokenPtr &token) {
+	ASSERT_TRUE(token->isNewline());
+	EXPECT_EQ("newline", token->content);
+}
+
 void assertEOI(TokenPtr &token) {
 	ASSERT_TRUE(token->isEOI());
+	EXPECT_EQ("end of file", token->content);
 }
 
 void runParser(const string &input, size_t expectedTokens, vector<TokenPtr> &tokens) {
@@ -84,30 +102,48 @@ TEST(LexerTest, IdentifierStartsPeriod) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser(".aaa111", 2, tokens));
 
-	EXPECT_TRUE(tokens[0]->isIdentifier());
-	EXPECT_EQ(tokens[0]->content, ".aaa111");
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertIdentifier(*it++, ".aaa111");
+	}
 
-	EXPECT_TRUE(tokens[1]->isEOI());
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, IdentifierStartsQuestion) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("?aaa111", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isIdentifier());
-	EXPECT_EQ(tokens[0]->content, "?aaa111");
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertIdentifier(*it++, "?aaa111");
+	}
 
-	EXPECT_TRUE(tokens[1]->isEOI());
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, IdentifierStartsLetter) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("aaa111", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isIdentifier());
-	EXPECT_EQ(tokens[0]->content, "aaa111");
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertIdentifier(*it++, "aaa111");
+	}
 
-	EXPECT_TRUE(tokens[1]->isEOI());
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, DecimalNumber) {
@@ -115,30 +151,48 @@ TEST(LexerTest, DecimalNumber) {
 
     ASSERT_NO_FATAL_FAILURE(runParser("100", 2, tokens));
 
-	ASSERT_TRUE(tokens[0]->isInteger());
-	EXPECT_INTEGER(tokens[0], 100, false);
+	auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, 100, false);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, HexNumberLowercase) {
     vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0xff", 2, tokens));
 
-	ASSERT_TRUE(tokens[0]->isInteger());
-	EXPECT_INTEGER(tokens[0], 0xff, false);
+	auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, 0xff, false);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, HexNumberUppercase) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0X1D", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInteger());
-	EXPECT_INTEGER(tokens[0], 0x1d, false);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, 0x1d, false);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, BinaryNumberLowercase) {
@@ -146,352 +200,530 @@ TEST(LexerTest, BinaryNumberLowercase) {
 
     ASSERT_NO_FATAL_FAILURE(runParser("0b1011", 2, tokens));
 
-	ASSERT_TRUE(tokens[0]->isInteger());
-	EXPECT_INTEGER(tokens[0], 0b1011, false);
+	auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, 0b1011, false);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, BinaryNumberUppercase) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0B10001011", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInteger());
-	EXPECT_INTEGER(tokens[0], 0b10001011, false);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, 0b10001011, false);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, OctalNumberLowercase) {
     vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0o32", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInteger());
-	EXPECT_INTEGER(tokens[0], 032, false);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, 032, false);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, OctalNumberUppercase) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0O27", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInteger());
-	EXPECT_INTEGER(tokens[0], 027, false);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, 027, false);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, InvalidDecimalNumber) {
     vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("100a3", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInvalidInteger());
-	EXPECT_INVALID_INTEGER(tokens[0], "100a3", 10);
+	auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInvalidInteger(*it++, "100a3", 10);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, InvalidHexNumber) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0X100Z3", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInvalidInteger());
-	EXPECT_INVALID_INTEGER(tokens[0], "0X100Z3", 16);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInvalidInteger(*it++, "0X100Z3", 16);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, OctalWithInvalidNumber) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0o10093", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInvalidInteger());
-	EXPECT_INVALID_INTEGER(tokens[0], "0o10093", 8);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInvalidInteger(*it++, "0o10093", 8);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, OctalWithInvalidLetter) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0o100a3", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInvalidInteger());
-	EXPECT_INVALID_INTEGER(tokens[0], "0o100a3", 8);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInvalidInteger(*it++, "0o100a3", 8);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, BinaryWithInvalidNumber) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0b1113", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInvalidInteger());
-	EXPECT_INVALID_INTEGER(tokens[0], "0b1113", 2);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInvalidInteger(*it++, "0b1113", 2);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, BinaryWithInvalidLetter) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0B111a", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInvalidInteger());
-	EXPECT_INVALID_INTEGER(tokens[0], "0B111a", 2);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInvalidInteger(*it++, "0B111a", 2);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, OverflowNumber) {
     vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("4294967296", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInteger());
-	EXPECT_INTEGER(tokens[0], UINT32_MAX, true);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, UINT32_MAX, true);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, DecimalNumberAtUint32Max) {
     vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("4294967295", 2, tokens));
 
-    ASSERT_TRUE(tokens[0]->isInteger());
-	EXPECT_INTEGER(tokens[0], UINT32_MAX, false);
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, UINT32_MAX, false);
+	}
 
-    EXPECT_TRUE(tokens[1]->isEOI());
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, Increment) {
     vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("++", 2, tokens));
 
-	EXPECT_TRUE(tokens[0]->isIncrement());
-	EXPECT_EQ(tokens[0]->content, "++");
+	auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertIncrement(*it++);
+	}
 
-	EXPECT_TRUE(tokens[1]->isEOI());
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, Decrement) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("--", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isDecrement());
-	EXPECT_EQ(tokens[0]->content, "--");
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertDecrement(*it++);
+	}
 
-	EXPECT_TRUE(tokens[1]->isEOI());
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, ShiftLeft) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("<<", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isShiftLeft());
-	EXPECT_EQ(tokens[0]->content, "<<");
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertShiftLeft(*it++);
+	}
 
-	EXPECT_TRUE(tokens[1]->isEOI());
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, ShiftRight) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser(">>", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isShiftRight());
-	EXPECT_EQ(tokens[0]->content, ">>");
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertShiftRight(*it++);
+	}
 
-	EXPECT_TRUE(tokens[1]->isEOI());
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, Newline) {
 	vector<TokenPtr> tokens;
 	ASSERT_NO_FATAL_FAILURE(runParser("\n", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isNewline());
-    EXPECT_TRUE(tokens[1]->isEOI());
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertNewline(*it++);
+	}
+    
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, SingleCharacters) {
 	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("@", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isCharacter('@'));
-    EXPECT_TRUE(tokens[1]->isEOI());
+    auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertCharacter(*it++, '@');
+	}
+    
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 
     ASSERT_NO_FATAL_FAILURE(runParser(",", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isCharacter(','));
-    EXPECT_TRUE(tokens[1]->isEOI());
+    it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertCharacter(*it++, ',');
+	}
+    
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 
 	ASSERT_NO_FATAL_FAILURE(runParser("$", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isCharacter('$'));
-    EXPECT_TRUE(tokens[1]->isEOI());
+    it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertCharacter(*it++, '$');
+	}
+    
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 
     ASSERT_NO_FATAL_FAILURE(runParser("[", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isCharacter('['));
-    EXPECT_TRUE(tokens[1]->isEOI());
+    it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertCharacter(*it++, '[');
+	}
+    
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 
     ASSERT_NO_FATAL_FAILURE(runParser("]", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isCharacter(']'));
-    EXPECT_TRUE(tokens[1]->isEOI());
+    it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertCharacter(*it++, ']');
+	}
+    
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 
     ASSERT_NO_FATAL_FAILURE(runParser("(", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isCharacter('('));
-    EXPECT_TRUE(tokens[1]->isEOI());
+    it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertCharacter(*it++, '(');
+	}
+    
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 
     ASSERT_NO_FATAL_FAILURE(runParser(")", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isCharacter(')'));
-    EXPECT_TRUE(tokens[1]->isEOI());
+    it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertCharacter(*it++, ')');
+	}
+    
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 
     ASSERT_NO_FATAL_FAILURE(runParser("+", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isCharacter('+'));
-    EXPECT_TRUE(tokens[1]->isEOI());
+    it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertCharacter(*it++, '+');
+	}
+    
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 
     ASSERT_NO_FATAL_FAILURE(runParser("-", 2, tokens));
 
-    EXPECT_TRUE(tokens[0]->isCharacter('-'));
-    EXPECT_TRUE(tokens[1]->isEOI());
+    it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertCharacter(*it++, '-');
+	}
+    
+    {
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
-TEST(LexerTest, SimpleExpression) {
+
+TEST(LexerTest, MultipleTokens) {
 	vector<TokenPtr> tokens;
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, b\nset [J], 0x400\nlabel: JSR label+4\n", 20, tokens));
-
-	int index = 0;
-	// Line 1
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("set", tokens[index++]->content);
-
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("A", tokens[index++]->content);
-
-	EXPECT_TRUE(tokens[index++]->isCharacter(','));
-
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("b", tokens[index++]->content);
-
-	EXPECT_TRUE(tokens[index++]->isNewline());
-
-	// Line 2
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("set", tokens[index++]->content);
-
-	EXPECT_TRUE(tokens[index++]->isCharacter('['));
-
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("J", tokens[index++]->content);
-
-	EXPECT_TRUE(tokens[index++]->isCharacter(']'));
-
-	EXPECT_TRUE(tokens[index++]->isCharacter(','));
-
-	ASSERT_TRUE(tokens[index]->isInteger());
-	EXPECT_INTEGER(tokens[index++], 0x400, false);
-
-	EXPECT_TRUE(tokens[index++]->isNewline());
-
-	// Line 3
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("label", tokens[index++]->content);
-
-	EXPECT_TRUE(tokens[index++]->isCharacter(':'));
-
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("JSR", tokens[index++]->content);
-
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("label", tokens[index++]->content);
-
-	EXPECT_TRUE(tokens[index++]->isCharacter('+'));
-
-	ASSERT_TRUE(tokens[index]->isInteger());
-	EXPECT_INTEGER(tokens[index++], 4, false);
-
-	EXPECT_TRUE(tokens[index++]->isNewline());
-
-	EXPECT_TRUE(tokens[index++]->isEOI());
-}
-
-TEST(LexerTest, Location) {
-	vector<TokenPtr> tokens;
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, b\n  set [J], 0x400\n;a test comment\nSET I, 1\n", 19, tokens));
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, b\n  set [J], 0x400\n;a test comment\nlabel: JSR label+4\n", 21, tokens));
 
 	int index = 0;
 
 	// Line 1
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("set", tokens[index]->content);
-	ASSERT_LOCATION(tokens[index++], 1, 1);
+	auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertIdentifier(*it, "set");
+		assertLocation(*it++, 1, 1);
+	}
 
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("A", tokens[index]->content);
-	ASSERT_LOCATION(tokens[index++], 1, 5);
+	{
+		SCOPED_TRACE("Token: 2");
+		assertIdentifier(*it, "A");
+		assertLocation(*it++, 1, 5);
+	}
 
-	EXPECT_TRUE(tokens[index]->isCharacter(','));
-	ASSERT_LOCATION(tokens[index++], 1, 6);
+	{
+		SCOPED_TRACE("Token: 3");
+		assertCharacter(*it, ',');
+		assertLocation(*it++, 1, 6);
+	}
 
+	{
+		SCOPED_TRACE("Token: 4");
+		assertIdentifier(*it, "b");
+		assertLocation(*it++, 1, 8);
+	}
 
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("b", tokens[index]->content);
-	ASSERT_LOCATION(tokens[index++], 1, 8);
-
-	EXPECT_TRUE(tokens[index]->isNewline());
-	ASSERT_LOCATION(tokens[index++], 1, 9);
+	{
+		SCOPED_TRACE("Token: 5");
+		assertNewline(*it);
+		assertLocation(*it++, 1, 9);
+	}
 
 	// Line 2
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("set", tokens[index]->content);
-	ASSERT_LOCATION(tokens[index++], 2, 3);
+	{
+		SCOPED_TRACE("Token: 6");
+		assertIdentifier(*it, "set");
+		assertLocation(*it++, 2, 3);
+	}
 
-	EXPECT_TRUE(tokens[index]->isCharacter('['));
-	ASSERT_LOCATION(tokens[index++], 2, 7);
+	{
+		SCOPED_TRACE("Token: 7");
+		assertCharacter(*it, '[');
+		assertLocation(*it++, 2, 7);
+	}
 
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("J", tokens[index]->content);
-	ASSERT_LOCATION(tokens[index++], 2, 8);
+	{
+		SCOPED_TRACE("Token: 8");
+		assertIdentifier(*it, "J");
+		assertLocation(*it++, 2, 8);
+	}
 
-	EXPECT_TRUE(tokens[index]->isCharacter(']'));
-	ASSERT_LOCATION(tokens[index++], 2, 9);
+	{
+		SCOPED_TRACE("Token: 9");
+		assertCharacter(*it, ']');
+		assertLocation(*it++, 2, 9);
+	}
 
-	EXPECT_TRUE(tokens[index]->isCharacter(','));
-	ASSERT_LOCATION(tokens[index++], 2, 10);
+	{
+		SCOPED_TRACE("Token: 10");
+		assertCharacter(*it, ',');
+		assertLocation(*it++, 2, 10);
+	}
 
-	ASSERT_TRUE(tokens[index]->isInteger());
-	EXPECT_INTEGER(tokens[index], 0x400, false);
-	ASSERT_LOCATION(tokens[index++], 2, 12);
+	{
+		SCOPED_TRACE("Token: 11");
+		assertInteger(*it, 0x400, false);
+		assertLocation(*it++, 2, 12);
+	}
 
-	EXPECT_TRUE(tokens[index]->isNewline());
-	ASSERT_LOCATION(tokens[index++], 2, 17);
+	{
+		SCOPED_TRACE("Token: 12");
+		assertNewline(*it);
+		assertLocation(*it++, 2, 17);
+	}
 
 	// Line 3
-	EXPECT_TRUE(tokens[index]->isNewline());
-	ASSERT_LOCATION(tokens[index++], 3, 16);
+	{
+		SCOPED_TRACE("Token: 13");
+		assertNewline(*it);
+		assertLocation(*it++, 3, 16);
+	}
 
 	// Line 4
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("SET", tokens[index]->content);
-	ASSERT_LOCATION(tokens[index++], 4, 1);
+	{
+		SCOPED_TRACE("Token: 14");
+		assertIdentifier(*it, "label");
+		assertLocation(*it++, 4, 1);
+	}
 
-	EXPECT_TRUE(tokens[index]->isIdentifier());
-	EXPECT_EQ("I", tokens[index]->content);
-	ASSERT_LOCATION(tokens[index++], 4, 5);
+	{
+		SCOPED_TRACE("Token: 15");
+		assertCharacter(*it, ':');
+		assertLocation(*it++, 4, 6);
+	}
 
-	EXPECT_TRUE(tokens[index]->isCharacter(','));
-	ASSERT_LOCATION(tokens[index++], 4, 6);
+	{
+		SCOPED_TRACE("Token: 16");
+		assertIdentifier(*it, "JSR");
+		assertLocation(*it++, 4, 8);
+	}
 
-	ASSERT_TRUE(tokens[index]->isInteger());
-	EXPECT_INTEGER(tokens[index], 1, false);
-	ASSERT_LOCATION(tokens[index++], 4, 8);
+	{
+		SCOPED_TRACE("Token: 17");
+		assertIdentifier(*it, "label");
+		assertLocation(*it++, 4, 12);
+	}
 
-	EXPECT_TRUE(tokens[index]->isNewline());
-	ASSERT_LOCATION(tokens[index++], 4, 9);
+	{
+		SCOPED_TRACE("Token: 18");
+		assertCharacter(*it, '+');
+		assertLocation(*it++, 4, 13);
+	}
+
+	{
+		SCOPED_TRACE("Token: 19");
+		assertInteger(*it, 4, false);
+		assertLocation(*it++, 4, 14);
+	}
+
+	{
+		SCOPED_TRACE("Token: 20");
+		assertNewline(*it);
+		assertLocation(*it++, 4, 15);
+	}
 
 	// Line 5
-	EXPECT_TRUE(tokens[index]->isEOI());
-	ASSERT_LOCATION(tokens[index++], 5, 0);
+	{
+		SCOPED_TRACE("Token: 21");
+		assertEOI(*it);
+		assertLocation(*it++, 5, 0);
+	}
 }
