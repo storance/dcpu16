@@ -68,6 +68,15 @@ ArgumentFunc assertArgumentIsIndirect(ExpressionFunc assertFunc) {
 	};
 }
 
+ArgumentFunc assertArgumentIsStack(StackOperation operation) {
+	return [=] (ArgumentPtr& arg) {
+		StackArgument *stackArg = dynamic_cast<StackArgument*>(arg.get());
+
+		ASSERT_TRUE(stackArg != nullptr);
+		EXPECT_EQ(operation, stackArg->_operation);
+	};
+}
+
 ArgumentFunc assertArgumentIsNull() {
 	return [=] (ArgumentPtr& arg) {
 		EXPECT_FALSE(arg);
@@ -241,5 +250,55 @@ TEST(ParserTest, IndirectionTest) {
 				assertIsBinaryOperation(BinaryOperator::MINUS, assertIsRegister(Register::B), assertIsLiteral(4))),
 			assertArgumentIsIndirect(
 				assertIsBinaryOperation(BinaryOperator::PLUS, assertIsLiteral(5), assertIsRegister(Register::J))));
+	}
+}
+
+TEST(ParserTest, StackArgumentsTest) {
+	StatementList statements;
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, [SP]\nset B, [SP++]\nset [--SP] , C", 3, statements));
+	auto it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsStack(StackOperation::PEEK));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 2"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::B)),
+			assertArgumentIsStack(StackOperation::POP));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 3"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsStack(StackOperation::PUSH),
+			assertArgumentIsExpression(assertIsRegister(Register::C)));
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, PEEK\nset B, POP\nset PUSH , C", 3, statements));
+	it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsStack(StackOperation::PEEK));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 2"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::B)),
+			assertArgumentIsStack(StackOperation::POP));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 3"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsStack(StackOperation::PUSH),
+			assertArgumentIsExpression(assertIsRegister(Register::C)));
 	}
 }
