@@ -72,7 +72,7 @@ void assertEOI(TokenPtr &token) {
 	EXPECT_EQ("end of file", token->content);
 }
 
-void runParser(const string &input, size_t expectedTokens, vector<TokenPtr> &tokens) {
+void runParser(const string &input, size_t expectedTokens, TokenList &tokens) {
 	Lexer lexer(input.begin(), input.end(), "<LexerTest>");
     lexer.parse();
 
@@ -82,7 +82,7 @@ void runParser(const string &input, size_t expectedTokens, vector<TokenPtr> &tok
 }
 
 TEST(LexerTest, IdentifierStartsUnderscore) {
-    vector<TokenPtr> tokens;
+    TokenList tokens;
 
     ASSERT_NO_FATAL_FAILURE(runParser("_a1_?.$#@", 2, tokens));
 
@@ -99,7 +99,7 @@ TEST(LexerTest, IdentifierStartsUnderscore) {
 }
 
 TEST(LexerTest, IdentifierStartsPeriod) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser(".aaa111", 2, tokens));
 
     auto it = tokens.begin();
@@ -115,7 +115,7 @@ TEST(LexerTest, IdentifierStartsPeriod) {
 }
 
 TEST(LexerTest, IdentifierStartsQuestion) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("?aaa111", 2, tokens));
 
     auto it = tokens.begin();
@@ -131,7 +131,7 @@ TEST(LexerTest, IdentifierStartsQuestion) {
 }
 
 TEST(LexerTest, IdentifierStartsLetter) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("aaa111", 2, tokens));
 
     auto it = tokens.begin();
@@ -147,7 +147,7 @@ TEST(LexerTest, IdentifierStartsLetter) {
 }
 
 TEST(LexerTest, DecimalNumber) {
-    vector<TokenPtr> tokens;
+    TokenList tokens;
 
     ASSERT_NO_FATAL_FAILURE(runParser("100", 2, tokens));
 
@@ -164,7 +164,7 @@ TEST(LexerTest, DecimalNumber) {
 }
 
 TEST(LexerTest, HexNumberLowercase) {
-    vector<TokenPtr> tokens;
+    TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0xff", 2, tokens));
 
 	auto it = tokens.begin();
@@ -180,7 +180,7 @@ TEST(LexerTest, HexNumberLowercase) {
 }
 
 TEST(LexerTest, HexNumberUppercase) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0X1D", 2, tokens));
 
     auto it = tokens.begin();
@@ -196,7 +196,7 @@ TEST(LexerTest, HexNumberUppercase) {
 }
 
 TEST(LexerTest, BinaryNumberLowercase) {
-    vector<TokenPtr> tokens;
+    TokenList tokens;
 
     ASSERT_NO_FATAL_FAILURE(runParser("0b1011", 2, tokens));
 
@@ -213,7 +213,7 @@ TEST(LexerTest, BinaryNumberLowercase) {
 }
 
 TEST(LexerTest, BinaryNumberUppercase) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0B10001011", 2, tokens));
 
     auto it = tokens.begin();
@@ -229,7 +229,7 @@ TEST(LexerTest, BinaryNumberUppercase) {
 }
 
 TEST(LexerTest, OctalNumberLowercase) {
-    vector<TokenPtr> tokens;
+    TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0o32", 2, tokens));
 
     auto it = tokens.begin();
@@ -245,7 +245,7 @@ TEST(LexerTest, OctalNumberLowercase) {
 }
 
 TEST(LexerTest, OctalNumberUppercase) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0O27", 2, tokens));
 
     auto it = tokens.begin();
@@ -261,7 +261,7 @@ TEST(LexerTest, OctalNumberUppercase) {
 }
 
 TEST(LexerTest, InvalidDecimalNumber) {
-    vector<TokenPtr> tokens;
+    TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("100a3", 2, tokens));
 
 	auto it = tokens.begin();
@@ -277,7 +277,7 @@ TEST(LexerTest, InvalidDecimalNumber) {
 }
 
 TEST(LexerTest, InvalidHexNumber) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0X100Z3", 2, tokens));
 
     auto it = tokens.begin();
@@ -293,7 +293,7 @@ TEST(LexerTest, InvalidHexNumber) {
 }
 
 TEST(LexerTest, OctalWithInvalidNumber) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0o10093", 2, tokens));
 
     auto it = tokens.begin();
@@ -309,7 +309,7 @@ TEST(LexerTest, OctalWithInvalidNumber) {
 }
 
 TEST(LexerTest, OctalWithInvalidLetter) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0o100a3", 2, tokens));
 
     auto it = tokens.begin();
@@ -325,7 +325,7 @@ TEST(LexerTest, OctalWithInvalidLetter) {
 }
 
 TEST(LexerTest, BinaryWithInvalidNumber) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0b1113", 2, tokens));
 
     auto it = tokens.begin();
@@ -341,7 +341,7 @@ TEST(LexerTest, BinaryWithInvalidNumber) {
 }
 
 TEST(LexerTest, BinaryWithInvalidLetter) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0B111a", 2, tokens));
 
     auto it = tokens.begin();
@@ -357,7 +357,7 @@ TEST(LexerTest, BinaryWithInvalidLetter) {
 }
 
 TEST(LexerTest, OverflowNumber) {
-    vector<TokenPtr> tokens;
+    TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("4294967296", 2, tokens));
 
     auto it = tokens.begin();
@@ -373,7 +373,7 @@ TEST(LexerTest, OverflowNumber) {
 }
 
 TEST(LexerTest, DecimalNumberAtUint32Max) {
-    vector<TokenPtr> tokens;
+    TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("4294967295", 2, tokens));
 
     auto it = tokens.begin();
@@ -389,7 +389,7 @@ TEST(LexerTest, DecimalNumberAtUint32Max) {
 }
 
 TEST(LexerTest, Increment) {
-    vector<TokenPtr> tokens;
+    TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("++", 2, tokens));
 
 	auto it = tokens.begin();
@@ -405,7 +405,7 @@ TEST(LexerTest, Increment) {
 }
 
 TEST(LexerTest, Decrement) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("--", 2, tokens));
 
     auto it = tokens.begin();
@@ -421,7 +421,7 @@ TEST(LexerTest, Decrement) {
 }
 
 TEST(LexerTest, ShiftLeft) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("<<", 2, tokens));
 
     auto it = tokens.begin();
@@ -437,7 +437,7 @@ TEST(LexerTest, ShiftLeft) {
 }
 
 TEST(LexerTest, ShiftRight) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser(">>", 2, tokens));
 
     auto it = tokens.begin();
@@ -453,7 +453,7 @@ TEST(LexerTest, ShiftRight) {
 }
 
 TEST(LexerTest, Newline) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
 	ASSERT_NO_FATAL_FAILURE(runParser("\n", 2, tokens));
 
     auto it = tokens.begin();
@@ -469,7 +469,7 @@ TEST(LexerTest, Newline) {
 }
 
 TEST(LexerTest, SingleCharacters) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("@", 2, tokens));
 
     auto it = tokens.begin();
@@ -590,7 +590,7 @@ TEST(LexerTest, SingleCharacters) {
 
 
 TEST(LexerTest, MultipleTokens) {
-	vector<TokenPtr> tokens;
+	TokenList tokens;
 	ASSERT_NO_FATAL_FAILURE(runParser("set A, b\n  set [J], 0x400\n;a test comment\nlabel: JSR label+4\n", 21, tokens));
 
 	int index = 0;
@@ -705,19 +705,19 @@ TEST(LexerTest, MultipleTokens) {
 	{
 		SCOPED_TRACE("Token: 18");
 		assertCharacter(*it, '+');
-		assertLocation(*it++, 4, 13);
+		assertLocation(*it++, 4, 17);
 	}
 
 	{
 		SCOPED_TRACE("Token: 19");
 		assertInteger(*it, 4, false);
-		assertLocation(*it++, 4, 14);
+		assertLocation(*it++, 4, 18);
 	}
 
 	{
 		SCOPED_TRACE("Token: 20");
 		assertNewline(*it);
-		assertLocation(*it++, 4, 15);
+		assertLocation(*it++, 4, 19);
 	}
 
 	// Line 5

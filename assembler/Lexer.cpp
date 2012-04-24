@@ -17,9 +17,10 @@ namespace dcpu { namespace lexer {
     void Lexer::parse() {
         while (true) {
             TokenPtr token = nextToken();
-            tokens.push_back(move(token));
+            bool isEOI = token->isEOI();
 
-            if (token->isEOI()) {
+            tokens.push_back(move(token));
+            if (isEOI) {
                 break;
             }
         }

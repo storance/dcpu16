@@ -120,10 +120,8 @@ ExpressionFunc assertIsLiteral(uint32_t expectedValue) {
 	};
 }
 
-typedef string::const_iterator lexer_iterator;
-
 void runParser(const string &content, int expectedStatements, unique_ptr<Parser> &parser) {
-	Lexer<lexer_iterator> lexer(content.begin(), content.end(), "<ParserTest>");
+	Lexer lexer(content.begin(), content.end(), "<ParserTest>");
 	lexer.parse();
 
 	ErrorHandler errorHandler;
