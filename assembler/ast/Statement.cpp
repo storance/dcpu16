@@ -3,6 +3,7 @@
 #include <boost/algorithm/string.hpp>
 
 using namespace std;
+using namespace dcpu::lexer;
 
 namespace dcpu { namespace ast {
 	Statement::Statement(const Location& location) : _location(location) {}

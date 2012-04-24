@@ -8,54 +8,80 @@ using namespace std;
 using namespace dcpu;
 using namespace dcpu::lexer;
 
-typedef string::const_iterator iterator_type;
-typedef Lexer<iterator_type, std::vector<shared_ptr<Token>>> lexer_type;
-
 #define ASSERT_LOCATION(token, lineNum, columnNum) { \
-	shared_ptr<Token> t = token; \
-	EXPECT_EQ("<LexerTest>", t->location.sourceName); \
-	EXPECT_EQ(lineNum, t->location.line); \
-	EXPECT_EQ(columnNum, t->location.column); \
+	SCOPED_TRACE("Location"); \
+	assertLocation(token, lineNum, columnNum); \
 }
 
 #define EXPECT_INTEGER(token, expectedValue, expectedOverflow) { \
-	shared_ptr<IntegerToken> integerToken = asInteger(token); \
-	EXPECT_EQ(expectedValue, integerToken->value); \
-	if (expectedOverflow)  { \
-		EXPECT_TRUE(integerToken->overflow); \
-	} else { \
-		EXPECT_FALSE(integerToken->overflow); \
-	} \
+	SCOPED_TRACE("Integer"); \
+	expectInteger(token, expectedVaue, expectedOverflow); \
 }
 
 #define EXPECT_INVALID_INTEGER(token, expectedContent, expectedBase) { \
-	shared_ptr<InvalidIntegerToken> integerToken = asInvalidInteger(token); \
-	EXPECT_EQ(expectedContent, integerToken->content); \
-	EXPECT_EQ(expectedBase, integerToken->base); \
+	SCOPED_TRACE("Invalid Integer"); \
+	expectInvaidInteger(token ,expectedContent, expectedBase); \
 }
 
-void runParser(string input, size_t expectedTokens, vector<shared_ptr<Token>> &tokens) {
-	lexer_type lexer(input.begin(), input.end(), "<LexerTest>");
+void expectInteger(TokenPtr &token, uint32_t expectedValue, bool expectedOverflow) {
+	IntegerToken *integerToken = asInteger(token);
+	EXPECT_EQ(expectedValue, integerToken->value); 
+	if (expectedOverflow)  {
+		EXPECT_TRUE(integerToken->overflow);
+	} else {
+		EXPECT_FALSE(integerToken->overflow);
+	}
+}
+
+void expectInvalidInteger(TokenPtr &ptr, const std::string &expectedContent, uint8_t expectedBase) {
+	InvalidIntegerToken* integerToken = asInvalidInteger(token);
+	EXPECT_EQ(expectedContent, integerToken->content);
+	EXPECT_EQ(expectedBase, integerToken->base);
+}
+
+void assertLocation(TokenPtr &token, uint32_t expectedLine, uint32_t expectedColumn) {
+	EXPECT_EQ("<LexerTest>", token->location.sourceName);
+	EXPECT_EQ(expectedLine, token->location.line);
+	EXPECT_EQ(expectedColumn, token->location.column);
+}
+
+void assertIdentifier(TokenPtr &token, const string &expectedContent) {
+	ASSERT_TRUE(token->isIdentifier());
+	EXPECT_EQ(expectedContent, token->content);
+}
+
+void assertEOI(TokenPtr &token) {
+	ASSERT_TRUE(token->isEOI());
+}
+
+void runParser(const string &input, size_t expectedTokens, vector<TokenPtr> &tokens) {
+	Lexer lexer(input.begin(), input.end(), "<LexerTest>");
     lexer.parse();
 
-    tokens = lexer.tokens;
+    tokens = move(lexer.tokens);
 
     ASSERT_EQ(expectedTokens, tokens.size());
 }
 
 TEST(LexerTest, IdentifierStartsUnderscore) {
-    vector<shared_ptr<Token>> tokens;
+    vector<TokenPtr> tokens;
 
     ASSERT_NO_FATAL_FAILURE(runParser("_a1_?.$#@", 2, tokens));
 
-	EXPECT_TRUE(tokens[0]->isIdentifier());
-	EXPECT_EQ(tokens[0]->content, "_a1_?.$#@");
+	auto it = tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertIdentifier(*it++, "_a1_?.$#@");
+	}
 
-	EXPECT_TRUE(tokens[1]->isEOI());
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
 }
 
 TEST(LexerTest, IdentifierStartsPeriod) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser(".aaa111", 2, tokens));
 
 	EXPECT_TRUE(tokens[0]->isIdentifier());
@@ -65,7 +91,7 @@ TEST(LexerTest, IdentifierStartsPeriod) {
 }
 
 TEST(LexerTest, IdentifierStartsQuestion) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("?aaa111", 2, tokens));
 
     EXPECT_TRUE(tokens[0]->isIdentifier());
@@ -75,7 +101,7 @@ TEST(LexerTest, IdentifierStartsQuestion) {
 }
 
 TEST(LexerTest, IdentifierStartsLetter) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("aaa111", 2, tokens));
 
     EXPECT_TRUE(tokens[0]->isIdentifier());
@@ -85,7 +111,7 @@ TEST(LexerTest, IdentifierStartsLetter) {
 }
 
 TEST(LexerTest, DecimalNumber) {
-    vector<shared_ptr<Token>> tokens;
+    vector<TokenPtr> tokens;
 
     ASSERT_NO_FATAL_FAILURE(runParser("100", 2, tokens));
 
@@ -96,7 +122,7 @@ TEST(LexerTest, DecimalNumber) {
 }
 
 TEST(LexerTest, HexNumberLowercase) {
-    vector<shared_ptr<Token>> tokens;
+    vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0xff", 2, tokens));
 
 	ASSERT_TRUE(tokens[0]->isInteger());
@@ -106,7 +132,7 @@ TEST(LexerTest, HexNumberLowercase) {
 }
 
 TEST(LexerTest, HexNumberUppercase) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0X1D", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInteger());
@@ -116,7 +142,7 @@ TEST(LexerTest, HexNumberUppercase) {
 }
 
 TEST(LexerTest, BinaryNumberLowercase) {
-    vector<shared_ptr<Token>> tokens;
+    vector<TokenPtr> tokens;
 
     ASSERT_NO_FATAL_FAILURE(runParser("0b1011", 2, tokens));
 
@@ -127,7 +153,7 @@ TEST(LexerTest, BinaryNumberLowercase) {
 }
 
 TEST(LexerTest, BinaryNumberUppercase) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0B10001011", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInteger());
@@ -137,7 +163,7 @@ TEST(LexerTest, BinaryNumberUppercase) {
 }
 
 TEST(LexerTest, OctalNumberLowercase) {
-    vector<shared_ptr<Token>> tokens;
+    vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0o32", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInteger());
@@ -147,7 +173,7 @@ TEST(LexerTest, OctalNumberLowercase) {
 }
 
 TEST(LexerTest, OctalNumberUppercase) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0O27", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInteger());
@@ -157,7 +183,7 @@ TEST(LexerTest, OctalNumberUppercase) {
 }
 
 TEST(LexerTest, InvalidDecimalNumber) {
-    vector<shared_ptr<Token>> tokens;
+    vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("100a3", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInvalidInteger());
@@ -167,7 +193,7 @@ TEST(LexerTest, InvalidDecimalNumber) {
 }
 
 TEST(LexerTest, InvalidHexNumber) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0X100Z3", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInvalidInteger());
@@ -177,7 +203,7 @@ TEST(LexerTest, InvalidHexNumber) {
 }
 
 TEST(LexerTest, OctalWithInvalidNumber) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0o10093", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInvalidInteger());
@@ -187,7 +213,7 @@ TEST(LexerTest, OctalWithInvalidNumber) {
 }
 
 TEST(LexerTest, OctalWithInvalidLetter) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0o100a3", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInvalidInteger());
@@ -197,7 +223,7 @@ TEST(LexerTest, OctalWithInvalidLetter) {
 }
 
 TEST(LexerTest, BinaryWithInvalidNumber) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0b1113", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInvalidInteger());
@@ -207,7 +233,7 @@ TEST(LexerTest, BinaryWithInvalidNumber) {
 }
 
 TEST(LexerTest, BinaryWithInvalidLetter) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("0B111a", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInvalidInteger());
@@ -217,7 +243,7 @@ TEST(LexerTest, BinaryWithInvalidLetter) {
 }
 
 TEST(LexerTest, OverflowNumber) {
-    vector<shared_ptr<Token>> tokens;
+    vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("4294967296", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInteger());
@@ -227,7 +253,7 @@ TEST(LexerTest, OverflowNumber) {
 }
 
 TEST(LexerTest, DecimalNumberAtUint32Max) {
-    vector<shared_ptr<Token>> tokens;
+    vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("4294967295", 2, tokens));
 
     ASSERT_TRUE(tokens[0]->isInteger());
@@ -237,7 +263,7 @@ TEST(LexerTest, DecimalNumberAtUint32Max) {
 }
 
 TEST(LexerTest, Increment) {
-    vector<shared_ptr<Token>> tokens;
+    vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("++", 2, tokens));
 
 	EXPECT_TRUE(tokens[0]->isIncrement());
@@ -247,7 +273,7 @@ TEST(LexerTest, Increment) {
 }
 
 TEST(LexerTest, Decrement) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("--", 2, tokens));
 
     EXPECT_TRUE(tokens[0]->isDecrement());
@@ -257,7 +283,7 @@ TEST(LexerTest, Decrement) {
 }
 
 TEST(LexerTest, ShiftLeft) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("<<", 2, tokens));
 
     EXPECT_TRUE(tokens[0]->isShiftLeft());
@@ -267,7 +293,7 @@ TEST(LexerTest, ShiftLeft) {
 }
 
 TEST(LexerTest, ShiftRight) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser(">>", 2, tokens));
 
     EXPECT_TRUE(tokens[0]->isShiftRight());
@@ -277,7 +303,7 @@ TEST(LexerTest, ShiftRight) {
 }
 
 TEST(LexerTest, Newline) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
 	ASSERT_NO_FATAL_FAILURE(runParser("\n", 2, tokens));
 
     EXPECT_TRUE(tokens[0]->isNewline());
@@ -285,7 +311,7 @@ TEST(LexerTest, Newline) {
 }
 
 TEST(LexerTest, SingleCharacters) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
     ASSERT_NO_FATAL_FAILURE(runParser("@", 2, tokens));
 
     EXPECT_TRUE(tokens[0]->isCharacter('@'));
@@ -333,7 +359,7 @@ TEST(LexerTest, SingleCharacters) {
 }
 
 TEST(LexerTest, SimpleExpression) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
 	ASSERT_NO_FATAL_FAILURE(runParser("set A, b\nset [J], 0x400\nlabel: JSR label+4\n", 20, tokens));
 
 	int index = 0;
@@ -392,7 +418,7 @@ TEST(LexerTest, SimpleExpression) {
 }
 
 TEST(LexerTest, Location) {
-	vector<shared_ptr<Token>> tokens;
+	vector<TokenPtr> tokens;
 	ASSERT_NO_FATAL_FAILURE(runParser("set A, b\n  set [J], 0x400\n;a test comment\nSET I, 1\n", 19, tokens));
 
 	int index = 0;

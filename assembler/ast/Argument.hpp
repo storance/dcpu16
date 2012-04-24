@@ -14,12 +14,12 @@ namespace dcpu { namespace ast {
 
 	class Argument {
 	public:
-		Location _location;
+		lexer::Location _location;
 
 		//virtual bool isNextWordUsed()=0;
 		//virtual void compile()=0;
 
-		Argument(const Location&);
+		Argument(const lexer::Location&);
 		virtual ~Argument();
 	};
 
@@ -29,7 +29,7 @@ namespace dcpu { namespace ast {
 	public:
 		StackOperation _operation;
 
-		StackArgument(const Location&, StackOperation);
+		StackArgument(const lexer::Location&, StackOperation);
 	};
 
 	class IndirectArgument : public Argument {

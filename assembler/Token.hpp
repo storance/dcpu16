@@ -4,8 +4,9 @@
 #include <string>
 #include <memory>
 #include <cstdint>
+#include <list>
 
-namespace dcpu {
+namespace dcpu { namespace lexer {
 
 	enum class TokenType {
 		IDENTIFIER,
@@ -25,7 +26,7 @@ namespace dcpu {
 		std::uint32_t line;
 		std::uint32_t column;
 
-		Location(std::string, std::uint32_t, std::uint32_t);
+		Location(const std::string&, std::uint32_t, std::uint32_t);
 	};
 
 	std::ostream& operator<< (std::ostream& stream, const Location& location);
@@ -36,8 +37,9 @@ namespace dcpu {
 		TokenType type;
 		std::string content;
 
-		Token(Location, TokenType, std::string);
-		Token(Location, TokenType, char c);
+		Token(const Location&, TokenType, const std::string&);
+		Token(const Location&, TokenType, char c);
+		virtual ~Token();
 
 		bool isInteger() const;
 		bool isInvalidInteger() const;
@@ -57,7 +59,7 @@ namespace dcpu {
 		std::uint32_t value;
 		bool overflow;
 
-		IntegerToken(Location, std::string, std::uint32_t, bool overflow);
+		IntegerToken(const Location&, const std::string&, std::uint32_t, bool overflow);
 	};
 
 	class InvalidIntegerToken : public Token {
@@ -65,10 +67,13 @@ namespace dcpu {
 		std::string value;
 		std::uint8_t base;
 
-		InvalidIntegerToken(Location, std::string, std::uint8_t);
+		InvalidIntegerToken(const Location&, const std::string&, std::uint8_t);
 	};
 
 
-	std::shared_ptr<IntegerToken> asInteger(std::shared_ptr<Token> token);
-	std::shared_ptr<InvalidIntegerToken> asInvalidInteger(std::shared_ptr<Token> token);
-}
+	typedef std::unique_ptr<Token> TokenPtr;
+	typedef std::list<TokenPtr> TokenList;
+
+	IntegerToken* asInteger(TokenPtr& token);
+	InvalidIntegerToken* asInvalidInteger(TokenPtr& token);
+}}

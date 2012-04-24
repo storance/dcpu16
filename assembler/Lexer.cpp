@@ -1,184 +1,171 @@
-template<typename Iterator, typename Container>
-Lexer<Iterator, Container>::Lexer(Iterator current, Iterator end, std::string sourceName)
-    : current(current), end(end), sourceName(sourceName), line(1), column(0) {
+#include "Lexer.hpp"
 
-}
+#include <cctype>
+#include <cstdlib>
+#include <climits>
+#include <stdexcept>
 
-template<typename Iterator, typename Container> template<typename Predicate>
-std::string Lexer<Iterator, Container>::appendWhile(char initial, Predicate predicate) {
-	std::string content;
+#include <boost/algorithm/string.hpp>
 
-	if (initial > 0) content += initial;
+using namespace std;
 
-	while (current != end) {
-		char c = nextChar();
-		if (!predicate(c)) {
-			moveBack();
-			break;
-		}
+namespace dcpu { namespace lexer {
+    Lexer::Lexer(Iterator current, Iterator end, const string &sourceName)
+        : _current(current), _end(end), _sourceName(sourceName), _line(1), _column(0) {}
 
-		content += c;
-	}
+    string Lexer::appendWhile(char initial, function<bool (char)> predicate) {
+    	string content;
 
-	return content;
-}
+    	if (initial > 0) content += initial;
 
-template<typename Iterator, typename Container>
-Location Lexer<Iterator, Container>::makeLocation() {
-    return Location(sourceName, line, column);
-}
+    	while (_current != _end) {
+    		char c = nextChar();
+    		if (!predicate(c)) {
+    			moveBack();
+    			break;
+    		}
 
-template<typename Iterator, typename Container>
-char Lexer<Iterator, Container>::nextChar() {
-    char c = *current;
-    ++current;
-    ++column;
+    		content += c;
+    	}
 
-    return c;
-}
+    	return content;
+    }
 
-template<typename Iterator, typename Container>
-bool Lexer<Iterator, Container>::consumeNextCharIf(char c) {
-	if (nextChar() == c) {
-		return true;
-	}
+    Location Lexer::makeLocation() {
+        return Location(_sourceName, _line, _column);
+    }
 
-	moveBack();
-	return false;
-}
+    char Lexer::nextChar() {
+        char c = *_current++;
+        ++_column;
 
-template<typename Iterator, typename Container>
-void Lexer<Iterator, Container>::moveBack() {
-    --current;
-    --column;
-}
+        return c;
+    }
 
-template<typename Iterator, typename Container>
-void Lexer<Iterator, Container>::nextLine() {
-    line++;
-    column = 0;
-}
+    bool Lexer::consumeNextCharIf(char c) {
+    	if (nextChar() == c) {
+    		return true;
+    	}
 
-template<typename Iterator, typename Container>
-bool Lexer<Iterator, Container>::isWhitespace(char c) {
-	return std::isspace(c) && c != '\n';
-}
+    	moveBack();
+    	return false;
+    }
 
-template<typename Iterator, typename Container>
-bool Lexer<Iterator, Container>::isAllowedIdentifierChar(char c) {
-    return std::isalnum(c) || c == '_' || c == '?' || c == '.' || c == '$' || c == '#' || c == '@';
-}
+    void Lexer::moveBack() {
+        --_current;
+        --_column;
+    }
 
-template<typename Iterator, typename Container>
-bool Lexer<Iterator, Container>::isAllowedIdentifierFirstChar(char c) {
-    return std::isalpha(c) || c == '_' || c == '?' || c == '.';
-}
+    void Lexer::nextLine() {
+        _line++;
+        _column = 0;
+    }
 
-template<typename Iterator, typename Container>
-void Lexer<Iterator, Container>::skipWhitespaceAndComments() {
-    bool inComment = false;
+    bool Lexer::isWhitespace(char c) {
+    	return isspace(c) && c != '\n';
+    }
 
-    for (; current != end; current++, column++) {
-        if (!inComment && *current == ';') {
-            inComment = true;
-        } else if (!inComment && !isWhitespace(*current)) {
-            break;
-        } else if (inComment && *current == '\n') {
-            break;
+    bool Lexer::isAllowedIdentifierChar(char c) {
+        return isalnum(c) || c == '_' || c == '?' || c == '.' || c == '$' || c == '#' || c == '@';
+    }
+
+    bool Lexer::isAllowedIdentifierFirstChar(char c) {
+        return isalpha(c) || c == '_' || c == '?' || c == '.';
+    }
+
+    void Lexer::skipWhitespaceAndComments() {
+        bool inComment = false;
+
+        for (; _current != _end; _current++, _column++) {
+            if (!inComment && *_current == ';') {
+                inComment = true;
+            } else if (!inComment && !isWhitespace(*_current)) {
+                break;
+            } else if (inComment && *_current == '\n') {
+                break;
+            }
         }
     }
-}
 
-template<typename Iterator, typename Container>
-std::shared_ptr<Token> Lexer<Iterator, Container>::parseNumber(Location start, std::string value) {
-    std::string unprefixedValue;
+    TokenPtr Lexer::parseNumber(Location start, const string &value) {
+        string unprefixedValue;
 
-    std::uint8_t base = 10;
-    if (boost::istarts_with(value, "0x")) {
-        base = 16;
-        unprefixedValue = value.substr(2);
-    } else if (boost::istarts_with(value, "0o")) {
-        base = 8;
-        unprefixedValue = value.substr(2);
-    } else if (boost::istarts_with(value, "0b")) {
-        base = 2;
-        unprefixedValue = value.substr(2);
-    } else {
-        unprefixedValue = value;
-    }
-
-    // prefix without an actual value
-    if (unprefixedValue.length() == 0) {
-        return std::make_shared<InvalidIntegerToken>(start, value, base);
-    }
-
-    size_t pos;
-    try {
-        unsigned long parsedValue = std::stoul(unprefixedValue, &pos, base);
-        if (pos != unprefixedValue.size()) {
-            return std::make_shared<InvalidIntegerToken>(start, value, base);
+        uint8_t base = 10;
+        if (boost::istarts_with(value, "0x")) {
+            base = 16;
+            unprefixedValue = value.substr(2);
+        } else if (boost::istarts_with(value, "0o")) {
+            base = 8;
+            unprefixedValue = value.substr(2);
+        } else if (boost::istarts_with(value, "0b")) {
+            base = 2;
+            unprefixedValue = value.substr(2);
+        } else {
+            unprefixedValue = value;
         }
 
-        if (parsedValue > UINT32_MAX) {
-            return std::make_shared<IntegerToken>(start, value, UINT32_MAX, true);
+        // prefix without an actual value
+        if (unprefixedValue.length() == 0) {
+            return TokenPtr(new InvalidIntegerToken(start, value, base));
         }
 
-        return std::make_shared<IntegerToken>(start, value, (std::uint32_t)parsedValue, false);
-    } catch (std::invalid_argument &ia) {
-        return std::make_shared<InvalidIntegerToken>(start, value, base);
-    } catch (std::out_of_range &oor) {
-        return std::make_shared<IntegerToken>(start, value, UINT32_MAX, true);
-    }
-}
+        size_t pos;
+        try {
+            unsigned long parsedValue = stoul(unprefixedValue, &pos, base);
+            if (pos != unprefixedValue.size()) {
+                return TokenPtr(new InvalidIntegerToken(start, value, base));
+            }
 
-template<typename Iterator, typename Container>
-std::shared_ptr<Token> Lexer<Iterator, Container>::nextToken() {
-    skipWhitespaceAndComments();
+            if (parsedValue > UINT32_MAX) {
+                return TokenPtr(new IntegerToken(start, value, UINT32_MAX, true));
+            }
 
-    if (current == end) {
-        return std::make_shared<Token>(makeLocation(), dcpu::TokenType::END_OF_INPUT, "end of file");
-    }
-
-    char c = nextChar();
-    Location start = makeLocation();
-
-	if (c == '+') {
-		if (consumeNextCharIf('+')) {
-			return std::make_shared<Token>(start, dcpu::TokenType::INCREMENT, "++");
-		}
-    } else if (c == '-') {
-		if (consumeNextCharIf('-')) {
-			return std::make_shared<Token>(start, dcpu::TokenType::DECREMENT, "--");
-		}
-    } else if (c == '<') {
-		if (consumeNextCharIf('<')) {
-			return std::make_shared<Token>(start, dcpu::TokenType::SHIFT_LEFT, "<<");
-		}
-    } else if (c == '>') {
-		if (consumeNextCharIf('>')) {
-			return std::make_shared<Token>(start, dcpu::TokenType::SHIFT_RIGHT, ">>");
-		}
-    } else if (isAllowedIdentifierFirstChar(c)) {
-        return std::make_shared<Token>(start, dcpu::TokenType::IDENTIFIER,
-			appendWhile(c, &Lexer<Iterator, Container>::isAllowedIdentifierChar));
-    } else if (std::isdigit(c)) {
-        return parseNumber(start, appendWhile(c, &Lexer<Iterator, Container>::isAllowedIdentifierChar));
-    } else if (c == '\n') {
-        nextLine();
-
-        return std::make_shared<Token>(start, dcpu::TokenType::NEWLINE, "newline");
-    }
-
-    return std::make_shared<Token>(start, dcpu::TokenType::CHARACTER, c);
-}
-template<typename Iterator, typename Container>
-void Lexer<Iterator, Container>::parse() {
-    while (true) {
-        std::shared_ptr<Token> token = nextToken();
-        tokens.push_back(token);
-
-        if (token->type == dcpu::TokenType::END_OF_INPUT) {
-            break;
+            return TokenPtr(new IntegerToken(start, value, (uint32_t)parsedValue, false));
+        } catch (invalid_argument &ia) {
+            return TokenPtr(new InvalidIntegerToken(start, value, base));
+        } catch (out_of_range &oor) {
+            return TokenPtr(new IntegerToken(start, value, UINT32_MAX, true));
         }
     }
-}
+
+    TokenPtr Lexer::nextToken() {
+        skipWhitespaceAndComments();
+
+        if (_current == _end) {
+            return TokenPtr(new Token(makeLocation(), TokenType::END_OF_INPUT, "end of file"));
+        }
+
+        char c = nextChar();
+        Location start = makeLocation();
+
+    	if (c == '+' && consumeNextCharIf('+')) {
+    		return TokenPtr(new Token(start, TokenType::INCREMENT, "++"));
+        } else if (c == '-' && consumeNextCharIf('-')) {
+    		return TokenPtr(new Token(start, TokenType::DECREMENT, "--"));
+        } else if (c == '<' && consumeNextCharIf('<')) {
+    		return TokenPtr(new Token(start, TokenType::SHIFT_LEFT, "<<"));
+        } else if (c == '>' && consumeNextCharIf('>')) {
+    		return TokenPtr(new Token(start, TokenType::SHIFT_RIGHT, ">>"));
+        } else if (isAllowedIdentifierFirstChar(c)) {
+            return TokenPtr(new Token(start, TokenType::IDENTIFIER, appendWhile(c, &Lexer::isAllowedIdentifierChar)));
+        } else if (isdigit(c)) {
+            return parseNumber(start, appendWhile(c, &Lexer::isAllowedIdentifierChar));
+        } else if (c == '\n') {
+            nextLine();
+
+            return TokenPtr(new Token(start, TokenType::NEWLINE, "newline"));
+        }
+
+        return TokenPtr(new Token(start, TokenType::CHARACTER, c));
+    }
+    void Lexer::parse() {
+        while (true) {
+            TokenPtr token = nextToken();
+            tokens.push_back(move(token));
+
+            if (token->isEOI()) {
+                break;
+            }
+        }
+    }
+}}

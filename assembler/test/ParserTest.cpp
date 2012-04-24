@@ -131,7 +131,7 @@ void runParser(const string &content, int expectedStatements, unique_ptr<Parser>
 	parser.reset(new Parser(lexer.tokens.begin(), lexer.tokens.end(), errorHandler));
 	parser->parse();
 
-	ASSERT_EQ(expectedStatements, parser->_statements.size());
+	ASSERT_EQ(expectedStatements, parser->statements.size());
 }
 
 
@@ -140,7 +140,7 @@ TEST(ParserTest, ParseInstruction) {
 
 	ASSERT_NO_FATAL_FAILURE(runParser("SET A, 1\n   add pc  ,\ti\n\njsr X", 3, parser));
 
-	auto it = parser->_statements.begin();
+	auto it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
@@ -168,7 +168,7 @@ TEST(ParserTest, LabelTest) {
 
 	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n:label2\nlabel3: SET A, B\n: label4 SET A, B", 6, parser));
 
-	auto it = parser->_statements.begin();
+	auto it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertLabel(it, "label1");
@@ -208,7 +208,7 @@ TEST(ParserTest, SimpleExpressionTest) {
 	unique_ptr<Parser> parser;
 
 	ASSERT_NO_FATAL_FAILURE(runParser("set 4 * 2, 1 + 2", 1, parser));
-	auto it = parser->_statements.begin();
+	auto it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,

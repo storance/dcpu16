@@ -16,13 +16,13 @@ namespace dcpu {
 
 		std::ostream &_out;
 	public:
-		void error(const Location&, const std::string&);
-		void error(const Location&, const boost::basic_format<char> &);
-		void warning(const Location&, const std::string&);
-		void warning(const Location&, const boost::basic_format<char> &);
+		void error(const lexer::Location&, const std::string&);
+		void error(const lexer::Location&, const boost::basic_format<char> &);
+		void warning(const lexer::Location&, const std::string&);
+		void warning(const lexer::Location&, const boost::basic_format<char> &);
 
-		void errorUnexpectedToken(std::shared_ptr<Token> token, char c);
-		void errorUnexpectedToken(std::shared_ptr<Token> token, const std::string &expected);
+		void errorUnexpectedToken(lexer::TokenPtr& token, char c);
+		void errorUnexpectedToken(lexer::TokenPtr& token, const std::string &expected);
 
 		bool hasErrors();
 		void summary();

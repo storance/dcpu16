@@ -10,6 +10,7 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 GTEST_SRCS = $(GTEST_DIR)/src/*.cc $(GTEST_DIR)/src/*.h $(GTEST_HEADERS)
 
 OBJECTS = $(OUTPUT_DIR)/Parser.o \
+		  $(OUTPUT_DIR)/Lexer.o \
 		  $(OUTPUT_DIR)/ErrorHandler.o \
 		  $(OUTPUT_DIR)/Statement.o \
 		  $(OUTPUT_DIR)/Argument.o \
@@ -41,10 +42,13 @@ $(OUTPUT_DIR)/ErrorHandler.o: ErrorHandler.cpp ErrorHandler.hpp | $(OUTPUT_DIR)
 $(OUTPUT_DIR)/Parser.o: Parser.cpp Parser.hpp ast/*.hpp Token.hpp Lexer.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
+$(OUTPUT_DIR)/Lexer.o: Lexer.cpp Lexer.hpp Token.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
 $(OUTPUT_DIR):
 	mkdir $@
 
-$(OUTPUT_DIR)/LexerTest.o: test/LexerTest.cpp Lexer.hpp Lexer.cpp Token.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/LexerTest.o: test/LexerTest.cpp Lexer.hpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_TEST_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandler.hpp ast/*.hpp | $(OUTPUT_DIR)

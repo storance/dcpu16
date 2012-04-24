@@ -37,12 +37,12 @@ namespace dcpu { namespace ast {
 
 	class Statement {
 	public:
-		Location _location;
+		lexer::Location _location;
 
 		//virtual void buildSymbolTable()=0;
 		//virtual void compile()=0;
 
-		Statement(const Location&);
+		Statement(const lexer::Location&);
 		virtual ~Statement();
 	};
 
@@ -55,8 +55,8 @@ namespace dcpu { namespace ast {
 		ArgumentPtr _a;
 		ArgumentPtr _b;
 
-		Instruction(const Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
-		Instruction(const Location&, Opcode, ArgumentPtr &&a, ArgumentPtr &&b);
+		Instruction(const lexer::Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
+		Instruction(const lexer::Location&, Opcode, ArgumentPtr &&a, ArgumentPtr &&b);
 	};
 
 	class Label : public Statement {
@@ -64,7 +64,7 @@ namespace dcpu { namespace ast {
 		LabelType _type;
 		std::string _name;
 
-		Label(const Location&, const std::string&);
+		Label(const lexer::Location&, const std::string&);
 	};
 
 } }

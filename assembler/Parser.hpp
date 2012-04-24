@@ -29,45 +29,45 @@ namespace dcpu { namespace parser {
 
 	class Parser {
 	protected:
-		typedef std::list<std::shared_ptr<Token>>::iterator Iterator;
-		typedef ast::ExpressionPtr (Parser::*ExpressionParser)(std::shared_ptr<Token>, bool);
+		typedef lexer::TokenList::iterator Iterator;
+		typedef ast::ExpressionPtr (Parser::*ExpressionParser)(lexer::TokenPtr&, bool);
 		typedef std::map<ast::BinaryOperator, std::function<bool ()>> OperatorDefinition;
 
 		dcpu::ErrorHandler &_errorHandler;
 		Iterator _current, _end;
 
-		ast::ExpressionPtr parseBinaryOperation(std::shared_ptr<Token>, bool, ExpressionParser, OperatorDefinition);
-		ast::ExpressionPtr parseGroupedExpression(std::shared_ptr<Token>, bool);
-		ast::ExpressionPtr parseIdentifierExpression(std::shared_ptr<Token>, bool);
-		ast::ExpressionPtr parseLabelExpression(std::shared_ptr<Token>);
-		ast::ExpressionPtr parseLiteralExpression(std::shared_ptr<Token>);
-		ast::ExpressionPtr parsePrimaryExpression(std::shared_ptr<Token>, bool);
-		ast::ExpressionPtr parseUnaryOperation(std::shared_ptr<Token>, bool);
-		ast::ExpressionPtr parseMultiplyOperation(std::shared_ptr<Token>, bool);
-		ast::ExpressionPtr parseAddOperation(std::shared_ptr<Token>, bool);
-		ast::ExpressionPtr parseBitwiseShiftOperation(std::shared_ptr<Token>, bool);
-		ast::ExpressionPtr parseBitwiseAndOperation(std::shared_ptr<Token>, bool);
-		ast::ExpressionPtr parseBitwiseXorOperation(std::shared_ptr<Token>, bool);
-		ast::ExpressionPtr parseBitwiseOrOperation(std::shared_ptr<Token>, bool);
-		ast::ExpressionPtr parseExpression(std::shared_ptr<Token>, bool);
+		ast::ExpressionPtr parseBinaryOperation(lexer::TokenPtr&, bool, ExpressionParser, OperatorDefinition);
+		ast::ExpressionPtr parseGroupedExpression(lexer::TokenPtr&, bool);
+		ast::ExpressionPtr parseIdentifierExpression(lexer::TokenPtr&, bool);
+		ast::ExpressionPtr parseLabelExpression(lexer::TokenPtr&);
+		ast::ExpressionPtr parseLiteralExpression(lexer::TokenPtr&);
+		ast::ExpressionPtr parsePrimaryExpression(lexer::TokenPtr&, bool);
+		ast::ExpressionPtr parseUnaryOperation(lexer::TokenPtr&, bool);
+		ast::ExpressionPtr parseMultiplyOperation(lexer::TokenPtr&, bool);
+		ast::ExpressionPtr parseAddOperation(lexer::TokenPtr&, bool);
+		ast::ExpressionPtr parseBitwiseShiftOperation(lexer::TokenPtr&, bool);
+		ast::ExpressionPtr parseBitwiseAndOperation(lexer::TokenPtr&, bool);
+		ast::ExpressionPtr parseBitwiseXorOperation(lexer::TokenPtr&, bool);
+		ast::ExpressionPtr parseBitwiseOrOperation(lexer::TokenPtr&, bool);
+		ast::ExpressionPtr parseExpression(lexer::TokenPtr&, bool);
 
-		bool parseLabel(std::shared_ptr<Token>);
-		bool parseInstruction(std::shared_ptr<Token>);
-		bool parseIndirectStackArgument(std::shared_ptr<Token>, ast::ArgumentPtr&);
-		bool parseArgument(std::shared_ptr<Token>, ast::ArgumentPtr&);
+		bool parseLabel(lexer::TokenPtr&);
+		bool parseInstruction(lexer::TokenPtr&);
+		bool parseIndirectStackArgument(lexer::TokenPtr&, ast::ArgumentPtr&);
+		bool parseArgument(lexer::TokenPtr&, ast::ArgumentPtr&);
 
 		OpcodeDefinition* lookupOpcode(const std::string&);
 		RegisterDefinition* lookupRegister(const std::string&);
 
 		bool isNextTokenChar(char);
-		bool isNextToken(std::function<bool (const Token&)>);
-		std::shared_ptr<Token> nextToken();
-		void advanceUntil(std::function<bool (const Token&)>);
+		bool isNextToken(std::function<bool (const lexer::Token&)>);
+		lexer::TokenPtr& nextToken();
+		void advanceUntil(std::function<bool (const lexer::Token&)>);
 
-		void addLabel(const Location&, const std::string &labelName);
-		void addInstruction(const Location&, ast::Opcode, ast::ArgumentPtr&, ast::ArgumentPtr&);
+		void addLabel(const lexer::Location&, const std::string &labelName);
+		void addInstruction(const lexer::Location&, ast::Opcode, ast::ArgumentPtr&, ast::ArgumentPtr&);
 	public:
-		ast::StatementList _statements;
+		ast::StatementList statements;
 
 		Parser(Iterator start, Iterator end, dcpu::ErrorHandler &errorHandler);
 

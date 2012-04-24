@@ -31,7 +31,7 @@ namespace dcpu { namespace ast {
 
 	class Expression {
 	public:
-		Location _location;
+		lexer::Location _location;
 
 		//virtual void evaluate()=0;
 		//virtual bool isNextWordRequired()=0;
@@ -39,7 +39,7 @@ namespace dcpu { namespace ast {
 		virtual bool isSimple()=0;
 
 		Expression(Expression&&);
-		Expression(const Location&);
+		Expression(const lexer::Location&);
 		virtual ~Expression();
 	};
 
@@ -55,7 +55,7 @@ namespace dcpu { namespace ast {
 		virtual bool isSimple();
 
 		UnaryOperation(UnaryOperation&&);
-		UnaryOperation(const Location&, UnaryOperator, ExpressionPtr&);
+		UnaryOperation(const lexer::Location&, UnaryOperator, ExpressionPtr&);
 	};
 
 	class BinaryOperation : public Expression {
@@ -69,7 +69,7 @@ namespace dcpu { namespace ast {
 		virtual bool isSimple();
 
 		BinaryOperation(BinaryOperation&&);
-		BinaryOperation(const Location&, BinaryOperator, ExpressionPtr&, ExpressionPtr&);
+		BinaryOperation(const lexer::Location&, BinaryOperator, ExpressionPtr&, ExpressionPtr&);
 	};
 
 	class RegisterOperand : public Expression {
@@ -79,7 +79,7 @@ namespace dcpu { namespace ast {
 		virtual bool isEvalsToLiteral();
 		virtual bool isSimple();
 
-		RegisterOperand(const Location&, common::Register);
+		RegisterOperand(const lexer::Location&, common::Register);
 	};
 
 	class LiteralOperand : public Expression {
@@ -89,7 +89,7 @@ namespace dcpu { namespace ast {
 		virtual bool isEvalsToLiteral();
 		virtual bool isSimple();
 
-		LiteralOperand(const Location&, std::uint32_t);
+		LiteralOperand(const lexer::Location&, std::uint32_t);
 	};
 
 	class LabelReferenceOperand : public Expression {
@@ -99,8 +99,8 @@ namespace dcpu { namespace ast {
 		virtual bool isEvalsToLiteral();
 		virtual bool isSimple();
 
-		LabelReferenceOperand(const Location&, const std::string&);
-		LabelReferenceOperand(std::shared_ptr<Token> token);
+		LabelReferenceOperand(const lexer::Location&, const std::string&);
+		LabelReferenceOperand(lexer::TokenPtr& token);
 	};
 
 	class InvalidExpression : public Expression {
@@ -108,7 +108,7 @@ namespace dcpu { namespace ast {
 		virtual bool isEvalsToLiteral();
 		virtual bool isSimple();
 
-		InvalidExpression(const Location&);
+		InvalidExpression(const lexer::Location&);
 	};
 
 	std::string str(UnaryOperator op);

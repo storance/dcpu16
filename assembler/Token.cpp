@@ -4,9 +4,9 @@
 
 using namespace std;
 
-namespace dcpu {
+namespace dcpu { namespace lexer {
 
-Location::Location(std::string sourceName, uint32_t line, uint32_t column)
+Location::Location(const std::string &sourceName, uint32_t line, uint32_t column)
     : sourceName(sourceName), line(line), column(column) {}
 
 ostream& operator<< (ostream& stream, const Location& location) {
@@ -14,11 +14,13 @@ ostream& operator<< (ostream& stream, const Location& location) {
 	return stream;
 }
 
-Token::Token(Location location, TokenType type, string content)
+Token::Token(const Location &location, TokenType type, const string &content)
     : location(location), type(type), content(content) {}
 
-Token::Token(Location location, TokenType type, char c)
+Token::Token(const Location &location, TokenType type, char c)
     : location(location), type(type), content(1, c) {}
+
+Token::~Token() {}
 
 bool Token::isInteger() const {
 	return type == TokenType::INTEGER;
@@ -68,21 +70,22 @@ bool Token::isStatementTerminator() const {
 	return isEOI() || isNewline();
 }
 
-IntegerToken::IntegerToken(Location location, std::string content, uint32_t value, bool overflow)
+IntegerToken::IntegerToken(const Location &location, const std::string &content, uint32_t value, bool overflow)
     : Token(location, TokenType::INTEGER, content), value(value), overflow(overflow) {}
 
-InvalidIntegerToken::InvalidIntegerToken(Location location, string content, uint8_t base)
+InvalidIntegerToken::InvalidIntegerToken(const Location &location, const string &content, uint8_t base)
     : Token(location, TokenType::INVALID_INTEGER, content), base(base) {}
 
-shared_ptr<IntegerToken> asInteger(shared_ptr<Token> token) {
+IntegerToken* asInteger(TokenPtr &token) {
 	assert(token->isInteger());
-	return shared_ptr<IntegerToken>(token, (IntegerToken*)token.get());
+
+	return dynamic_cast<IntegerToken*>(token.get());
 }
 
-shared_ptr<InvalidIntegerToken> asInvalidInteger(shared_ptr<Token> token) {
+InvalidIntegerToken* asInvalidInteger(TokenPtr &token) {
 	assert(token->isInvalidInteger());
 
-	return shared_ptr<InvalidIntegerToken>(token, (InvalidIntegerToken*)token.get());
+	return dynamic_cast<InvalidIntegerToken*>(token.get());
 }
 
-}
+}}

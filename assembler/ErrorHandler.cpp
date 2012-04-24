@@ -1,6 +1,7 @@
 #include "ErrorHandler.hpp"
 
 using namespace std;
+using namespace dcpu::lexer;
 
 namespace dcpu {
 	ErrorHandler::ErrorHandler() : _out(cerr) {}
@@ -16,11 +17,11 @@ namespace dcpu {
 		error(location, str(fmt));
 	}
 
-	void ErrorHandler::errorUnexpectedToken(std::shared_ptr<Token> token, char c) {
+	void ErrorHandler::errorUnexpectedToken(TokenPtr& token, char c) {
 		error(token->location, boost::format("Unexpected token '%s'; expected '%s'") % token->content % c);
 	}
 
-	void ErrorHandler::errorUnexpectedToken(std::shared_ptr<Token> token, const std::string &expected) {
+	void ErrorHandler::errorUnexpectedToken(TokenPtr& token, const std::string &expected) {
 		error(token->location, boost::format("Unexpected token '%s'; expected %s") % token->content % expected);
 	}
 

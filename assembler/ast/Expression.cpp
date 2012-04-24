@@ -1,6 +1,7 @@
 #include "Expression.hpp"
 
 using namespace std;
+using namespace dcpu::lexer;
 
 namespace dcpu { namespace ast {
 	Expression::Expression(const Location& location) : _location(location) {}
@@ -68,7 +69,7 @@ namespace dcpu { namespace ast {
 	LabelReferenceOperand::LabelReferenceOperand(const Location& location, const std::string& label)
 		: Expression(location), _label(label) {}
 
-	LabelReferenceOperand::LabelReferenceOperand(std::shared_ptr<Token> token)
+	LabelReferenceOperand::LabelReferenceOperand(TokenPtr& token)
 		:Expression(token->location), _label(token->content) {}
 
 	bool LabelReferenceOperand::isEvalsToLiteral() {

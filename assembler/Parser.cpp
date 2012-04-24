@@ -57,29 +57,29 @@ Parser::Parser(Iterator start, Iterator end, ErrorHandler &errorHandler)
 
 void Parser::parse() {
 	while (_current != _end) {
-		shared_ptr<Token> currentToken = nextToken();
+		auto* currentToken = &nextToken();
 
 		// we've reached the end
-		if (currentToken->isEOI()) {
+		if ((*currentToken)->isEOI()) {
 			break;
 		}
 
 		// skip empty lines
-		if (currentToken->isNewline()) {
+		if ((*currentToken)->isNewline()) {
 			continue;
 		}
 
-		if (parseLabel(currentToken)) {
-			currentToken = nextToken();
+		if (parseLabel(*currentToken)) {
+			currentToken = &nextToken();
 		}
 
-		parseInstruction(currentToken);
+		parseInstruction(*currentToken);
 	}
 }
 
-bool Parser::parseLabel(shared_ptr<Token> currentToken) {
+bool Parser::parseLabel(TokenPtr& currentToken) {
 	if (currentToken->isCharacter(':')) {
-		auto token = nextToken();
+		auto& token = nextToken();
 
 		if (token->isIdentifier()) {
 			addLabel(currentToken->location, token->content);
@@ -107,7 +107,7 @@ bool Parser::parseLabel(shared_ptr<Token> currentToken) {
 	}
 }
 
-bool Parser::parseInstruction(shared_ptr<Token> currentToken) {
+bool Parser::parseInstruction(TokenPtr& currentToken) {
 	if (currentToken->isStatementTerminator()) {
 		return false;
 	}
@@ -144,7 +144,7 @@ bool Parser::parseInstruction(shared_ptr<Token> currentToken) {
 		} 
 	}
 
-	auto eolToken = nextToken();
+	auto& eolToken = nextToken();
 	if (!eolToken->isStatementTerminator()) {
 		_errorHandler.errorUnexpectedToken(eolToken, "a 'newline' or 'eof'");
 		advanceUntil(mem_fn(&Token::isStatementTerminator));
@@ -154,7 +154,7 @@ bool Parser::parseInstruction(shared_ptr<Token> currentToken) {
 	return true;
 }
 
-bool Parser::parseArgument(shared_ptr<Token> currentToken, ArgumentPtr& arg) {
+bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg) {
 	if (currentToken->isCharacter(',') || currentToken->isStatementTerminator()) {
 		_errorHandler.errorUnexpectedToken(currentToken, "an instruction argument");
 		return false;
@@ -196,7 +196,7 @@ bool Parser::parseArgument(shared_ptr<Token> currentToken, ArgumentPtr& arg) {
 	return true;
 }
 
-bool Parser::parseIndirectStackArgument(shared_ptr<Token> currentToken, ArgumentPtr& arg) {
+bool Parser::parseIndirectStackArgument(TokenPtr& currentToken, ArgumentPtr& arg) {
 	if (currentToken->isIdentifier()) {
 		if (!boost::algorithm::iequals(currentToken->content, "SP")) {
 			return false;
@@ -213,7 +213,7 @@ bool Parser::parseIndirectStackArgument(shared_ptr<Token> currentToken, Argument
 
 		return false;
 	} else if (currentToken->isDecrement()) {
-		auto nxtToken = nextToken();
+		auto& nxtToken = nextToken();
 		if (nxtToken->isIdentifier() && boost::algorithm::iequals(nxtToken->content, "SP")) {
 			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::PUSH)));
 			return true;
@@ -225,26 +225,26 @@ bool Parser::parseIndirectStackArgument(shared_ptr<Token> currentToken, Argument
 	return false;
 }
 
-ExpressionPtr Parser::parseExpression(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseExpression(TokenPtr& currentToken, bool indirect) {
 	return parseBitwiseOrOperation(currentToken, indirect);
 }
 
-ExpressionPtr Parser::parseBitwiseOrOperation(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseBitwiseOrOperation(TokenPtr& currentToken, bool indirect) {
 	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseXorOperation,
 		{{BinaryOperator::OR, [this] { return this->isNextTokenChar('|'); }}});
 }
 
-ExpressionPtr Parser::parseBitwiseXorOperation(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseBitwiseXorOperation(TokenPtr& currentToken, bool indirect) {
 	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseAndOperation,
 		{{BinaryOperator::XOR, [this] { return this->isNextTokenChar('^'); }}});
 }
 
-ExpressionPtr Parser::parseBitwiseAndOperation(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseBitwiseAndOperation(TokenPtr& currentToken, bool indirect) {
 	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseShiftOperation,
 		{{BinaryOperator::AND, [this] { return this->isNextTokenChar('&'); }}});
 }
 
-ExpressionPtr Parser::parseBitwiseShiftOperation(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseBitwiseShiftOperation(TokenPtr& currentToken, bool indirect) {
 	return parseBinaryOperation(currentToken, indirect, &Parser::parseAddOperation,
 		{
 			{BinaryOperator::SHIFT_LEFT, [this] { return this->isNextToken(mem_fn(&Token::isShiftLeft)); }},
@@ -252,7 +252,7 @@ ExpressionPtr Parser::parseBitwiseShiftOperation(shared_ptr<Token> currentToken,
 		});
 }
 
-ExpressionPtr Parser::parseAddOperation(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseAddOperation(TokenPtr& currentToken, bool indirect) {
 	return parseBinaryOperation(currentToken, indirect, &Parser::parseMultiplyOperation,
 		{
 			{BinaryOperator::PLUS, [this] { return this->isNextTokenChar('+'); }},
@@ -260,7 +260,7 @@ ExpressionPtr Parser::parseAddOperation(shared_ptr<Token> currentToken, bool ind
 		});
 }
 
-ExpressionPtr Parser::parseMultiplyOperation(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseMultiplyOperation(TokenPtr& currentToken, bool indirect) {
 	return parseBinaryOperation(currentToken, indirect, &Parser::parseUnaryOperation,
 		{
 			{BinaryOperator::MULTIPLY, [this] { return this->isNextTokenChar('*'); }},
@@ -269,7 +269,7 @@ ExpressionPtr Parser::parseMultiplyOperation(shared_ptr<Token> currentToken, boo
 		});
 }
 
-ExpressionPtr Parser::parseBinaryOperation(shared_ptr<Token> currentToken, bool indirect,
+ExpressionPtr Parser::parseBinaryOperation(TokenPtr& currentToken, bool indirect,
 	ExpressionParser parseFunc, OperatorDefinition definitions) {
 
 	ExpressionPtr left = (this->*parseFunc)(currentToken, indirect);
@@ -285,7 +285,7 @@ ExpressionPtr Parser::parseBinaryOperation(shared_ptr<Token> currentToken, bool 
 		return move(left);
 	}
 
-	auto operatorToken = nextToken();
+	auto& operatorToken = nextToken();
 	ExpressionPtr right = (this->*parseFunc)(nextToken(), indirect);
 
 	if (_operator != BinaryOperator::PLUS && !left->isEvalsToLiteral()) {
@@ -303,7 +303,7 @@ ExpressionPtr Parser::parseBinaryOperation(shared_ptr<Token> currentToken, bool 
 	return ExpressionPtr(new BinaryOperation(operatorToken->location, _operator, left, right));
 }
 
-ExpressionPtr Parser::parseUnaryOperation(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseUnaryOperation(TokenPtr& currentToken, bool indirect) {
 	UnaryOperator _operator;
 
 	if (currentToken->isCharacter('+')) {
@@ -326,7 +326,7 @@ ExpressionPtr Parser::parseUnaryOperation(shared_ptr<Token> currentToken, bool i
 	return ExpressionPtr(new UnaryOperation(currentToken->location, _operator, operand));
 }
 
-ExpressionPtr Parser::parsePrimaryExpression(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parsePrimaryExpression(TokenPtr& currentToken, bool indirect) {
 	if (currentToken->isCharacter('(')) {
 		return parseGroupedExpression(nextToken(), indirect);
 	} else if (currentToken->isIdentifier()) {
@@ -341,7 +341,7 @@ ExpressionPtr Parser::parsePrimaryExpression(shared_ptr<Token> currentToken, boo
 	}
 }
 
-ExpressionPtr Parser::parseGroupedExpression(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseGroupedExpression(TokenPtr& currentToken, bool indirect) {
 	ExpressionPtr expr = parseExpression(currentToken, indirect);
 
 	if (!isNextTokenChar(')')) {
@@ -353,7 +353,7 @@ ExpressionPtr Parser::parseGroupedExpression(shared_ptr<Token> currentToken, boo
 	return expr;
 }
 
-ExpressionPtr Parser::parseIdentifierExpression(shared_ptr<Token> currentToken, bool indirect) {
+ExpressionPtr Parser::parseIdentifierExpression(TokenPtr& currentToken, bool indirect) {
 	auto registerDef = lookupRegister(currentToken->content);
 	if (registerDef) {
 		if (indirect && !registerDef->_indirectable) {
@@ -368,7 +368,7 @@ ExpressionPtr Parser::parseIdentifierExpression(shared_ptr<Token> currentToken, 
 	return ExpressionPtr(new LabelReferenceOperand(currentToken));
 }
 
-ExpressionPtr Parser::parseLabelExpression(shared_ptr<Token> currentToken) {
+ExpressionPtr Parser::parseLabelExpression(TokenPtr& currentToken) {
 	if (!isNextToken(mem_fn(&Token::isIdentifier))) {
 		_errorHandler.errorUnexpectedToken(*_current, "a label name");
 
@@ -378,8 +378,8 @@ ExpressionPtr Parser::parseLabelExpression(shared_ptr<Token> currentToken) {
 	return ExpressionPtr(new LabelReferenceOperand(nextToken()));
 }
 
-ExpressionPtr Parser::parseLiteralExpression(shared_ptr<Token> currentToken) {
-	shared_ptr<IntegerToken> intToken = asInteger(currentToken);
+ExpressionPtr Parser::parseLiteralExpression(TokenPtr& currentToken) {
+	IntegerToken* intToken = asInteger(currentToken);
 	if (intToken->overflow) {
 		_errorHandler.warning(intToken->location, boost::format(
 			"%s is larger than the maximum intermediary value (%d).") % intToken->content % UINT32_MAX);
@@ -389,13 +389,13 @@ ExpressionPtr Parser::parseLiteralExpression(shared_ptr<Token> currentToken) {
 }
 
 void Parser::addLabel(const Location& location, const string &labelName) {
-	_statements.push_back(StatementPtr(new Label(location, labelName)));
+	statements.push_back(StatementPtr(new Label(location, labelName)));
 }
 
 void Parser::addInstruction(const Location& location, ast::Opcode opcode, ArgumentPtr &a,
 	ArgumentPtr &b) {
 
-	_statements.push_back(StatementPtr(new Instruction(location, opcode, a, b)));
+	statements.push_back(StatementPtr(new Instruction(location, opcode, a, b)));
 }
 
 void Parser::advanceUntil(function<bool (const Token&)> predicate) {
@@ -438,7 +438,7 @@ bool Parser::isNextToken(function<bool (const Token&)> predicate) {
 	return predicate(**_current);
 }
 
-shared_ptr<Token> Parser::nextToken() {
+TokenPtr& Parser::nextToken() {
 	if (_current == _end) {
 		--_current;
 	}

@@ -1,6 +1,7 @@
 #include "Argument.hpp"
 
 using namespace std;
+using namespace dcpu::lexer;
 
 namespace dcpu { namespace ast {
 	Argument::Argument(const Location& location) : _location(location) {}
