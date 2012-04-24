@@ -102,6 +102,20 @@ ExpressionFunc assertIsBinaryOperation(BinaryOperator expectedOperation,
 	};
 }
 
+ExpressionFunc assertIsUnaryOperation(UnaryOperator expectedOperation, ExpressionFunc assertOperand) {
+
+	return [=] (ExpressionPtr& expr) {
+		UnaryOperation* unaryOp = dynamic_cast<UnaryOperation*>(expr.get());
+
+		ASSERT_TRUE(unaryOp != nullptr);
+		EXPECT_EQ(expectedOperation, unaryOp->_operator);
+		{
+			SCOPED_TRACE("Verify operand");
+			assertOperand(unaryOp->_operand);
+		}
+	};
+}
+
 ExpressionFunc assertIsLabelRef(const string &labelName) {
 	return [=] (ExpressionPtr& expr) {
 		LabelReferenceOperand* labelRefOp = dynamic_cast<LabelReferenceOperand*>(expr.get());
@@ -231,14 +245,14 @@ TEST(ParserTest, SimpleExpressionTest) {
 TEST(ParserTest, IndirectionTest) {
 	StatementList statements;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("set [A], [label * 2]", 1, statements));
+	ASSERT_NO_FATAL_FAILURE(runParser("set [A], [1 * 2]", 1, statements));
 	auto it = statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
 			assertArgumentIsIndirect(assertIsRegister(Register::A)),
 			assertArgumentIsIndirect(
-				assertIsBinaryOperation(BinaryOperator::MULTIPLY, assertIsLabel("label"), assertIsLiteral(2))));
+				assertIsBinaryOperation(BinaryOperator::MULTIPLY, assertIsLiteral(1), assertIsLiteral(2))));
 	}
 
 	ASSERT_NO_FATAL_FAILURE(runParser("set [B - 4], [5 + J]", 1, statements));
@@ -250,6 +264,185 @@ TEST(ParserTest, IndirectionTest) {
 				assertIsBinaryOperation(BinaryOperator::MINUS, assertIsRegister(Register::B), assertIsLiteral(4))),
 			assertArgumentIsIndirect(
 				assertIsBinaryOperation(BinaryOperator::PLUS, assertIsLiteral(5), assertIsRegister(Register::J))));
+	}
+}
+
+TEST(ParserTest, OperatorPrecedenceTest) {
+	StatementList statements;
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, 1 + 2 * 3", 1, statements));
+	auto it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(
+				assertIsBinaryOperation(BinaryOperator::PLUS,
+					assertIsLiteral(1),
+					assertIsBinaryOperation(BinaryOperator::MULTIPLY, 
+						assertIsLiteral(2),
+						assertIsLiteral(3)
+					)
+				)
+			)
+		);
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, 1 & 2 | 3 ^ 4", 1, statements));
+	it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(
+				assertIsBinaryOperation(BinaryOperator::OR,
+					assertIsBinaryOperation(BinaryOperator::AND,
+						assertIsLiteral(1),
+						assertIsLiteral(2)
+					), assertIsBinaryOperation(BinaryOperator::XOR, 
+						assertIsLiteral(3),
+						assertIsLiteral(4)
+					)
+				)
+			)
+		);
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, 1 << 4 & 2 >> 3", 1, statements));
+	it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(
+				assertIsBinaryOperation(BinaryOperator::AND,
+					assertIsBinaryOperation(BinaryOperator::SHIFT_LEFT,
+						assertIsLiteral(1),
+						assertIsLiteral(4)
+					), assertIsBinaryOperation(BinaryOperator::SHIFT_RIGHT, 
+						assertIsLiteral(2),
+						assertIsLiteral(3)
+					)
+				)
+			)
+		);
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, 1 + 2 << 3 >> 4 - 5", 1, statements));
+	it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(
+				assertIsBinaryOperation(BinaryOperator::SHIFT_RIGHT,
+					assertIsBinaryOperation(BinaryOperator::SHIFT_LEFT,
+						assertIsBinaryOperation(BinaryOperator::PLUS,
+							assertIsLiteral(1),
+							assertIsLiteral(2)
+						), assertIsLiteral(3)
+					), assertIsBinaryOperation(BinaryOperator::MINUS,
+						assertIsLiteral(4),
+						assertIsLiteral(5)
+					)
+				)
+			)
+		);
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, 1 * 2 + 3 / 4 % 5", 1, statements));
+	it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(
+				assertIsBinaryOperation(BinaryOperator::PLUS,
+					assertIsBinaryOperation(BinaryOperator::MULTIPLY,
+						assertIsLiteral(1),
+						assertIsLiteral(2)
+					), assertIsBinaryOperation(BinaryOperator::MODULO,
+						assertIsBinaryOperation(BinaryOperator::DIVIDE,
+							assertIsLiteral(3),
+							assertIsLiteral(4)
+						),
+						assertIsLiteral(5)
+					)
+				)
+			)
+		);
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, -1 * 2 / +3 % ~4", 1, statements));
+	it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(
+				assertIsBinaryOperation(BinaryOperator::MODULO,
+					assertIsBinaryOperation(BinaryOperator::DIVIDE,
+						assertIsBinaryOperation(BinaryOperator::MULTIPLY,
+							assertIsUnaryOperation(UnaryOperator::MINUS, assertIsLiteral(1)),
+							assertIsLiteral(2)
+						), assertIsUnaryOperation(UnaryOperator::PLUS, assertIsLiteral(3))
+					), assertIsUnaryOperation(UnaryOperator::NOT, assertIsLiteral(4))
+				)
+			)
+		);
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, -(1 + 2) * (3 + 4)", 1, statements));
+	it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(
+				assertIsBinaryOperation(BinaryOperator::MULTIPLY,
+					assertIsUnaryOperation(UnaryOperator::MINUS,
+						assertIsBinaryOperation(BinaryOperator::PLUS,
+							assertIsLiteral(1),
+							assertIsLiteral(2)
+						)
+					), assertIsBinaryOperation(BinaryOperator::PLUS,
+						assertIsLiteral(3),
+						assertIsLiteral(4)
+					)
+				)
+			)
+		);
+	}
+}
+
+TEST(ParserTest, LabelReferencesTest) {
+	StatementList statements;
+
+	ASSERT_NO_FATAL_FAILURE(runParser("label: set label, [label * 2]\n:a SET a, $a", 4, statements));
+	auto it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertLabel(it, "label");
+	}
+
+	{
+		SCOPED_TRACE("Statement: 2"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsLabelRef("label")),
+			assertArgumentIsIndirect(
+				assertIsBinaryOperation(BinaryOperator::MULTIPLY, assertIsLabelRef("label"), assertIsLiteral(2))));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 3"); 
+		assertLabel(it, "a");
+	}
+
+	{
+		SCOPED_TRACE("Statement: 2"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(assertIsLabelRef("a")));
 	}
 }
 
