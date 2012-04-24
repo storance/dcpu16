@@ -9,6 +9,7 @@
 #include <boost/algorithm/string.hpp>
 
 using namespace std;
+using namespace std::placeholders;
 using namespace dcpu::common;
 using namespace dcpu::lexer;
 using namespace dcpu::ast;
@@ -50,6 +51,19 @@ static map<string, RegisterDefinition> registers = {
 	{"pc", RegisterDefinition("PC", Register::PC, false)},
 	{"o",  RegisterDefinition("O", Register::O, false)}
 };
+
+OperatorDefinition::OperatorDefinition(ast::BinaryOperator _operator, std::function<bool (Parser*)> isNextTokenOperator)
+	: _operator(_operator),
+	  isNextTokenOperator(isNextTokenOperator),
+	  leftRequiresLiteral(true),
+	  rightRequiresLiteral(true) {}
+
+OperatorDefinition::OperatorDefinition(ast::BinaryOperator _operator, std::function<bool (Parser*)> isNextTokenOperator,
+	bool leftRequiresLiteral, bool rightRequiresLiteral) :
+		_operator(_operator),
+		isNextTokenOperator(isNextTokenOperator),
+		leftRequiresLiteral(leftRequiresLiteral),
+		rightRequiresLiteral(rightRequiresLiteral) {}
 
 Parser::Parser(Iterator start, Iterator end, ErrorHandler &errorHandler)
 	: _current(start), _end(end), _errorHandler(errorHandler) {
@@ -164,7 +178,7 @@ bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg) {
 		auto startPos = _current;
 		if (!parseIndirectStackArgument(nextToken(), arg)) {
 			_current = startPos;
-			arg = move(ArgumentPtr(new IndirectArgument(parseExpression(currentToken, true))));
+			arg = move(ArgumentPtr(new IndirectArgument(parseExpression(nextToken(), true))));
 		}
 
 		if (!isNextTokenChar(']')) {
@@ -230,77 +244,78 @@ ExpressionPtr Parser::parseExpression(TokenPtr& currentToken, bool indirect) {
 }
 
 ExpressionPtr Parser::parseBitwiseOrOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseXorOperation,
-		{{BinaryOperator::OR, [this] { return this->isNextTokenChar('|'); }}});
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseXorOperation, {
+		OperatorDefinition(BinaryOperator::OR, bind(&Parser::isNextTokenChar, _1, '|'))
+	});
 }
 
 ExpressionPtr Parser::parseBitwiseXorOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseAndOperation,
-		{{BinaryOperator::XOR, [this] { return this->isNextTokenChar('^'); }}});
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseAndOperation, {
+		OperatorDefinition(BinaryOperator::XOR, bind(&Parser::isNextTokenChar, _1, '^'))
+	});
 }
 
 ExpressionPtr Parser::parseBitwiseAndOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseShiftOperation,
-		{{BinaryOperator::AND, [this] { return this->isNextTokenChar('&'); }}});
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseShiftOperation, {
+		OperatorDefinition(BinaryOperator::AND, bind(&Parser::isNextTokenChar, _1, '&'))
+	});
 }
 
 ExpressionPtr Parser::parseBitwiseShiftOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseAddOperation,
-		{
-			{BinaryOperator::SHIFT_LEFT, [this] { return this->isNextToken(mem_fn(&Token::isShiftLeft)); }},
-			{BinaryOperator::SHIFT_RIGHT, [this] { return this->isNextToken(mem_fn(&Token::isShiftRight)); }}
-		});
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseAddOperation, {
+		OperatorDefinition(BinaryOperator::SHIFT_LEFT,  bind(&Parser::isNextToken, _1, &Token::isShiftLeft)),
+		OperatorDefinition(BinaryOperator::SHIFT_RIGHT, bind(&Parser::isNextToken, _1, &Token::isShiftRight))
+	});
 }
 
 ExpressionPtr Parser::parseAddOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseMultiplyOperation,
-		{
-			{BinaryOperator::PLUS, [this] { return this->isNextTokenChar('+'); }},
-			{BinaryOperator::MINUS, [this] { return this->isNextTokenChar('-'); }}
-		});
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseMultiplyOperation, {
+		OperatorDefinition(BinaryOperator::PLUS,  bind(&Parser::isNextTokenChar, _1, '+'), false, false),
+		OperatorDefinition(BinaryOperator::MINUS, bind(&Parser::isNextTokenChar, _1, '-'), false, true)
+	});
 }
 
 ExpressionPtr Parser::parseMultiplyOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseUnaryOperation,
-		{
-			{BinaryOperator::MULTIPLY, [this] { return this->isNextTokenChar('*'); }},
-			{BinaryOperator::DIVIDE, [this] { return this->isNextTokenChar('/'); }},
-			{BinaryOperator::MODULO, [this] { return this->isNextTokenChar('%'); }}
-		});
+	return parseBinaryOperation(currentToken, indirect, &Parser::parseUnaryOperation, {
+		OperatorDefinition(BinaryOperator::MULTIPLY, bind(&Parser::isNextTokenChar, _1, '*')),
+		OperatorDefinition(BinaryOperator::DIVIDE,   bind(&Parser::isNextTokenChar, _1, '/')),
+		OperatorDefinition(BinaryOperator::MODULO,   bind(&Parser::isNextTokenChar, _1, '%'))
+	});
 }
 
 ExpressionPtr Parser::parseBinaryOperation(TokenPtr& currentToken, bool indirect,
-	ExpressionParser parseFunc, OperatorDefinition definitions) {
+	ExpressionParser parseFunc, initializer_list<OperatorDefinition> definitions) {
 
 	ExpressionPtr left = (this->*parseFunc)(currentToken, indirect);
 
-	BinaryOperator _operator = BinaryOperator::NONE;
-	for (auto definition : definitions) {
-		if (definition.second()) {
-			_operator = definition.first;
+	const OperatorDefinition *operatorDef = nullptr;
+	for (auto& definition : definitions) {
+		if (definition.isNextTokenOperator(this)) {
+			operatorDef = &definition;
+			break;
 		}
 	}
 
-	if (_operator == BinaryOperator::NONE) {
+	if (operatorDef == nullptr) {
 		return move(left);
 	}
 
 	auto& operatorToken = nextToken();
 	ExpressionPtr right = (this->*parseFunc)(nextToken(), indirect);
 
-	if (_operator != BinaryOperator::PLUS && !left->isEvalsToLiteral()) {
+	if (operatorDef->leftRequiresLiteral && !left->isEvalsToLiteral()) {
 		_errorHandler.error(left->_location, boost::format("The left-hand expression of the operator '%s' "
-			"must evaluate to a literal.") % str(_operator));
+			"must evaluate to a literal.") % str(operatorDef->_operator));
 		return ExpressionPtr(new InvalidExpression(left->_location));
 	}
 
-	if (_operator != BinaryOperator::PLUS && _operator != BinaryOperator::MINUS && !right->isEvalsToLiteral()) {
+	if (operatorDef->rightRequiresLiteral && !right->isEvalsToLiteral()) {
 		_errorHandler.error(right->_location, boost::format("The right-hand expression of the operator '%s' "
-			"must evaluate to a literal.") % str(_operator));
+			"must evaluate to a literal.") % str(operatorDef->_operator));
 		return ExpressionPtr(new InvalidExpression(left->_location));
 	}
 
-	return ExpressionPtr(new BinaryOperation(operatorToken->location, _operator, left, right));
+	return ExpressionPtr(new BinaryOperation(operatorToken->location, operatorDef->_operator, left, right));
 }
 
 ExpressionPtr Parser::parseUnaryOperation(TokenPtr& currentToken, bool indirect) {

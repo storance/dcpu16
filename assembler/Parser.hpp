@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <map>
+#include <initializer_list>
 #include <cstdint>
 
 #include "ast/Statement.hpp"
@@ -27,16 +27,28 @@ namespace dcpu { namespace parser {
 			: _mnemonic(mnemonic), _register(reg), _indirectable(indirectable) {}
 	};
 
+	class Parser;
+
+	struct OperatorDefinition {
+		ast::BinaryOperator _operator;
+		std::function<bool (Parser*)> isNextTokenOperator;
+		bool leftRequiresLiteral;
+		bool rightRequiresLiteral;
+
+		OperatorDefinition(ast::BinaryOperator, std::function<bool (Parser*)>);
+		OperatorDefinition(ast::BinaryOperator, std::function<bool (Parser*)>, bool, bool);
+	};
+
 	class Parser {
 	protected:
 		typedef lexer::TokenList::iterator Iterator;
 		typedef ast::ExpressionPtr (Parser::*ExpressionParser)(lexer::TokenPtr&, bool);
-		typedef std::map<ast::BinaryOperator, std::function<bool ()>> OperatorDefinition;
 
 		dcpu::ErrorHandler &_errorHandler;
 		Iterator _current, _end;
 
-		ast::ExpressionPtr parseBinaryOperation(lexer::TokenPtr&, bool, ExpressionParser, OperatorDefinition);
+		ast::ExpressionPtr parseBinaryOperation(lexer::TokenPtr&, bool, ExpressionParser,
+			std::initializer_list<OperatorDefinition>);
 		ast::ExpressionPtr parseGroupedExpression(lexer::TokenPtr&, bool);
 		ast::ExpressionPtr parseIdentifierExpression(lexer::TokenPtr&, bool);
 		ast::ExpressionPtr parseLabelExpression(lexer::TokenPtr&);

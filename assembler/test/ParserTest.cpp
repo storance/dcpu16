@@ -120,25 +120,27 @@ ExpressionFunc assertIsLiteral(uint32_t expectedValue) {
 	};
 }
 
-void runParser(const string &content, int expectedStatements, unique_ptr<Parser> &parser) {
+void runParser(const string &content, int expectedStatements, StatementList &statements) {
 	Lexer lexer(content.begin(), content.end(), "<ParserTest>");
 	lexer.parse();
 
 	ErrorHandler errorHandler;
 
-	parser.reset(new Parser(lexer.tokens.begin(), lexer.tokens.end(), errorHandler));
-	parser->parse();
+	Parser parser(lexer.tokens.begin(), lexer.tokens.end(), errorHandler);
+	parser.parse();
 
-	ASSERT_EQ(expectedStatements, parser->statements.size());
+	statements = move(parser.statements);
+
+	ASSERT_EQ(expectedStatements, statements.size());
 }
 
 
 TEST(ParserTest, ParseInstruction) {
-	unique_ptr<Parser> parser;
+	StatementList statements;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("SET A, 1\n   add pc  ,\ti\n\njsr X", 3, parser));
+	ASSERT_NO_FATAL_FAILURE(runParser("SET A, 1\n   add pc  ,\ti\n\njsr X", 3, statements));
 
-	auto it = parser->statements.begin();
+	auto it = statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
@@ -162,11 +164,11 @@ TEST(ParserTest, ParseInstruction) {
 }
 
 TEST(ParserTest, LabelTest) {
-	unique_ptr<Parser> parser;
+	StatementList statements;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n:label2\nlabel3: SET A, B\n: label4 SET A, B", 6, parser));
+	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n:label2\nlabel3: SET A, B\n: label4 SET A, B", 6, statements));
 
-	auto it = parser->statements.begin();
+	auto it = statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertLabel(it, "label1");
@@ -203,10 +205,10 @@ TEST(ParserTest, LabelTest) {
 }
 
 TEST(ParserTest, SimpleExpressionTest) {
-	unique_ptr<Parser> parser;
+	StatementList statements;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("set 4 * 2, 1 + 2", 1, parser));
-	auto it = parser->statements.begin();
+	ASSERT_NO_FATAL_FAILURE(runParser("set 4 * 2, 1 + 2", 1, statements));
+	auto it = statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
@@ -214,5 +216,30 @@ TEST(ParserTest, SimpleExpressionTest) {
 				assertIsBinaryOperation(BinaryOperator::MULTIPLY, assertIsLiteral(4), assertIsLiteral(2))),
 			assertArgumentIsExpression(
 				assertIsBinaryOperation(BinaryOperator::PLUS, assertIsLiteral(1), assertIsLiteral(2))));
+	}
+}
+
+TEST(ParserTest, IndirectionTest) {
+	StatementList statements;
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set [A], [1 + 2]", 1, statements));
+	auto it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsIndirect(assertIsRegister(Register::A)),
+			assertArgumentIsIndirect(
+				assertIsBinaryOperation(BinaryOperator::PLUS, assertIsLiteral(1), assertIsLiteral(2))));
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runParser("set [B - 4], [5 + J]", 1, statements));
+	it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsIndirect(
+				assertIsBinaryOperation(BinaryOperator::MINUS, assertIsRegister(Register::B), assertIsLiteral(4))),
+			assertArgumentIsIndirect(
+				assertIsBinaryOperation(BinaryOperator::PLUS, assertIsLiteral(5), assertIsRegister(Register::J))));
 	}
 }
