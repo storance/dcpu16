@@ -288,34 +288,36 @@ ExpressionPtr Parser::parseBinaryOperation(TokenPtr& currentToken, bool indirect
 
 	ExpressionPtr left = (this->*parseFunc)(currentToken, indirect);
 
-	const OperatorDefinition *operatorDef = nullptr;
-	for (auto& definition : definitions) {
-		if (definition.isNextTokenOperator(this)) {
-			operatorDef = &definition;
-			break;
+	while (_current != _end) {
+		const OperatorDefinition *operatorDef = nullptr;
+		for (auto& definition : definitions) {
+			if (definition.isNextTokenOperator(this)) {
+				operatorDef = &definition;
+				break;
+			}
 		}
+
+		if (operatorDef == nullptr) {
+			return move(left);
+		}
+
+		auto& operatorToken = nextToken();
+		ExpressionPtr right = (this->*parseFunc)(nextToken(), indirect);
+
+		if (operatorDef->leftRequiresLiteral && !left->isEvalsToLiteral()) {
+			_errorHandler.error(left->_location, boost::format("The left-hand expression of the operator '%s' "
+				"must evaluate to a literal.") % str(operatorDef->_operator));
+			left = move(ExpressionPtr(new InvalidExpression(left->_location)));
+		}
+
+		if (operatorDef->rightRequiresLiteral && !right->isEvalsToLiteral()) {
+			_errorHandler.error(right->_location, boost::format("The right-hand expression of the operator '%s' "
+				"must evaluate to a literal.") % str(operatorDef->_operator));
+			left = move(ExpressionPtr(new InvalidExpression(left->_location)));
+		}
+
+		left = move(ExpressionPtr(new BinaryOperation(operatorToken->location, operatorDef->_operator, left, right)));
 	}
-
-	if (operatorDef == nullptr) {
-		return move(left);
-	}
-
-	auto& operatorToken = nextToken();
-	ExpressionPtr right = (this->*parseFunc)(nextToken(), indirect);
-
-	if (operatorDef->leftRequiresLiteral && !left->isEvalsToLiteral()) {
-		_errorHandler.error(left->_location, boost::format("The left-hand expression of the operator '%s' "
-			"must evaluate to a literal.") % str(operatorDef->_operator));
-		return ExpressionPtr(new InvalidExpression(left->_location));
-	}
-
-	if (operatorDef->rightRequiresLiteral && !right->isEvalsToLiteral()) {
-		_errorHandler.error(right->_location, boost::format("The right-hand expression of the operator '%s' "
-			"must evaluate to a literal.") % str(operatorDef->_operator));
-		return ExpressionPtr(new InvalidExpression(left->_location));
-	}
-
-	return ExpressionPtr(new BinaryOperation(operatorToken->location, operatorDef->_operator, left, right));
 }
 
 ExpressionPtr Parser::parseUnaryOperation(TokenPtr& currentToken, bool indirect) {
