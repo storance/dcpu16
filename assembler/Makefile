@@ -1,6 +1,6 @@
 CXX=g++
 CPP_FLAGS=-std=c++0x
-CXX_FLAGS=-g
+CXX_FLAGS=-g -Wall
 OUTPUT_DIR=target
 
 OBJECTS = $(OUTPUT_DIR)/Parser.o \

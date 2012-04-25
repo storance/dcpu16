@@ -157,6 +157,12 @@ namespace dcpu { namespace ast {
 		return "<Invalid Expression>";
 	}
 
+	/*************************************************************************
+	 *
+	 * Pretty Printers
+	 *
+	 *************************************************************************/
+
 	std::string str(UnaryOperator op) {
 		switch (op) {
 		case UnaryOperator::PLUS:
@@ -167,7 +173,7 @@ namespace dcpu { namespace ast {
 			return "~";
 		}
 
-		return "<Unknown>";
+		return "<Unknown UnaryOperator>";
 	}
 
 	std::string str(BinaryOperator op) {
@@ -194,7 +200,7 @@ namespace dcpu { namespace ast {
 			return "^";
 		}
 
-		return "<Unknown>";
+		return "<Unknown BinaryOperator>";
 	}
 
 	std::string str(common::Register _register) {
@@ -222,6 +228,8 @@ namespace dcpu { namespace ast {
 		case common::Register::O:
 			return "O";
 		}
+
+		return "<Unknown Register>";
 	}
 
 	std::string str(Expression& expr) {

@@ -22,7 +22,6 @@ namespace dcpu { namespace ast {
 	};
 
 	enum class UnaryOperator : std::uint8_t {
-		NONE,
 		PLUS,
 		MINUS,
 		NOT

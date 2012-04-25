@@ -12,14 +12,20 @@ namespace dcpu { namespace ast {
 		PEEK
 	};
 
+	enum class ArgumentPosition {
+		A,
+		B
+	};
+
 	class Argument {
 	public:
 		lexer::Location _location;
+		ArgumentPosition _position;
 
 		//virtual bool isNextWordUsed()=0;
 		//virtual void compile()=0;
 
-		Argument(const lexer::Location&);
+		Argument(const lexer::Location&, ArgumentPosition);
 		virtual ~Argument();
 	};
 
@@ -29,22 +35,25 @@ namespace dcpu { namespace ast {
 	public:
 		StackOperation _operation;
 
-		StackArgument(const lexer::Location&, StackOperation);
+		StackArgument(const lexer::Location&, ArgumentPosition, StackOperation);
 	};
 
 	class IndirectArgument : public Argument {
 	public:
 		ExpressionPtr _expr;
 
-		IndirectArgument(ExpressionPtr&&);
-		IndirectArgument(ExpressionPtr&);
+		IndirectArgument(ArgumentPosition, ExpressionPtr&&);
+		IndirectArgument(ArgumentPosition, ExpressionPtr&);
 	};
 
 	class ExpressionArgument : public Argument {
 	public:
 		ExpressionPtr _expr;
 
-		ExpressionArgument(ExpressionPtr&&);
-		ExpressionArgument(ExpressionPtr&);
+		ExpressionArgument(ArgumentPosition, ExpressionPtr&&);
+		ExpressionArgument(ArgumentPosition, ExpressionPtr&);
 	};
+
+	std::string str(ArgumentPosition);
+	std::string str(StackOperation);
 } }

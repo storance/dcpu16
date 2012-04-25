@@ -44,8 +44,8 @@ namespace dcpu { namespace parser {
 		typedef lexer::TokenList::iterator Iterator;
 		typedef ast::ExpressionPtr (Parser::*ExpressionParser)(lexer::TokenPtr&, bool);
 
-		dcpu::ErrorHandler &_errorHandler;
 		Iterator _current, _end;
+		dcpu::ErrorHandler &_errorHandler;
 
 		ast::ExpressionPtr parseBinaryOperation(lexer::TokenPtr&, bool, ExpressionParser,
 			std::initializer_list<OperatorDefinition>);
@@ -65,8 +65,9 @@ namespace dcpu { namespace parser {
 
 		bool parseLabel(lexer::TokenPtr&);
 		bool parseInstruction(lexer::TokenPtr&);
-		bool parseIndirectStackArgument(lexer::TokenPtr&, ast::ArgumentPtr&);
-		bool parseArgument(lexer::TokenPtr&, ast::ArgumentPtr&);
+		bool parseIndirectStackArgument(lexer::TokenPtr&, ast::ArgumentPtr&, ast::ArgumentPosition);
+		bool parseMnemonicStackArgument(lexer::TokenPtr&, ast::ArgumentPtr&, ast::ArgumentPosition);
+		bool parseArgument(lexer::TokenPtr&, ast::ArgumentPtr&, ast::ArgumentPosition);
 
 		OpcodeDefinition* lookupOpcode(const std::string&);
 		RegisterDefinition* lookupRegister(const std::string&);

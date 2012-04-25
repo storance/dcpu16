@@ -136,31 +136,40 @@ bool Parser::parseInstruction(TokenPtr& currentToken) {
 	}
 
 	ArgumentPtr a, b;
-	if (opcodeDef->_args > 0) {
-		if (!parseArgument(nextToken(), a)) {
+	if (opcodeDef->_args == 1) {
+		if (!parseArgument(nextToken(), a, ArgumentPosition::A)) {
+			advanceUntil(mem_fn(&Token::isStatementTerminator));
+			return false;
+		}
+	} else if (opcodeDef->_args == 2) {
+		bool anyFailure = false;
+		if (!parseArgument(nextToken(), b, ArgumentPosition::B)) {
 			advanceUntil([] (const Token& token) {
 				return token.isCharacter(',') || token.isStatementTerminator();
 			});
-			return false;
-		}
-	}
-
-	if (opcodeDef->_args > 1) {
-		if (!isNextTokenChar(',')) {
-			_errorHandler.errorUnexpectedToken(*_current, ',');
-		} else {
-			nextToken();
+			anyFailure = true;
 		}
 
-		if (!parseArgument(nextToken(), b)) {
+		auto& nextTkn = nextToken();
+		if (!nextTkn->isCharacter(',')) {
+			_errorHandler.errorUnexpectedToken(nextTkn, ',');
+			--_current;
+			anyFailure = true;
+		}
+
+		if (!parseArgument(nextToken(), a, ArgumentPosition::A)) {
 			advanceUntil(mem_fn(&Token::isStatementTerminator));
+			anyFailure = true;
+		}
+
+		if (anyFailure) {
 			return false;
-		} 
+		}
 	}
 
 	auto& eolToken = nextToken();
 	if (!eolToken->isStatementTerminator()) {
-		_errorHandler.errorUnexpectedToken(eolToken, "a 'newline' or 'eof'");
+		_errorHandler.errorUnexpectedToken(eolToken, "'newline' or 'eof'");
 		advanceUntil(mem_fn(&Token::isStatementTerminator));
 	}
 
@@ -168,7 +177,7 @@ bool Parser::parseInstruction(TokenPtr& currentToken) {
 	return true;
 }
 
-bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg) {
+bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPosition position) {
 	if (currentToken->isCharacter(',') || currentToken->isStatementTerminator()) {
 		_errorHandler.errorUnexpectedToken(currentToken, "an instruction argument");
 		return false;
@@ -176,9 +185,9 @@ bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg) {
 
 	if (currentToken->isCharacter('[')) {
 		auto startPos = _current;
-		if (!parseIndirectStackArgument(nextToken(), arg)) {
+		if (!parseIndirectStackArgument(nextToken(), arg, position)) {
 			_current = startPos;
-			arg = move(ArgumentPtr(new IndirectArgument(parseExpression(nextToken(), true))));
+			arg = move(ArgumentPtr(new IndirectArgument(position, parseExpression(nextToken(), true))));
 		}
 
 		if (!isNextTokenChar(']')) {
@@ -188,40 +197,34 @@ bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg) {
 
 		nextToken();
 		return true;
-	} else if (currentToken->isIdentifier()) {
-		if (boost::algorithm::iequals(currentToken->content, "PUSH")) {
-			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::PUSH)));
-			return true;
-		} else if (boost::algorithm::iequals(currentToken->content, "POP")) {
-			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::POP)));
-			return true;
-		} else if (boost::algorithm::iequals(currentToken->content, "PEEK")) {
-			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::PEEK)));
-			return true;
-		}
+	}
+
+	if (parseMnemonicStackArgument(currentToken, arg, position)) {
+		return true;
 	}
 
 	ExpressionPtr expr = move(parseExpression(currentToken, false));
-	if (!expr->isSimple() && !expr->isEvalsToLiteral()) {
-		_errorHandler.error(expr->_location, "Registers may not be operands in expressions outside of an indirection");
-		return false;
-	}
-	arg = move(ArgumentPtr(new ExpressionArgument(expr)));
+	arg = move(ArgumentPtr(new ExpressionArgument(position, expr)));
 	return true;
 }
 
-bool Parser::parseIndirectStackArgument(TokenPtr& currentToken, ArgumentPtr& arg) {
+bool Parser::parseIndirectStackArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPosition position) {
 	if (currentToken->isIdentifier()) {
 		if (!boost::algorithm::iequals(currentToken->content, "SP")) {
 			return false;
 		}
 
 		if (isNextTokenChar(']')) {
-			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::PEEK)));
+			arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::PEEK)));
 			return true;
 		} else if (isNextToken(mem_fn(&Token::isIncrement))) {
+			if (position != ArgumentPosition::A) {
+				_errorHandler.error(currentToken->location, boost::format("[SP++] is not allowed as argument %s.")
+					% str(position));
+			}
+
 			nextToken();
-			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::POP)));
+			arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::POP)));
 			return true;
 		}
 
@@ -229,11 +232,43 @@ bool Parser::parseIndirectStackArgument(TokenPtr& currentToken, ArgumentPtr& arg
 	} else if (currentToken->isDecrement()) {
 		auto& nxtToken = nextToken();
 		if (nxtToken->isIdentifier() && boost::algorithm::iequals(nxtToken->content, "SP")) {
-			arg = move(ArgumentPtr(new StackArgument(currentToken->location, StackOperation::PUSH)));
+			if (position != ArgumentPosition::B) {
+				_errorHandler.error(currentToken->location, boost::format("[--SP] is not allowed as argument %s.")
+					% str(position));
+			}
+
+			arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::PUSH)));
 			return true;
 		}
 
 		return false;
+	}
+
+	return false;
+}
+
+bool Parser::parseMnemonicStackArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPosition position) {
+	if (!currentToken->isIdentifier()) {
+		return false;
+	}
+
+	if (boost::algorithm::iequals(currentToken->content, "PUSH")) {
+		if (position != ArgumentPosition::B) {
+			_errorHandler.error(currentToken->location, boost::format("PUSH is not allowed as argument %s.")
+				% str(position));
+		}
+		arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::PUSH)));
+		return true;
+	} else if (boost::algorithm::iequals(currentToken->content, "POP")) {
+		if (position != ArgumentPosition::A) {
+			_errorHandler.error(currentToken->location, boost::format("POP is not allowed as argument %s.")
+				% str(position));
+		}
+		arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::POP)));
+		return true;
+	} else if (boost::algorithm::iequals(currentToken->content, "PEEK")) {
+		arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::PEEK)));
+		return true;
 	}
 
 	return false;
@@ -288,7 +323,7 @@ ExpressionPtr Parser::parseBinaryOperation(TokenPtr& currentToken, bool indirect
 
 	ExpressionPtr left = (this->*parseFunc)(currentToken, indirect);
 
-	while (_current != _end) {
+	while (true) {
 		const OperatorDefinition *operatorDef = nullptr;
 		for (auto& definition : definitions) {
 			if (definition.isNextTokenOperator(this)) {
@@ -304,15 +339,17 @@ ExpressionPtr Parser::parseBinaryOperation(TokenPtr& currentToken, bool indirect
 		auto& operatorToken = nextToken();
 		ExpressionPtr right = (this->*parseFunc)(nextToken(), indirect);
 
-		if (operatorDef->leftRequiresLiteral && !left->isEvalsToLiteral()) {
-			_errorHandler.error(left->_location, boost::format("The left-hand expression of the operator '%s' "
-				"must evaluate to a literal.") % str(operatorDef->_operator));
+		if ((operatorDef->leftRequiresLiteral || !indirect) && !left->isEvalsToLiteral()) {
+			_errorHandler.error(left->_location, boost::format("The left operand of the operator '%s' "
+				"must evaluate to a literal%s.") % str(operatorDef->_operator) 
+				% (!operatorDef->leftRequiresLiteral  && !indirect ? " when not inside of an indirection" : ""));
 			left = move(ExpressionPtr(new InvalidExpression(left->_location)));
 		}
 
-		if (operatorDef->rightRequiresLiteral && !right->isEvalsToLiteral()) {
-			_errorHandler.error(right->_location, boost::format("The right-hand expression of the operator '%s' "
-				"must evaluate to a literal.") % str(operatorDef->_operator));
+		if ((operatorDef->rightRequiresLiteral || !indirect) && !right->isEvalsToLiteral()) {
+			_errorHandler.error(right->_location, boost::format("The right operand of the operator '%s' "
+				"must evaluate to a literal%s.") % str(operatorDef->_operator)
+				% (!operatorDef->rightRequiresLiteral && !indirect ? " when not inside of an indirection" : ""));
 			left = move(ExpressionPtr(new InvalidExpression(left->_location)));
 		}
 

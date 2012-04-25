@@ -27,7 +27,7 @@ void assertLabel(StatementIterator &it, const string &expectedName) {
 	EXPECT_EQ(expectedName, label->_name);
 }
 
-void assertInstruction(StatementIterator &it, Opcode opcode, ArgumentFunc verifyA, ArgumentFunc verifyB) {
+void assertInstruction(StatementIterator &it, Opcode opcode, ArgumentFunc verifyA) {
 	auto& statement = *it++;
 
 	Instruction* instruction = dynamic_cast<ast::Instruction*>(statement.get());
@@ -35,20 +35,36 @@ void assertInstruction(StatementIterator &it, Opcode opcode, ArgumentFunc verify
 	EXPECT_EQ(opcode, instruction->_opcode);
 
 	{
-		SCOPED_TRACE("First Argument"); 
-		verifyA(instruction->_a);
+		SCOPED_TRACE("Argument b"); 
+		EXPECT_FALSE(instruction->_b);
 	}
 	{
-		SCOPED_TRACE("Second Argument"); 
+		SCOPED_TRACE("Argument a"); 
+		verifyA(instruction->_a);
+	}
+}
+
+void assertInstruction(StatementIterator &it, Opcode opcode, ArgumentFunc verifyB, ArgumentFunc verifyA) {
+	auto& statement = *it++;
+
+	Instruction* instruction = dynamic_cast<ast::Instruction*>(statement.get());
+	ASSERT_TRUE(instruction != nullptr);
+	EXPECT_EQ(opcode, instruction->_opcode);
+
+	{
+		SCOPED_TRACE("Argument b"); 
 		verifyB(instruction->_b);
+	}
+	{
+		SCOPED_TRACE("Argument a"); 
+		verifyA(instruction->_a);
 	}
 }
 
 ArgumentFunc assertArgumentIsExpression(ExpressionFunc assertFunc) {
 	return [=] (ArgumentPtr& arg) {
 		ExpressionArgument *exprArg = dynamic_cast<ExpressionArgument*>(arg.get());
-
-		ASSERT_TRUE((bool)exprArg);
+		ASSERT_TRUE(exprArg != nullptr);
 		{
 			SCOPED_TRACE("Verify Expression Argument");
 			assertFunc(exprArg->_expr);
@@ -181,8 +197,7 @@ TEST(ParserTest, ParseInstruction) {
 	{
 		SCOPED_TRACE("Statement: 3"); 
 		assertInstruction(it, Opcode::JSR,
-			assertArgumentIsExpression(assertIsRegister(Register::X)),
-			assertArgumentIsNull());
+			assertArgumentIsExpression(assertIsRegister(Register::X)));
 	}
 }
 

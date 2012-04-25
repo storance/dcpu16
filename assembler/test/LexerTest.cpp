@@ -593,8 +593,6 @@ TEST(LexerTest, MultipleTokens) {
 	TokenList tokens;
 	ASSERT_NO_FATAL_FAILURE(runParser("set A, b\n  set [J], 0x400\n;a test comment\nlabel: JSR label+4\n", 21, tokens));
 
-	int index = 0;
-
 	// Line 1
 	auto it = tokens.begin();
 	{
