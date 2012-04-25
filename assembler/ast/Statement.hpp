@@ -23,7 +23,7 @@ namespace dcpu { namespace ast {
 		SHR,
 		ASR,
 		SHL,
-		IFB,
+		IFB=0x10,
 		IFC,
 		IFE,
 		IFN,
