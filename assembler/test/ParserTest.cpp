@@ -8,7 +8,6 @@
 using namespace std;
 using namespace std::placeholders;
 using namespace dcpu;
-using namespace dcpu::common;
 using namespace dcpu::ast;
 using namespace dcpu::parser;
 using namespace dcpu::lexer;
@@ -141,7 +140,7 @@ ExpressionFunc assertIsLabelRef(const string &labelName) {
 	};
 }
 
-ExpressionFunc assertIsRegister(common::Register expectedRegister) {
+ExpressionFunc assertIsRegister(Register expectedRegister) {
 	return [=] (ExpressionPtr& expr) {
 		RegisterOperand* registerOp = dynamic_cast<RegisterOperand*>(expr.get());
 

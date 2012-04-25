@@ -7,26 +7,40 @@
 #include "Argument.hpp"
 
 namespace dcpu { namespace ast {
-	enum class Opcode {
+	enum class Opcode : std::uint16_t {
+		// Basic
 		SET=0x1,
 		ADD,
 		SUB,
 		MUL,
+		MLI,
 		DIV,
+		DVI,
 		MOD,
-		SHL,
-		SHR,
 		AND,
 		BOR,
 		XOR,
+		SHR,
+		ASR,
+		SHL,
+		IFB,
+		IFC,
 		IFE,
 		IFN,
 		IFG,
-		IFB,
-		JSR=0x100,
+		IFA,
+		IFL,
+		IFU,
+		// Non-basic 
+		JSR=0x20,
+		INT=0x100,
+		ING=0x120,
+		INS=0x140,
+		HWN=0x200,
+		HWQ=0x220,
+		HWI=0x240,
+		// Extensions
 		JMP=0x400,
-		PUSH,
-		POP
 	};
 
 	enum class LabelType {
@@ -67,4 +81,5 @@ namespace dcpu { namespace ast {
 		Label(const lexer::Location&, const std::string&);
 	};
 
+	std::string str(Opcode);
 } }

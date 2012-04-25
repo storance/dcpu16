@@ -10,21 +10,19 @@
 
 namespace dcpu { namespace parser {
 	struct OpcodeDefinition {
-		std::string _mnemonic;
 		ast::Opcode _opcode;
 		std::uint8_t _args;
 
-		OpcodeDefinition(const std::string &mnemonic, ast::Opcode opcode, std::uint8_t args)
-			: _mnemonic(mnemonic), _opcode(opcode), _args(args) {}
+		OpcodeDefinition(ast::Opcode opcode, std::uint8_t args)
+			: _opcode(opcode), _args(args) {}
 	};
 
 	struct RegisterDefinition {
-		std::string _mnemonic;
-		common::Register _register;
+		ast::Register _register;
 		bool _indirectable;
 
-		RegisterDefinition(const std::string &mnemonic, common::Register reg, bool indirectable)
-			: _mnemonic(mnemonic), _register(reg), _indirectable(indirectable) {}
+		RegisterDefinition(ast::Register reg, bool indirectable)
+			: _register(reg), _indirectable(indirectable) {}
 	};
 
 	class Parser;

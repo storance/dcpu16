@@ -12,7 +12,7 @@ enum {
 namespace dcpu { namespace common {
 
 enum class Register {
-	A, B, C, X, Y, Z, I, J, SP, PC, O
+	A, B, C, X, Y, Z, I, J, SP, PC, EX
 };
 
 } }

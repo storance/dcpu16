@@ -4,7 +4,6 @@
 #include <memory>
 #include <cstdint>
 
-#include "../../common.hpp"
 #include "../Token.hpp"
 
 namespace dcpu { namespace ast {
@@ -25,6 +24,10 @@ namespace dcpu { namespace ast {
 		PLUS,
 		MINUS,
 		NOT
+	};
+
+	enum class Register : std::uint8_t {
+		A, B, C, X, Y, Z, I, J, SP, PC, EX
 	};
 
 	class Expression {
@@ -75,13 +78,13 @@ namespace dcpu { namespace ast {
 
 	class RegisterOperand : public Expression {
 	public:
-		common::Register _register;
+		Register _register;
 
 		virtual bool isEvalsToLiteral() const;
 		virtual bool isSimple() const;
 		virtual std::string str() const;
 
-		RegisterOperand(const lexer::Location&, common::Register);
+		RegisterOperand(const lexer::Location&, Register);
 	};
 
 	class LiteralOperand : public Expression {
@@ -118,7 +121,7 @@ namespace dcpu { namespace ast {
 
 	std::string str(UnaryOperator);
 	std::string str(BinaryOperator);
-	std::string str(common::Register);
+	std::string str(Register);
 
 	std::string str(const Expression&);
 	std::string str(ExpressionPtr&);

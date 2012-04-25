@@ -77,7 +77,7 @@ namespace dcpu { namespace ast {
 	 *
 	 *************************************************************************/
 
-	RegisterOperand::RegisterOperand(const Location& location, common::Register reg) 
+	RegisterOperand::RegisterOperand(const Location& location, Register reg) 
 		: Expression(location), _register(reg) {}
 
 	bool RegisterOperand::isEvalsToLiteral() const {
@@ -203,30 +203,30 @@ namespace dcpu { namespace ast {
 		return "<Unknown BinaryOperator>";
 	}
 
-	std::string str(common::Register _register) {
+	std::string str(Register _register) {
 		switch (_register) {
-		case common::Register::A:
+		case Register::A:
 			return "A";
-		case common::Register::B:
+		case Register::B:
 			return "B";
-		case common::Register::C:
+		case Register::C:
 			return "C";
-		case common::Register::X:
+		case Register::X:
 			return "X";
-		case common::Register::Y:
+		case Register::Y:
 			return "Y";
-		case common::Register::Z:
+		case Register::Z:
 			return "Z";
-		case common::Register::I:
+		case Register::I:
 			return "I";
-		case common::Register::J:
+		case Register::J:
 			return "J";
-		case common::Register::PC:
+		case Register::PC:
 			return "PC";
-		case common::Register::SP:
+		case Register::SP:
 			return "SP";
-		case common::Register::O:
-			return "O";
+		case Register::EX:
+			return "EX";
 		}
 
 		return "<Unknown Register>";
