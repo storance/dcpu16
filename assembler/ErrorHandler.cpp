@@ -4,9 +4,9 @@ using namespace std;
 using namespace dcpu::lexer;
 
 namespace dcpu {
-	ErrorHandler::ErrorHandler() : _out(cerr) {}
+	ErrorHandler::ErrorHandler() : _totalErrors(0), _totalWarnings(0), _out(cerr) {}
 
-	ErrorHandler::ErrorHandler(ostream &out) : _out(out) {}
+	ErrorHandler::ErrorHandler(ostream &out) : _totalErrors(0), _totalWarnings(0), _out(out) {}
 
 	void ErrorHandler::error(const Location &location, const string &message) {
 		++_totalErrors;

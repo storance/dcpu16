@@ -205,11 +205,11 @@ namespace dcpu { namespace ast {
 		return "<Unknown BinaryOperator>";
 	}
 
-	std::string str(Expression& expr) {
+	std::string str(const Expression& expr) {
 		return expr.str();
 	}
 
-	std::string str(ExpressionPtr& expr) {
+	std::string str(const ExpressionPtr& expr) {
 		return expr->str();
 	}
 }}

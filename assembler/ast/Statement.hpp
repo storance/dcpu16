@@ -23,6 +23,8 @@ namespace dcpu { namespace ast {
 
 		Statement(const lexer::Location&);
 		virtual ~Statement();
+
+		virtual std::string str() const=0;
 	};
 
 	typedef std::unique_ptr<ast::Statement> StatementPtr;
@@ -36,6 +38,8 @@ namespace dcpu { namespace ast {
 
 		Instruction(const lexer::Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
 		Instruction(const lexer::Location&, Opcode, ArgumentPtr &&a, ArgumentPtr &&b);
+
+		virtual std::string str() const;
 	};
 
 	class Label : public Statement {
@@ -44,5 +48,9 @@ namespace dcpu { namespace ast {
 		std::string _name;
 
 		Label(const lexer::Location&, const std::string&);
+
+		virtual std::string str() const;
 	};
+
+	std::string str(const StatementPtr&);
 } }

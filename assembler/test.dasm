@@ -19,7 +19,6 @@ label2: SET X, [sp ++]
 ADD I, o
 ADD I, 0x4000
 :label4
-invalid Q, R
 SET X, [0x4000 + I]
 SET Z, [I + 0x5000]
 sub pc, 1

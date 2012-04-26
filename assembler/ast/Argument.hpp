@@ -27,6 +27,8 @@ namespace dcpu { namespace ast {
 
 		Argument(const lexer::Location&, ArgumentPosition);
 		virtual ~Argument();
+
+		virtual std::string str() const=0;
 	};
 
 	typedef std::unique_ptr<Argument> ArgumentPtr;
@@ -36,6 +38,8 @@ namespace dcpu { namespace ast {
 		StackOperation _operation;
 
 		StackArgument(const lexer::Location&, ArgumentPosition, StackOperation);
+
+		virtual std::string str() const;
 	};
 
 	class IndirectArgument : public Argument {
@@ -44,6 +48,8 @@ namespace dcpu { namespace ast {
 
 		IndirectArgument(ArgumentPosition, ExpressionPtr&&);
 		IndirectArgument(ArgumentPosition, ExpressionPtr&);
+
+		virtual std::string str() const;
 	};
 
 	class ExpressionArgument : public Argument {
@@ -52,8 +58,12 @@ namespace dcpu { namespace ast {
 
 		ExpressionArgument(ArgumentPosition, ExpressionPtr&&);
 		ExpressionArgument(ArgumentPosition, ExpressionPtr&);
+
+		virtual std::string str() const;
 	};
 
 	std::string str(ArgumentPosition);
 	std::string str(StackOperation);
+
+	std::string str(const ArgumentPtr &);
 } }

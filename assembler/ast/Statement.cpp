@@ -1,5 +1,6 @@
 #include "Statement.hpp"
 
+#include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 
 using namespace std;
@@ -32,6 +33,10 @@ namespace dcpu { namespace ast {
 		}
 	}
 
+	string Label::str() const {
+		return (boost::format("%s:") % _name).str();
+	}
+
 	/*************************************************************************
 	 *
 	 * Instruction
@@ -44,4 +49,19 @@ namespace dcpu { namespace ast {
 	Instruction::Instruction(const Location &location, Opcode opcode, ArgumentPtr&& a, ArgumentPtr&& b)
 		: Statement(location), _opcode(opcode), _a(move(a)), _b(move(b)) {}
 
+	string Instruction::str() const {
+		if ((!_b && !_a) || (_b && !_a)) {
+			return "";
+		}
+
+		if (_b) {
+			return (boost::format("%s %s, %s") % ast::str(_opcode) % ast::str(_b) % ast::str(_a)).str();	
+		} else {
+			return (boost::format("%s %s") % ast::str(_opcode) % ast::str(_a)).str();	
+		}
+	}
+
+	string str(const StatementPtr & stmt) {
+		return stmt->str();
+	}
 }}

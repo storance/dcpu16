@@ -121,5 +121,5 @@ namespace dcpu { namespace ast {
 	std::string str(BinaryOperator);
 
 	std::string str(const Expression&);
-	std::string str(ExpressionPtr&);
+	std::string str(const ExpressionPtr&);
 }}

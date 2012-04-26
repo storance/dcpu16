@@ -12,13 +12,20 @@ OBJECTS = $(OUTPUT_DIR)/Parser.o \
 		  $(OUTPUT_DIR)/Expression.o \
 		  $(OUTPUT_DIR)/Token.o \
 		  $(OUTPUT_DIR)/RegisterDefinition.o \
-		  $(OUTPUT_DIR)/OpcodeDefinition.o 
+		  $(OUTPUT_DIR)/OpcodeDefinition.o \
+		  $(OUTPUT_DIR)/Assembler.o
 
 TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/LexerTest.o \
 			   $(OUTPUT_DIR)/ParserTest.o 
 
-all:
+all: assembler
+
+assembler: $(OBJECTS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@
+
+$(OUTPUT_DIR)/Assembler.o: Assembler.cpp Lexer.hpp Parser.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/Token.o: Token.cpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<

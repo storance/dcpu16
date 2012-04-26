@@ -1,5 +1,7 @@
 #include "Argument.hpp"
 
+#include <boost/format.hpp>
+
 using namespace std;
 using namespace dcpu::lexer;
 
@@ -23,6 +25,10 @@ namespace dcpu { namespace ast {
 	StackArgument::StackArgument(const Location& location, ArgumentPosition position, StackOperation operation) 
 		: Argument(location, position), _operation(operation) {}
 
+	string StackArgument::str() const {
+		return ast::str(_operation);
+	}
+
 	/*************************************************************************
 	 *
 	 * IndirectArgument
@@ -35,6 +41,10 @@ namespace dcpu { namespace ast {
 	IndirectArgument::IndirectArgument(ArgumentPosition position, ExpressionPtr&& expr)
 		: Argument(expr->_location, position), _expr(move(expr)) {}
 
+	string IndirectArgument::str() const {
+		return (boost::format("[%s]") % ast::str(_expr)).str();
+	}
+
 	/*************************************************************************
 	 *
 	 * ExpressionArgument
@@ -46,6 +56,10 @@ namespace dcpu { namespace ast {
 
 	ExpressionArgument::ExpressionArgument(ArgumentPosition position, ExpressionPtr&& expr)
 		: Argument(expr->_location, position), _expr(move(expr)) {}
+
+	string ExpressionArgument::str() const {
+		return ast::str(_expr);
+	}
 
 	/*************************************************************************
 	 *
@@ -75,5 +89,9 @@ namespace dcpu { namespace ast {
 		default:
 			return "<Unknown StackOperation>";
 		}
+	}
+
+	string str(const ArgumentPtr &argument) {
+		return argument->str();
 	}
 }}
