@@ -4,6 +4,7 @@
 #include <memory>
 #include <cstdint>
 
+#include "RegisterDefinition.hpp"
 #include "../Token.hpp"
 
 namespace dcpu { namespace ast {
@@ -23,11 +24,8 @@ namespace dcpu { namespace ast {
 	enum class UnaryOperator : std::uint8_t {
 		PLUS,
 		MINUS,
-		NOT
-	};
-
-	enum class Register : std::uint8_t {
-		A, B, C, X, Y, Z, I, J, SP, PC, EX
+		NOT,
+		BITWISE_NOT
 	};
 
 	class Expression {
@@ -121,7 +119,6 @@ namespace dcpu { namespace ast {
 
 	std::string str(UnaryOperator);
 	std::string str(BinaryOperator);
-	std::string str(Register);
 
 	std::string str(const Expression&);
 	std::string str(ExpressionPtr&);

@@ -170,6 +170,8 @@ namespace dcpu { namespace ast {
 		case UnaryOperator::MINUS:
 			return "-";
 		case UnaryOperator::NOT:
+			return "!";
+		case UnaryOperator::BITWISE_NOT:
 			return "~";
 		}
 
@@ -201,35 +203,6 @@ namespace dcpu { namespace ast {
 		}
 
 		return "<Unknown BinaryOperator>";
-	}
-
-	std::string str(Register _register) {
-		switch (_register) {
-		case Register::A:
-			return "A";
-		case Register::B:
-			return "B";
-		case Register::C:
-			return "C";
-		case Register::X:
-			return "X";
-		case Register::Y:
-			return "Y";
-		case Register::Z:
-			return "Z";
-		case Register::I:
-			return "I";
-		case Register::J:
-			return "J";
-		case Register::PC:
-			return "PC";
-		case Register::SP:
-			return "SP";
-		case Register::EX:
-			return "EX";
-		}
-
-		return "<Unknown Register>";
 	}
 
 	std::string str(Expression& expr) {

@@ -8,72 +8,16 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include "ast/OpcodeDefinition.hpp"
+#include "ast/RegisterDefinition.hpp"
+#include "ExpressionParser.hpp"
+
 using namespace std;
 using namespace std::placeholders;
 using namespace dcpu::lexer;
 using namespace dcpu::ast;
 
 namespace dcpu { namespace parser {
-
-static map<string, OpcodeDefinition> opcodes = {
-	{"set", OpcodeDefinition(Opcode::SET, 2)},
-	{"add", OpcodeDefinition(Opcode::ADD, 2)},
-	{"sub", OpcodeDefinition(Opcode::SUB, 2)},
-	{"mul", OpcodeDefinition(Opcode::MUL, 2)},
-	{"mli", OpcodeDefinition(Opcode::MLI, 2)},
-	{"div", OpcodeDefinition(Opcode::DIV, 2)},
-	{"dvi", OpcodeDefinition(Opcode::DVI, 2)},
-	{"mod", OpcodeDefinition(Opcode::MOD, 2)},
-	{"and", OpcodeDefinition(Opcode::AND, 2)},
-	{"bor", OpcodeDefinition(Opcode::BOR, 2)},
-	{"xor", OpcodeDefinition(Opcode::XOR, 2)},
-	{"shr", OpcodeDefinition(Opcode::SHR, 2)},
-	{"asr", OpcodeDefinition(Opcode::ASR, 2)},
-	{"shl", OpcodeDefinition(Opcode::SHL, 2)},
-	{"ifb", OpcodeDefinition(Opcode::IFB, 2)},
-	{"ifc", OpcodeDefinition(Opcode::IFC, 2)},
-	{"ife", OpcodeDefinition(Opcode::IFE, 2)},
-	{"ifn", OpcodeDefinition(Opcode::IFN, 2)},
-	{"ifg", OpcodeDefinition(Opcode::IFG, 2)},
-	{"ifa", OpcodeDefinition(Opcode::IFA, 2)},
-	{"ifl", OpcodeDefinition(Opcode::IFL, 2)},
-	{"ifu", OpcodeDefinition(Opcode::IFU, 2)},
-	{"jsr", OpcodeDefinition(Opcode::JSR, 1)},
-	{"int", OpcodeDefinition(Opcode::INT, 1)},
-	{"ing", OpcodeDefinition(Opcode::ING, 1)},
-	{"ins", OpcodeDefinition(Opcode::INS, 1)},
-	{"hwn", OpcodeDefinition(Opcode::HWN, 1)},
-	{"hwq", OpcodeDefinition(Opcode::HWQ, 1)},
-	{"hwi", OpcodeDefinition(Opcode::HWI, 1)},
-	{"jmp", OpcodeDefinition(Opcode::JMP, 1)}
-};
-
-static map<string, RegisterDefinition> registers = {
-	{"a",  RegisterDefinition(Register::A, true)},
-	{"b",  RegisterDefinition(Register::B, true)},
-	{"c",  RegisterDefinition(Register::C, true)},
-	{"x",  RegisterDefinition(Register::X, true)},
-	{"y",  RegisterDefinition(Register::Y, true)},
-	{"z",  RegisterDefinition(Register::Z, true)},
-	{"i",  RegisterDefinition(Register::I, true)},
-	{"j",  RegisterDefinition(Register::J, true)},
-	{"sp", RegisterDefinition(Register::SP, true)},
-	{"pc", RegisterDefinition(Register::PC, false)},
-	{"ex", RegisterDefinition(Register::EX, false)}
-};
-
-OperatorDefinition::OperatorDefinition(ast::BinaryOperator _operator, std::function<bool (Parser*)> isNextTokenOperator)
-	: _operator(_operator),
-	  isNextTokenOperator(isNextTokenOperator),
-	  leftRequiresLiteral(true),
-	  rightRequiresLiteral(true) {}
-
-OperatorDefinition::OperatorDefinition(ast::BinaryOperator _operator, std::function<bool (Parser*)> isNextTokenOperator,
-	bool leftRequiresLiteral, bool rightRequiresLiteral) :
-		_operator(_operator),
-		isNextTokenOperator(isNextTokenOperator),
-		leftRequiresLiteral(leftRequiresLiteral),
-		rightRequiresLiteral(rightRequiresLiteral) {}
 
 Parser::Parser(Iterator start, Iterator end, ErrorHandler &errorHandler)
 	: _current(start), _end(end), _errorHandler(errorHandler) {
@@ -197,7 +141,7 @@ bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPos
 		auto startPos = _current;
 		if (!parseIndirectStackArgument(nextToken(), arg, position)) {
 			_current = startPos;
-			arg = move(ArgumentPtr(new IndirectArgument(position, parseExpression(nextToken(), true))));
+			arg = move(ArgumentPtr(new IndirectArgument(position, parseExpression(true, true))));
 		}
 
 		if (!isNextTokenChar(']')) {
@@ -213,7 +157,8 @@ bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPos
 		return true;
 	}
 
-	ExpressionPtr expr = move(parseExpression(currentToken, false));
+	--_current;
+	ExpressionPtr expr = move(parseExpression(true, false));
 	arg = move(ArgumentPtr(new ExpressionArgument(position, expr)));
 	return true;
 }
@@ -279,177 +224,24 @@ bool Parser::parseMnemonicStackArgument(TokenPtr& currentToken, ArgumentPtr& arg
 	} else if (boost::algorithm::iequals(currentToken->content, "PEEK")) {
 		arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::PEEK)));
 		return true;
+	} else if (boost::algorithm::iequals(currentToken->content, "PICK")) {
+		auto leftOperand = ExpressionPtr(new RegisterOperand(currentToken->location, Register::SP));
+		auto rightOperand = parseExpression(false, false);
+
+		arg = move(ArgumentPtr(new IndirectArgument(position,
+			ExpressionPtr(new BinaryOperation(
+				currentToken->location, BinaryOperator::PLUS, leftOperand, rightOperand)
+			)
+		)));
+		return true;
 	}
 
 	return false;
 }
 
-ExpressionPtr Parser::parseExpression(TokenPtr& currentToken, bool indirect) {
-	return parseBitwiseOrOperation(currentToken, indirect);
-}
-
-ExpressionPtr Parser::parseBitwiseOrOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseXorOperation, {
-		OperatorDefinition(BinaryOperator::OR, bind(&Parser::isNextTokenChar, _1, '|'))
-	});
-}
-
-ExpressionPtr Parser::parseBitwiseXorOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseAndOperation, {
-		OperatorDefinition(BinaryOperator::XOR, bind(&Parser::isNextTokenChar, _1, '^'))
-	});
-}
-
-ExpressionPtr Parser::parseBitwiseAndOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseBitwiseShiftOperation, {
-		OperatorDefinition(BinaryOperator::AND, bind(&Parser::isNextTokenChar, _1, '&'))
-	});
-}
-
-ExpressionPtr Parser::parseBitwiseShiftOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseAddOperation, {
-		OperatorDefinition(BinaryOperator::SHIFT_LEFT,  bind(&Parser::isNextToken, _1, &Token::isShiftLeft)),
-		OperatorDefinition(BinaryOperator::SHIFT_RIGHT, bind(&Parser::isNextToken, _1, &Token::isShiftRight))
-	});
-}
-
-ExpressionPtr Parser::parseAddOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseMultiplyOperation, {
-		OperatorDefinition(BinaryOperator::PLUS,  bind(&Parser::isNextTokenChar, _1, '+'), false, false),
-		OperatorDefinition(BinaryOperator::MINUS, bind(&Parser::isNextTokenChar, _1, '-'), false, true)
-	});
-}
-
-ExpressionPtr Parser::parseMultiplyOperation(TokenPtr& currentToken, bool indirect) {
-	return parseBinaryOperation(currentToken, indirect, &Parser::parseUnaryOperation, {
-		OperatorDefinition(BinaryOperator::MULTIPLY, bind(&Parser::isNextTokenChar, _1, '*')),
-		OperatorDefinition(BinaryOperator::DIVIDE,   bind(&Parser::isNextTokenChar, _1, '/')),
-		OperatorDefinition(BinaryOperator::MODULO,   bind(&Parser::isNextTokenChar, _1, '%'))
-	});
-}
-
-ExpressionPtr Parser::parseBinaryOperation(TokenPtr& currentToken, bool indirect,
-	ExpressionParser parseFunc, initializer_list<OperatorDefinition> definitions) {
-
-	ExpressionPtr left = (this->*parseFunc)(currentToken, indirect);
-
-	while (true) {
-		const OperatorDefinition *operatorDef = nullptr;
-		for (auto& definition : definitions) {
-			if (definition.isNextTokenOperator(this)) {
-				operatorDef = &definition;
-				break;
-			}
-		}
-
-		if (operatorDef == nullptr) {
-			return move(left);
-		}
-
-		auto& operatorToken = nextToken();
-		ExpressionPtr right = (this->*parseFunc)(nextToken(), indirect);
-
-		if ((operatorDef->leftRequiresLiteral || !indirect) && !left->isEvalsToLiteral()) {
-			_errorHandler.error(left->_location, boost::format("The left operand of the operator '%s' "
-				"must evaluate to a literal%s.") % str(operatorDef->_operator) 
-				% (!operatorDef->leftRequiresLiteral  && !indirect ? " when not inside of an indirection" : ""));
-			left = move(ExpressionPtr(new InvalidExpression(left->_location)));
-		}
-
-		if ((operatorDef->rightRequiresLiteral || !indirect) && !right->isEvalsToLiteral()) {
-			_errorHandler.error(right->_location, boost::format("The right operand of the operator '%s' "
-				"must evaluate to a literal%s.") % str(operatorDef->_operator)
-				% (!operatorDef->rightRequiresLiteral && !indirect ? " when not inside of an indirection" : ""));
-			left = move(ExpressionPtr(new InvalidExpression(left->_location)));
-		}
-
-		left = move(ExpressionPtr(new BinaryOperation(operatorToken->location, operatorDef->_operator, left, right)));
-	}
-}
-
-ExpressionPtr Parser::parseUnaryOperation(TokenPtr& currentToken, bool indirect) {
-	UnaryOperator _operator;
-
-	if (currentToken->isCharacter('+')) {
-		_operator = UnaryOperator::PLUS;
-	} else if (currentToken->isCharacter('-')) {
-		_operator = UnaryOperator::MINUS;
-	} else if (currentToken->isCharacter('~') || currentToken->isCharacter('!')) {
-		_operator = UnaryOperator::NOT;
-	} else {
-		return parsePrimaryExpression(currentToken, indirect);
-	}
-
-	ExpressionPtr operand = parsePrimaryExpression(nextToken(), indirect);
-	if (!operand->isEvalsToLiteral()) {
-		_errorHandler.error(currentToken->location, boost::format("Unary '%s' may only be used with an expression that "
-			"evaluates to a literal.") % str(_operator));
-		return ExpressionPtr(new InvalidExpression(currentToken->location));
-	}
-
-	return ExpressionPtr(new UnaryOperation(currentToken->location, _operator, operand));
-}
-
-ExpressionPtr Parser::parsePrimaryExpression(TokenPtr& currentToken, bool indirect) {
-	if (currentToken->isCharacter('(')) {
-		return parseGroupedExpression(nextToken(), indirect);
-	} else if (currentToken->isIdentifier()) {
-		return parseIdentifierExpression(currentToken, indirect);
-	} else if (currentToken->isCharacter('$')) {
-		return parseLabelExpression(currentToken);
-	} else if (currentToken->isInteger()) {
-		return parseLiteralExpression(currentToken);
-	} else {
-		_errorHandler.errorUnexpectedToken(currentToken, "a label name, register, or literal");
-		return ExpressionPtr(new InvalidExpression(currentToken->location));
-	}
-}
-
-ExpressionPtr Parser::parseGroupedExpression(TokenPtr& currentToken, bool indirect) {
-	ExpressionPtr expr = parseExpression(currentToken, indirect);
-
-	if (!isNextTokenChar(')')) {
-		_errorHandler.errorUnexpectedToken(*_current, ')');
-	} else {
-		nextToken();
-	}
-
-	return expr;
-}
-
-ExpressionPtr Parser::parseIdentifierExpression(TokenPtr& currentToken, bool indirect) {
-	auto registerDef = lookupRegister(currentToken->content);
-	if (registerDef) {
-		if (indirect && !registerDef->_indirectable) {
-			_errorHandler.error(currentToken->location, boost::format("Register %s can't be used in an indirection") 
-				% str(registerDef->_register));
-			return ExpressionPtr(new InvalidExpression(currentToken->location));
-		}
-		
-		return ExpressionPtr(new RegisterOperand(currentToken->location, registerDef->_register));
-	}
-
-	return ExpressionPtr(new LabelReferenceOperand(currentToken));
-}
-
-ExpressionPtr Parser::parseLabelExpression(TokenPtr& currentToken) {
-	if (!isNextToken(mem_fn(&Token::isIdentifier))) {
-		_errorHandler.errorUnexpectedToken(*_current, "a label name");
-
-		return ExpressionPtr(new InvalidExpression(currentToken->location));
-	}
-
-	return ExpressionPtr(new LabelReferenceOperand(nextToken()));
-}
-
-ExpressionPtr Parser::parseLiteralExpression(TokenPtr& currentToken) {
-	IntegerToken* intToken = asInteger(currentToken);
-	if (intToken->overflow) {
-		_errorHandler.warning(intToken->location, boost::format(
-			"%s is larger than the maximum intermediary value (%d).") % intToken->content % UINT32_MAX);
-	}
-
-	return ExpressionPtr(new LiteralOperand(intToken->location, intToken->value));
+ExpressionPtr Parser::parseExpression(bool allowRegisters, bool insideIndirection) {
+	ExpressionParser parser(_current, _end, _errorHandler, insideIndirection, allowRegisters);
+	return parser.parse();
 }
 
 void Parser::addLabel(const Location& location, const string &labelName) {
@@ -472,24 +264,6 @@ void Parser::advanceUntil(function<bool (const Token&)> predicate) {
 	}
 }
 
-OpcodeDefinition* Parser::lookupOpcode(const string &opcodeName) {
-	auto it = opcodes.find(boost::algorithm::to_lower_copy(opcodeName));
-	if (it == opcodes.end()) {
-		return nullptr;
-	}
-
-	return &it->second;
-}
-
-RegisterDefinition* Parser::lookupRegister(const string &registerName) {
-	auto it = registers.find(boost::algorithm::to_lower_copy(registerName));
-	if (it == registers.end()) {
-		return nullptr;
-	}
-
-	return &it->second;
-}
-
 bool Parser::isNextTokenChar(char c) {
 	return isNextToken(bind(&Token::isCharacter, placeholders::_1, c));
 }
@@ -503,11 +277,7 @@ bool Parser::isNextToken(function<bool (const Token&)> predicate) {
 }
 
 TokenPtr& Parser::nextToken() {
-	if (_current == _end) {
-		--_current;
-	}
-
-	return *_current++;
+	return next(_current, _end);
 }
 
 }}

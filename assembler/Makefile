@@ -4,12 +4,15 @@ CXX_FLAGS=-g -Wall
 OUTPUT_DIR=target
 
 OBJECTS = $(OUTPUT_DIR)/Parser.o \
+		  $(OUTPUT_DIR)/ExpressionParser.o \
 		  $(OUTPUT_DIR)/Lexer.o \
 		  $(OUTPUT_DIR)/ErrorHandler.o \
 		  $(OUTPUT_DIR)/Statement.o \
 		  $(OUTPUT_DIR)/Argument.o \
 		  $(OUTPUT_DIR)/Expression.o \
-		  $(OUTPUT_DIR)/Token.o
+		  $(OUTPUT_DIR)/Token.o \
+		  $(OUTPUT_DIR)/RegisterDefinition.o \
+		  $(OUTPUT_DIR)/OpcodeDefinition.o 
 
 TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/LexerTest.o \
@@ -20,19 +23,28 @@ all:
 $(OUTPUT_DIR)/Token.o: Token.cpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Statement.o: ast/Statement.cpp ast/Statement.hpp ast/Argument.hpp ast/Expression.hpp Token.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/Statement.o: ast/Statement.cpp ast/Statement.hpp ast/Argument.hpp ast/Expression.hpp ast/OpcodeDefinition.hpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/Argument.o: ast/Argument.cpp ast/Argument.hpp ast/Expression.hpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Expression.o: ast/Expression.cpp ast/Expression.hpp Token.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/Expression.o: ast/Expression.cpp ast/Expression.hpp Token.hpp ast/RegisterDefinition.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/OpcodeDefinition.o: ast/OpcodeDefinition.cpp ast/OpcodeDefinition.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/RegisterDefinition.o: ast/RegisterDefinition.cpp ast/RegisterDefinition.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/ErrorHandler.o: ErrorHandler.cpp ErrorHandler.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Parser.o: Parser.cpp Parser.hpp ast/*.hpp Token.hpp Lexer.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/ExpressionParser.o: ExpressionParser.cpp ExpressionParser.hpp ast/Expression.hpp Token.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/Parser.o: Parser.cpp Parser.hpp ast/*.hpp Token.hpp Lexer.hpp ExpressionParser.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/Lexer.o: Lexer.cpp Lexer.hpp Token.hpp | $(OUTPUT_DIR)

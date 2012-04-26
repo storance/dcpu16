@@ -88,4 +88,12 @@ InvalidIntegerToken* asInvalidInteger(TokenPtr &token) {
 	return dynamic_cast<InvalidIntegerToken*>(token.get());
 }
 
+TokenPtr& next(TokenList::iterator& current, TokenList::iterator end) {
+	if (current == end) {
+		--current;
+	}
+
+	return *current++;
+}
+
 }}

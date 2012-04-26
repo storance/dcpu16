@@ -4,45 +4,10 @@
 #include <list>
 #include <cstdint>
 
+#include "OpcodeDefinition.hpp"
 #include "Argument.hpp"
 
 namespace dcpu { namespace ast {
-	enum class Opcode : std::uint16_t {
-		// Basic
-		SET=0x1,
-		ADD,
-		SUB,
-		MUL,
-		MLI,
-		DIV,
-		DVI,
-		MOD,
-		AND,
-		BOR,
-		XOR,
-		SHR,
-		ASR,
-		SHL,
-		IFB=0x10,
-		IFC,
-		IFE,
-		IFN,
-		IFG,
-		IFA,
-		IFL,
-		IFU,
-		// Non-basic 
-		JSR=0x20,
-		INT=0x100,
-		ING=0x120,
-		INS=0x140,
-		HWN=0x200,
-		HWQ=0x220,
-		HWI=0x240,
-		// Extensions
-		JMP=0x400,
-	};
-
 	enum class LabelType {
 		Global,
 		Local,
@@ -80,6 +45,4 @@ namespace dcpu { namespace ast {
 
 		Label(const lexer::Location&, const std::string&);
 	};
-
-	std::string str(Opcode);
 } }

@@ -76,4 +76,6 @@ namespace dcpu { namespace lexer {
 
 	IntegerToken* asInteger(TokenPtr& token);
 	InvalidIntegerToken* asInvalidInteger(TokenPtr& token);
+
+	TokenPtr& next(TokenList::iterator&, TokenList::iterator);
 }}
