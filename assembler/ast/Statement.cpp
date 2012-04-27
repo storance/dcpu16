@@ -3,6 +3,8 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include "../SymbolTable.hpp"
+
 using namespace std;
 using namespace dcpu::lexer;
 
@@ -37,6 +39,10 @@ namespace dcpu { namespace ast {
 		return (boost::format("%s:") % _name).str();
 	}
 
+	void Label::buildSymbolTable(SymbolTable& table, std::uint16_t &position) const {
+		table.add(*this, position);
+	}
+
 	/*************************************************************************
 	 *
 	 * Instruction
@@ -58,6 +64,18 @@ namespace dcpu { namespace ast {
 			return (boost::format("%s %s, %s") % ast::str(_opcode) % ast::str(_b) % ast::str(_a)).str();	
 		} else {
 			return (boost::format("%s %s") % ast::str(_opcode) % ast::str(_a)).str();	
+		}
+	}
+
+	void Instruction::buildSymbolTable(SymbolTable& table, std::uint16_t &position) const {
+		++position;
+
+		if (_b && _b->isNextWordRequired()) {
+			++position;
+		}
+
+		if (_a && _a->isNextWordRequired()) {
+			++position;
 		}
 	}
 

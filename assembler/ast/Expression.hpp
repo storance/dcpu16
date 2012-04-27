@@ -32,15 +32,14 @@ namespace dcpu { namespace ast {
 	public:
 		lexer::Location _location;
 
-		//virtual void evaluate()=0;
-		//virtual bool isNextWordRequired()=0;
-		virtual bool isEvalsToLiteral() const=0;
-		virtual bool isSimple() const=0;
-		virtual std::string str() const=0;
-
 		Expression(Expression&&);
 		Expression(const lexer::Location&);
 		virtual ~Expression();
+
+		//virtual void evaluate()=0;
+		virtual bool isNextWordRequired() const=0;
+		virtual bool isEvalsToLiteral() const=0;
+		virtual std::string str() const=0;
 	};
 
 	typedef std::unique_ptr<Expression> ExpressionPtr;
@@ -51,12 +50,12 @@ namespace dcpu { namespace ast {
 		UnaryOperator _operator;
 		ExpressionPtr _operand;
 
-		virtual bool isEvalsToLiteral() const;
-		virtual bool isSimple() const;
-		virtual std::string str() const;
-
 		UnaryOperation(UnaryOperation&&);
 		UnaryOperation(const lexer::Location&, UnaryOperator, ExpressionPtr&);
+
+		virtual bool isNextWordRequired() const;
+		virtual bool isEvalsToLiteral() const;
+		virtual std::string str() const;
 	};
 
 	class BinaryOperation : public Expression {
@@ -66,55 +65,55 @@ namespace dcpu { namespace ast {
 		ExpressionPtr _left;
 		ExpressionPtr _right;
 
-		virtual bool isEvalsToLiteral() const;
-		virtual bool isSimple() const;
-		virtual std::string str() const;
-
 		BinaryOperation(BinaryOperation&&);
 		BinaryOperation(const lexer::Location&, BinaryOperator, ExpressionPtr&, ExpressionPtr&);
+
+		virtual bool isNextWordRequired() const;
+		virtual bool isEvalsToLiteral() const;
+		virtual std::string str() const;
 	};
 
 	class RegisterOperand : public Expression {
 	public:
 		Register _register;
 
-		virtual bool isEvalsToLiteral() const;
-		virtual bool isSimple() const;
-		virtual std::string str() const;
-
 		RegisterOperand(const lexer::Location&, Register);
+
+		virtual bool isNextWordRequired() const;
+		virtual bool isEvalsToLiteral() const;
+		virtual std::string str() const;
 	};
 
 	class LiteralOperand : public Expression {
 	public:
 		std::uint32_t _value;
 
-		virtual bool isEvalsToLiteral() const;
-		virtual bool isSimple() const;
-		virtual std::string str() const;
-
 		LiteralOperand(const lexer::Location&, std::uint32_t);
+
+		virtual bool isNextWordRequired() const;
+		virtual bool isEvalsToLiteral() const;
+		virtual std::string str() const;
 	};
 
 	class LabelReferenceOperand : public Expression {
 	public:
 		std::string _label;
 
-		virtual bool isEvalsToLiteral() const;
-		virtual bool isSimple() const;
-		virtual std::string str() const;
-
 		LabelReferenceOperand(const lexer::Location&, const std::string&);
 		LabelReferenceOperand(lexer::TokenPtr& token);
+
+		virtual bool isNextWordRequired() const;
+		virtual bool isEvalsToLiteral() const;
+		virtual std::string str() const;
 	};
 
 	class InvalidExpression : public Expression {
 	public:
-		virtual bool isEvalsToLiteral() const;
-		virtual bool isSimple() const;
-		virtual std::string str() const;
-
 		InvalidExpression(const lexer::Location&);
+
+		virtual bool isNextWordRequired() const;
+		virtual bool isEvalsToLiteral() const;
+		virtual std::string str() const;
 	};
 
 	std::string str(UnaryOperator);

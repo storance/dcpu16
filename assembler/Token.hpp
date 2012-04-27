@@ -30,6 +30,7 @@ namespace dcpu { namespace lexer {
 	};
 
 	std::ostream& operator<< (std::ostream& stream, const Location& location);
+	std::string str(const Location& location);
 
 	class Token {
 	public:

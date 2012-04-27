@@ -13,7 +13,7 @@ OBJECTS = $(OUTPUT_DIR)/Parser.o \
 		  $(OUTPUT_DIR)/Token.o \
 		  $(OUTPUT_DIR)/RegisterDefinition.o \
 		  $(OUTPUT_DIR)/OpcodeDefinition.o \
-		  $(OUTPUT_DIR)/Assembler.o
+		  $(OUTPUT_DIR)/SymbolTable.o
 
 TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/LexerTest.o \
@@ -21,7 +21,7 @@ TEST_OBJECTS = $(OBJECTS) \
 
 all: assembler
 
-assembler: $(OBJECTS)
+assembler: $(OUTPUT_DIR)/Assembler.o $(OBJECTS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@
 
 $(OUTPUT_DIR)/Assembler.o: Assembler.cpp Lexer.hpp Parser.hpp | $(OUTPUT_DIR)
@@ -43,6 +43,9 @@ $(OUTPUT_DIR)/OpcodeDefinition.o: ast/OpcodeDefinition.cpp ast/OpcodeDefinition.
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/RegisterDefinition.o: ast/RegisterDefinition.cpp ast/RegisterDefinition.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/SymbolTable.o: SymbolTable.cpp SymbolTable.hpp ast/Statement.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/ErrorHandler.o: ErrorHandler.cpp ErrorHandler.hpp | $(OUTPUT_DIR)

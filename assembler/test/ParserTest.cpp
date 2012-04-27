@@ -1,9 +1,10 @@
-#include "../Parser.hpp"
-
 #include <iostream>
 #include <list>
 #include <functional>
 #include <gtest/gtest.h>
+
+#include "../Parser.hpp"
+#include "../SymbolTable.hpp"
 
 using namespace std;
 using namespace std::placeholders;
@@ -158,13 +159,13 @@ ExpressionFunc assertIsLiteral(uint32_t expectedValue) {
 	};
 }
 
-void runParser(const string &content, int expectedStatements, StatementList &statements) {
+void runParser(const string &content, int expectedStatements, StatementList &statements, SymbolTable &table) {
 	Lexer lexer(content.begin(), content.end(), "<ParserTest>");
 	lexer.parse();
 
 	ErrorHandler errorHandler;
 
-	Parser parser(lexer.tokens.begin(), lexer.tokens.end(), errorHandler);
+	Parser parser(lexer.tokens.begin(), lexer.tokens.end(), errorHandler, table);
 	parser.parse();
 
 	statements = move(parser.statements);
@@ -172,6 +173,10 @@ void runParser(const string &content, int expectedStatements, StatementList &sta
 	ASSERT_EQ(expectedStatements, statements.size());
 }
 
+void runParser(const string &content, int expectedStatements, StatementList &statements) {
+	SymbolTable table;
+	runParser(content, expectedStatements, statements, table);
+}
 
 TEST(ParserTest, ParseInstruction) {
 	StatementList statements;
@@ -201,24 +206,28 @@ TEST(ParserTest, ParseInstruction) {
 }
 
 TEST(ParserTest, LabelTest) {
+	SymbolTable table;
 	StatementList statements;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n:label2\nlabel3: SET A, B\n: label4 SET A, B", 6, statements));
+	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n:label2\nlabel3: SET A, B\n: label4 SET A, B", 6, statements, table));
 
 	auto it = statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertLabel(it, "label1");
+		EXPECT_EQ(0, *table.lookup("label1"));
 	}
 
 	{
 		SCOPED_TRACE("Statement: 2"); 
 		assertLabel(it, "label2");
+		EXPECT_EQ(0, *table.lookup("label2"));
 	}
 
 	{
 		SCOPED_TRACE("Statement: 3"); 
 		assertLabel(it, "label3");
+		EXPECT_EQ(0, *table.lookup("label3"));
 	}
 
 	{
@@ -231,6 +240,7 @@ TEST(ParserTest, LabelTest) {
 	{
 		SCOPED_TRACE("Statement: 5"); 
 		assertLabel(it, "label4");
+		EXPECT_EQ(1, *table.lookup("label4"));
 	}
 
 	{
@@ -532,7 +542,7 @@ TEST(ParserTest, InstructionTest) {
 	ASSERT_NO_FATAL_FAILURE(runParser("SET A, B\nADD A, B\nSUB A, B\nMUL A, B\nMLI A, B\nDIV A, B\nDVI A, B\nMOD A, B\n"
 		"AND A, B\nBOR A, B\nXOR A, B\nSHR A, B\nASR A, B\nSHL A, B\nSTI A, B\nIFB A, B\nIFC A, B\nIFE A, B\nIFN A, B\n"
 		"IFG A, B\nIFA A, B\nIFL A, B\nIFU A, B\nADX A, B\nSBX A, B\nJSR A\nHCF A\nINT A\nIAG A\nIAS A\nHWN A\nHWQ A\n"
-		"HWI A\nJMP A\n", 34, statements));
+		"HWI A\nJMP A\nMDI A, B\nSTD A, B\nIAP A\n IAQ A\n", 38, statements));
 
 	auto it = statements.begin();
 	{
@@ -762,6 +772,32 @@ TEST(ParserTest, InstructionTest) {
 	{
 		SCOPED_TRACE("Statement: 34"); 
 		assertInstruction(it, Opcode::JMP,
+			assertArgumentIsExpression(assertIsRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 35"); 
+		assertInstruction(it, Opcode::MDI,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(assertIsRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 36"); 
+		assertInstruction(it, Opcode::STD,
+			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(assertIsRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 37"); 
+		assertInstruction(it, Opcode::IAP,
+			assertArgumentIsExpression(assertIsRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 38"); 
+		assertInstruction(it, Opcode::IAQ,
 			assertArgumentIsExpression(assertIsRegister(Register::A)));
 	}
 }

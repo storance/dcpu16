@@ -29,6 +29,10 @@ namespace dcpu { namespace ast {
 		return ast::str(_operation);
 	}
 
+	bool StackArgument::isNextWordRequired() const {
+		return false;
+	}
+
 	/*************************************************************************
 	 *
 	 * IndirectArgument
@@ -45,6 +49,10 @@ namespace dcpu { namespace ast {
 		return (boost::format("[%s]") % ast::str(_expr)).str();
 	}
 
+	bool IndirectArgument::isNextWordRequired() const {
+		return _expr->isNextWordRequired();
+	}
+
 	/*************************************************************************
 	 *
 	 * ExpressionArgument
@@ -59,6 +67,10 @@ namespace dcpu { namespace ast {
 
 	string ExpressionArgument::str() const {
 		return ast::str(_expr);
+	}
+
+	bool ExpressionArgument::isNextWordRequired() const {
+		return _expr->isNextWordRequired();
 	}
 
 	/*************************************************************************

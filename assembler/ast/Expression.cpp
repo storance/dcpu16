@@ -36,8 +36,8 @@ namespace dcpu { namespace ast {
 		return _cachedEvalsToLiteral;
 	}
 	
-	bool UnaryOperation::isSimple() const {
-		return false;
+	bool UnaryOperation::isNextWordRequired() const {
+		return _operand->isNextWordRequired();
 	}
 
 	std::string UnaryOperation::str() const {
@@ -63,8 +63,9 @@ namespace dcpu { namespace ast {
 		return _cachedEvalsToLiteral;
 	}
 	
-	bool BinaryOperation::isSimple() const {
-		return false;
+	bool BinaryOperation::isNextWordRequired() const {
+		// until we can evaluate the expression, assume we have to use the next word
+		return true;
 	}
 
 	std::string BinaryOperation::str() const {
@@ -84,8 +85,8 @@ namespace dcpu { namespace ast {
 		return false;
 	}
 	
-	bool RegisterOperand::isSimple() const {
-		return true;
+	bool RegisterOperand::isNextWordRequired() const {
+		return false;
 	}
 
 	std::string RegisterOperand::str() const {
@@ -105,7 +106,10 @@ namespace dcpu { namespace ast {
 		return true;
 	}
 	
-	bool LiteralOperand::isSimple() const {
+	bool LiteralOperand::isNextWordRequired() const {
+		if ((int32_t)_value == -1 || _value <= 0x1e) {
+			return false;
+		}
 		return true;
 	}
 
@@ -129,7 +133,7 @@ namespace dcpu { namespace ast {
 		return true;
 	}
 	
-	bool LabelReferenceOperand::isSimple() const {
+	bool LabelReferenceOperand::isNextWordRequired() const {
 		return true;
 	}
 
@@ -149,8 +153,8 @@ namespace dcpu { namespace ast {
 		return true;
 	}
 	
-	bool InvalidExpression::isSimple() const {
-		return true;
+	bool InvalidExpression::isNextWordRequired() const {
+		return false;
 	}
 
 	std::string InvalidExpression::str() const {

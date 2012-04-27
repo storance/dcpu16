@@ -10,6 +10,7 @@
 
 #include "ast/OpcodeDefinition.hpp"
 #include "ast/RegisterDefinition.hpp"
+#include "SymbolTable.hpp"
 #include "ExpressionParser.hpp"
 
 using namespace std;
@@ -19,9 +20,8 @@ using namespace dcpu::ast;
 
 namespace dcpu { namespace parser {
 
-Parser::Parser(Iterator start, Iterator end, ErrorHandler &errorHandler)
-	: _current(start), _end(end), _errorHandler(errorHandler) {
-}
+Parser::Parser(Iterator start, Iterator end, ErrorHandler &errorHandler, dcpu::SymbolTable &symbolTable)
+	: _current(start), _end(end), _errorHandler(errorHandler), _symbolTable(symbolTable), _outputPosition(0) {}
 
 void Parser::parse() {
 	while (_current != _end) {
@@ -37,23 +37,39 @@ void Parser::parse() {
 			continue;
 		}
 
-		if (parseLabel(*currentToken)) {
+		StatementPtr statement;
+		if (parseLabel(*currentToken, statement)) {
+			addStatement(statement);
 			currentToken = &nextToken();
 		}
 
-		parseInstruction(*currentToken);
+		if (parseInstruction(*currentToken, statement)) {
+			addStatement(statement);
+		}
 	}
 }
 
-bool Parser::parseLabel(TokenPtr& currentToken) {
-	if (currentToken->isCharacter(':')) {
-		auto& token = nextToken();
+void Parser::addStatement(StatementPtr& statement) {
+	std::uint16_t oldPositiion = _outputPosition;
+	statement->buildSymbolTable(_symbolTable, _outputPosition);
 
-		if (token->isIdentifier()) {
-			addLabel(currentToken->location, token->content);
+	if (_outputPosition < oldPositiion) {
+		_errorHandler.error(statement->_location, "binary output has exceeded the DCPU-16's memory "
+			"size (65,536 words).");
+	}
+
+	statements.push_back(move(statement));
+}
+
+bool Parser::parseLabel(TokenPtr& currentToken, StatementPtr& statement) {
+	if (currentToken->isCharacter(':')) {
+		auto& nextTkn = nextToken();
+
+		if (nextTkn->isIdentifier()) {
+			statement = move(StatementPtr(new Label(currentToken->location, nextTkn->content)));
 			return true;
-		} else if (token->isStatementTerminator()) {
-			_errorHandler.errorUnexpectedToken(token, "a label name");
+		} else if (nextTkn->isStatementTerminator()) {
+			_errorHandler.errorUnexpectedToken(nextTkn, "a label name");
 			return false;
 		} else {
 			_errorHandler.errorUnexpectedToken(currentToken, "a label or instruction");
@@ -61,11 +77,12 @@ bool Parser::parseLabel(TokenPtr& currentToken) {
 			return false;
 		}
 	} else if (currentToken->isIdentifier()) {
-		if (isNextTokenChar(':')) {
-			nextToken();
-			addLabel(currentToken->location, currentToken->content);
+		auto& nextTkn = nextToken();
+		if (nextTkn->isCharacter(':')) {
+			statement = move(StatementPtr(new Label(currentToken->location, currentToken->content)));
 			return true;
 		} else {
+			--_current;
 			return false;
 		}
 	} else {
@@ -75,7 +92,7 @@ bool Parser::parseLabel(TokenPtr& currentToken) {
 	}
 }
 
-bool Parser::parseInstruction(TokenPtr& currentToken) {
+bool Parser::parseInstruction(TokenPtr& currentToken, StatementPtr& statement) {
 	if (currentToken->isStatementTerminator()) {
 		return false;
 	}
@@ -127,7 +144,7 @@ bool Parser::parseInstruction(TokenPtr& currentToken) {
 		advanceUntil(mem_fn(&Token::isStatementTerminator));
 	}
 
-	addInstruction(currentToken->location, opcodeDef->_opcode, a, b);
+	statement = move(StatementPtr(new Instruction(currentToken->location, opcodeDef->_opcode, a, b)));
 	return true;
 }
 
@@ -242,16 +259,6 @@ bool Parser::parseMnemonicStackArgument(TokenPtr& currentToken, ArgumentPtr& arg
 ExpressionPtr Parser::parseExpression(bool allowRegisters, bool insideIndirection) {
 	ExpressionParser parser(_current, _end, _errorHandler, insideIndirection, allowRegisters);
 	return parser.parse();
-}
-
-void Parser::addLabel(const Location& location, const string &labelName) {
-	statements.push_back(StatementPtr(new Label(location, labelName)));
-}
-
-void Parser::addInstruction(const Location& location, ast::Opcode opcode, ArgumentPtr &a,
-	ArgumentPtr &b) {
-
-	statements.push_back(StatementPtr(new Instruction(location, opcode, a, b)));
 }
 
 void Parser::advanceUntil(function<bool (const Token&)> predicate) {

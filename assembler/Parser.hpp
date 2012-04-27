@@ -13,9 +13,11 @@ namespace dcpu { namespace parser {
 
 		Iterator _current, _end;
 		dcpu::ErrorHandler &_errorHandler;
+		dcpu::SymbolTable &_symbolTable;
+		std::uint16_t _outputPosition;
 
-		bool parseLabel(lexer::TokenPtr&);
-		bool parseInstruction(lexer::TokenPtr&);
+		bool parseLabel(lexer::TokenPtr&, ast::StatementPtr&);
+		bool parseInstruction(lexer::TokenPtr&, ast::StatementPtr&);
 		bool parseIndirectStackArgument(lexer::TokenPtr&, ast::ArgumentPtr&, ast::ArgumentPosition);
 		bool parseMnemonicStackArgument(lexer::TokenPtr&, ast::ArgumentPtr&, ast::ArgumentPosition);
 		bool parseArgument(lexer::TokenPtr&, ast::ArgumentPtr&, ast::ArgumentPosition);
@@ -26,12 +28,11 @@ namespace dcpu { namespace parser {
 		lexer::TokenPtr& nextToken();
 		void advanceUntil(std::function<bool (const lexer::Token&)>);
 
-		void addLabel(const lexer::Location&, const std::string &labelName);
-		void addInstruction(const lexer::Location&, ast::Opcode, ast::ArgumentPtr&, ast::ArgumentPtr&);
+		void addStatement(ast::StatementPtr&);
 	public:
 		ast::StatementList statements;
 
-		Parser(Iterator start, Iterator end, dcpu::ErrorHandler &errorHandler);
+		Parser(Iterator start, Iterator end, dcpu::ErrorHandler &errorHandler, dcpu::SymbolTable &symbolTable);
 
 		void parse();
 	};

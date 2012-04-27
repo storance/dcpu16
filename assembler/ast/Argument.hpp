@@ -22,12 +22,12 @@ namespace dcpu { namespace ast {
 		lexer::Location _location;
 		ArgumentPosition _position;
 
-		//virtual bool isNextWordUsed()=0;
 		//virtual void compile()=0;
 
 		Argument(const lexer::Location&, ArgumentPosition);
 		virtual ~Argument();
 
+		virtual bool isNextWordRequired() const=0;
 		virtual std::string str() const=0;
 	};
 
@@ -39,6 +39,7 @@ namespace dcpu { namespace ast {
 
 		StackArgument(const lexer::Location&, ArgumentPosition, StackOperation);
 
+		virtual bool isNextWordRequired() const;
 		virtual std::string str() const;
 	};
 
@@ -49,6 +50,7 @@ namespace dcpu { namespace ast {
 		IndirectArgument(ArgumentPosition, ExpressionPtr&&);
 		IndirectArgument(ArgumentPosition, ExpressionPtr&);
 
+		virtual bool isNextWordRequired() const;
 		virtual std::string str() const;
 	};
 
@@ -59,6 +61,7 @@ namespace dcpu { namespace ast {
 		ExpressionArgument(ArgumentPosition, ExpressionPtr&&);
 		ExpressionArgument(ArgumentPosition, ExpressionPtr&);
 
+		virtual bool isNextWordRequired() const;
 		virtual std::string str() const;
 	};
 

@@ -15,13 +15,13 @@ namespace dcpu { namespace ast {
 		{"div", OpcodeDefinition(Opcode::DIV, 2)},
 		{"dvi", OpcodeDefinition(Opcode::DVI, 2)},
 		{"mod", OpcodeDefinition(Opcode::MOD, 2)},
+		{"mdi", OpcodeDefinition(Opcode::MDI, 2)},
 		{"and", OpcodeDefinition(Opcode::AND, 2)},
 		{"bor", OpcodeDefinition(Opcode::BOR, 2)},
 		{"xor", OpcodeDefinition(Opcode::XOR, 2)},
 		{"shr", OpcodeDefinition(Opcode::SHR, 2)},
 		{"asr", OpcodeDefinition(Opcode::ASR, 2)},
 		{"shl", OpcodeDefinition(Opcode::SHL, 2)},
-		{"sti", OpcodeDefinition(Opcode::STI, 2)},
 		{"ifb", OpcodeDefinition(Opcode::IFB, 2)},
 		{"ifc", OpcodeDefinition(Opcode::IFC, 2)},
 		{"ife", OpcodeDefinition(Opcode::IFE, 2)},
@@ -32,11 +32,15 @@ namespace dcpu { namespace ast {
 		{"ifu", OpcodeDefinition(Opcode::IFU, 2)},
 		{"adx", OpcodeDefinition(Opcode::ADX, 2)},
 		{"sbx", OpcodeDefinition(Opcode::SBX, 2)},
+		{"sti", OpcodeDefinition(Opcode::STI, 2)},
+		{"std", OpcodeDefinition(Opcode::STD, 2)},
 		{"jsr", OpcodeDefinition(Opcode::JSR, 1)},
 		{"hcf", OpcodeDefinition(Opcode::HCF, 1)},
 		{"int", OpcodeDefinition(Opcode::INT, 1)},
 		{"iag", OpcodeDefinition(Opcode::IAG, 1)},
 		{"ias", OpcodeDefinition(Opcode::IAS, 1)},
+		{"iap", OpcodeDefinition(Opcode::IAP, 1)},
+		{"iaq", OpcodeDefinition(Opcode::IAQ, 1)},
 		{"hwn", OpcodeDefinition(Opcode::HWN, 1)},
 		{"hwq", OpcodeDefinition(Opcode::HWQ, 1)},
 		{"hwi", OpcodeDefinition(Opcode::HWI, 1)},
@@ -73,6 +77,8 @@ namespace dcpu { namespace ast {
 			return "DVI";
 		case Opcode::MOD:
 			return "MOD";
+		case Opcode::MDI:
+			return "MDI";
 		case Opcode::AND:
 			return "AND";
 		case Opcode::BOR:
@@ -87,6 +93,8 @@ namespace dcpu { namespace ast {
 			return "SHL";
 		case Opcode::STI:
 			return "STI";
+		case Opcode::STD:
+			return "STD";
 		case Opcode::IFB:
 			return "IFB";
 		case Opcode::IFC:
@@ -117,6 +125,10 @@ namespace dcpu { namespace ast {
 			return "IAG";
 		case Opcode::IAS:
 			return "IAS";
+		case Opcode::IAP:
+			return "IAP";
+		case Opcode::IAQ:
+			return "IAQ";
 		case Opcode::HWN:
 			return "HWN";
 		case Opcode::HWQ:
