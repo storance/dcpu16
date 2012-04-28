@@ -25,6 +25,7 @@ namespace dcpu { namespace ast {
 		static std::unique_ptr<Argument> stackPeek(const lexer::Location&, ArgumentPosition);
 		static std::unique_ptr<Argument> indirect(ArgumentPosition, ExpressionPtr&&);
 		static std::unique_ptr<Argument> expression(ArgumentPosition, ExpressionPtr&&);
+		static std::unique_ptr<Argument> null();
 	};
 
 	typedef std::unique_ptr<Argument> ArgumentPtr;

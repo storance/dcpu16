@@ -98,7 +98,7 @@ namespace dcpu { namespace parser {
 			ExpressionPtr right = (this->*parseFunc)();
 			checkForNonLiteralExpression(operatorDef, left, right);
 
-			left = move(ExpressionPtr(new BinaryOperation(operatorToken->location, operatorDef->_operator, left, right)));
+			left = move(Expression::binaryOperation(operatorToken->location, operatorDef->_operator, left, right));
 		}
 	}
 
@@ -111,13 +111,13 @@ namespace dcpu { namespace parser {
 		if (leftLiteralRequired && !left->isLiteral()) {
 			_errorHandler.error(left->_location, boost::format("The left operand of '%s' must evaluate to a literal.") 
 				% str(operatorDef->_operator));
-			left = move(ExpressionPtr(new InvalidExpression(left->_location)));
+			left = move(Expression::invalid(left->_location));
 		}
 
 		if (rightLiteralRequired && !right->isLiteral()) {
 			_errorHandler.error(right->_location, boost::format("The right operand of '%s' must evaluate to a literal.") 
 				% str(operatorDef->_operator));
-			right = move(ExpressionPtr(new InvalidExpression(right->_location)));
+			right = move(Expression::invalid(right->_location));
 		}
 	}
 
@@ -144,7 +144,7 @@ namespace dcpu { namespace parser {
 			return ExpressionPtr(new InvalidExpression(currentToken->location));
 		}
 
-		return ExpressionPtr(new UnaryOperation(currentToken->location, _operator, operand));
+		return Expression::unaryOperation(currentToken->location, _operator, operand);
 	}
 
 	ExpressionPtr ExpressionParser::parsePrimaryExpression(TokenPtr &currentToken) {
@@ -158,7 +158,7 @@ namespace dcpu { namespace parser {
 			return parseLiteralExpression(currentToken);
 		} else {
 			_errorHandler.errorUnexpectedToken(currentToken, "a label name, register, or literal");
-			return ExpressionPtr(new InvalidExpression(currentToken->location));
+			return Expression::invalid(currentToken->location);
 		}
 	}
 
@@ -180,26 +180,26 @@ namespace dcpu { namespace parser {
 			if (_foundRegister) {
 				_errorHandler.error(currentToken->location, boost::format("Unexpected register '%s'; more than "
 					"one register is not allowed in an expression.") % str(registerDef->_register));
-				return ExpressionPtr(new InvalidExpression(currentToken->location));
+				return Expression::invalid(currentToken->location);
 			}
 
 			_foundRegister = true;
 			if (!_allowRegisters) {
 				_errorHandler.error(currentToken->location, boost::format("Unexpected register '%s'; registers "
 					"are not allowed here.") % str(registerDef->_register));
-				return ExpressionPtr(new InvalidExpression(currentToken->location));
+				return Expression::invalid(currentToken->location);
 			}
 
 			if (_insideIndirect && !registerDef->_indirectable) {
 				_errorHandler.error(currentToken->location, boost::format("Unexpected register '%1%'; '%1%' is not "
 					"indirectable.") % str(registerDef->_register));
-				return ExpressionPtr(new InvalidExpression(currentToken->location));
+				return Expression::invalid(currentToken->location);
 			}
 
-			return ExpressionPtr(new RegisterOperand(currentToken->location, registerDef->_register));
+			return Expression::registerOperand(currentToken->location, registerDef->_register);
 		}
 
-		return ExpressionPtr(new LabelReferenceOperand(currentToken));
+		return Expression::labelOperand(currentToken->location, currentToken->content);
 	}
 
 	ExpressionPtr ExpressionParser::parseLabelExpression() {
@@ -208,10 +208,10 @@ namespace dcpu { namespace parser {
 		if (!nextTkn->isIdentifier()) {
 			_errorHandler.errorUnexpectedToken(nextTkn, "a label name");
 
-			return ExpressionPtr(new InvalidExpression(nextTkn->location));
+			return Expression::invalid(nextTkn->location);
 		}
 
-		return ExpressionPtr(new LabelReferenceOperand(nextTkn));
+		return Expression::labelOperand(nextTkn->location, nextTkn->content);
 	}
 
 	ExpressionPtr ExpressionParser::parseLiteralExpression(TokenPtr& currentToken) {
@@ -221,7 +221,7 @@ namespace dcpu { namespace parser {
 				"%s is larger than the maximum intermediary value (%d).") % intToken->content % UINT32_MAX);
 		}
 
-		return ExpressionPtr(new LiteralOperand(intToken->location, intToken->value));
+		return Expression::literalOperand(intToken->location, intToken->value);
 	}
 
 	TokenPtr& ExpressionParser::nextToken() {

@@ -36,6 +36,44 @@ namespace dcpu { namespace ast {
 		throw logic_error("Expression must be evaluated before it's value can be updated");
 	}
 
+	ExpressionPtr Expression::unaryOperation(const lexer::Location& location, UnaryOperator _operator,
+		ExpressionPtr& operand) {
+		return ExpressionPtr(new UnaryOperation(location, _operator, operand));
+	}
+
+	ExpressionPtr Expression::binaryOperation(const lexer::Location& location, BinaryOperator _operator,
+		ExpressionPtr& left, ExpressionPtr& right) {
+		return ExpressionPtr(new BinaryOperation(location, _operator, left, right));
+	}
+
+	ExpressionPtr Expression::literalOperand(const lexer::Location& location, uint32_t value) {
+		return ExpressionPtr(new LiteralOperand(location, value));
+	}
+
+	ExpressionPtr Expression::labelOperand(const lexer::Location& location, const std::string& name) {
+		return ExpressionPtr(new LabelOperand(location, name));
+	}
+
+	ExpressionPtr Expression::registerOperand(const lexer::Location& location, Register _register) {
+		return ExpressionPtr(new RegisterOperand(location, _register));
+	}
+
+	ExpressionPtr Expression::invalid(const lexer::Location& location) {
+		return ExpressionPtr(new InvalidExpression(location));
+	}
+
+	ExpressionPtr Expression::evaluatedRegister(const lexer::Location& location, Register _register) {
+		return ExpressionPtr(new EvaluatedRegister(location, _register));
+	}
+
+	ExpressionPtr Expression::evaluatedRegister(const lexer::Location& location, Register _register, int32_t offset) {
+		return ExpressionPtr(new EvaluatedRegister(location, _register, true, offset));
+	}
+
+	ExpressionPtr Expression::evaluatedLiteral(const lexer::Location& location, int32_t value) {
+		return ExpressionPtr(new EvaluatedLiteral(location, value));
+	}
+
 	/*************************************************************************
 	 *
 	 * UnaryOperation
@@ -266,29 +304,26 @@ namespace dcpu { namespace ast {
 
 	/*************************************************************************
 	 *
-	 * LabelReferenceOperand
+	 * LabelOperand
 	 *
 	 *************************************************************************/
 
-	LabelReferenceOperand::LabelReferenceOperand(const Location& location, const string& label)
+	LabelOperand::LabelOperand(const Location& location, const string& label)
 		: Expression(location), _label(label), _position(nullptr) {}
 
-	LabelReferenceOperand::LabelReferenceOperand(TokenPtr& token)
-		:Expression(token->location), _label(token->content), _position(nullptr) {}
-
-	bool LabelReferenceOperand::isLiteral() const {
+	bool LabelOperand::isLiteral() const {
 		return true;
 	}
 
-	bool LabelReferenceOperand::isEvaluatable() const {
+	bool LabelOperand::isEvaluatable() const {
 		return _position != nullptr;
 	}
 	
-	bool LabelReferenceOperand::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
+	bool LabelOperand::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
 		return true;
 	}
 
-	ExpressionPtr LabelReferenceOperand::evaluate() const {
+	ExpressionPtr LabelOperand::evaluate() const {
 		if (_position != nullptr) {
 			return ExpressionPtr(new EvaluatedLiteral(_location, *_position));
 		} else {
@@ -296,7 +331,7 @@ namespace dcpu { namespace ast {
 		}
 	}
 
-	string LabelReferenceOperand::str() const {
+	string LabelOperand::str() const {
 		return _label;
 	}
 

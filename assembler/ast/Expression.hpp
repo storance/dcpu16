@@ -10,6 +10,9 @@
 #include "../Token.hpp"
 
 namespace dcpu { namespace ast {
+	class Expression;
+	typedef std::unique_ptr<Expression> ExpressionPtr;
+
 	class Expression {
 	public:
 		lexer::Location _location;
@@ -27,9 +30,17 @@ namespace dcpu { namespace ast {
 		virtual std::int32_t getEvaluatedValue();
 		virtual void updateEvaluatedValue(std::int32_t newValue);
 		virtual std::string str() const=0;
-	};
 
-	typedef std::unique_ptr<Expression> ExpressionPtr;
+		static ExpressionPtr unaryOperation(const lexer::Location&, UnaryOperator, ExpressionPtr&);
+		static ExpressionPtr binaryOperation(const lexer::Location&, BinaryOperator, ExpressionPtr&, ExpressionPtr&);
+		static ExpressionPtr literalOperand(const lexer::Location&, std::uint32_t);
+		static ExpressionPtr labelOperand(const lexer::Location&, const std::string&);
+		static ExpressionPtr registerOperand(const lexer::Location&, Register);
+		static ExpressionPtr invalid(const lexer::Location&);
+		static ExpressionPtr evaluatedRegister(const lexer::Location&, Register);
+		static ExpressionPtr evaluatedRegister(const lexer::Location&, Register, std::int32_t);
+		static ExpressionPtr evaluatedLiteral(const lexer::Location&, std::int32_t);
+	};	
 
 	class UnaryOperation : public Expression {
 		bool _cachedIsLiteral;
@@ -94,13 +105,12 @@ namespace dcpu { namespace ast {
 		virtual std::string str() const;
 	};
 
-	class LabelReferenceOperand : public Expression {
+	class LabelOperand : public Expression {
 	public:
 		std::string _label;
 		std::uint16_t *_position;
 
-		LabelReferenceOperand(const lexer::Location&, const std::string&);
-		LabelReferenceOperand(lexer::TokenPtr& token);
+		LabelOperand(const lexer::Location&, const std::string&);
 
 		virtual ExpressionPtr evaluate() const;
 		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;

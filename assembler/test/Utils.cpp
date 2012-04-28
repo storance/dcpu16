@@ -41,7 +41,7 @@ ExpressionFunc assertIsUnaryOperation(UnaryOperator expectedOperation, Expressio
 
 ExpressionFunc assertIsLabelRef(const string &labelName) {
 	return [=] (ExpressionPtr& expr) {
-		LabelReferenceOperand* labelRefOp = dynamic_cast<LabelReferenceOperand*>(expr.get());
+		LabelOperand* labelRefOp = dynamic_cast<LabelOperand*>(expr.get());
 
 		ASSERT_TRUE(labelRefOp != nullptr);
 		EXPECT_EQ(labelName, labelRefOp->_label);

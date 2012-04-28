@@ -41,6 +41,10 @@ namespace dcpu { namespace ast {
 		return ArgumentPtr(new ExpressionArgument(position, expr));
 	}
 
+	ArgumentPtr Argument::null() {
+		return ArgumentPtr(nullptr);
+	}
+
 	/*************************************************************************
 	 *
 	 * StackArgument

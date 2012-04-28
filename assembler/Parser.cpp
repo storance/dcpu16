@@ -113,32 +113,30 @@ bool Parser::parseInstruction(TokenPtr& currentToken, StatementPtr& statement) {
 
 	ArgumentPtr a, b;
 	if (opcodeDef->_args == 1) {
-		if (!parseArgument(nextToken(), a, ArgumentPosition::A)) {
+		a = move(parseArgument(nextToken(), ArgumentPosition::A));
+
+		if (!a) {
 			advanceUntil(mem_fn(&Token::isStatementTerminator));
 			return false;
 		}
 	} else if (opcodeDef->_args == 2) {
-		bool anyFailure = false;
-		if (!parseArgument(nextToken(), b, ArgumentPosition::B)) {
+		b = move(parseArgument(nextToken(), ArgumentPosition::B));
+
+		if (!b) {
 			advanceUntil([] (const Token& token) {
 				return token.isCharacter(',') || token.isStatementTerminator();
 			});
-			anyFailure = true;
 		}
 
 		auto& nextTkn = nextToken();
 		if (!nextTkn->isCharacter(',')) {
 			_errorHandler.errorUnexpectedToken(nextTkn, ',');
 			--_current;
-			anyFailure = true;
 		}
 
-		if (!parseArgument(nextToken(), a, ArgumentPosition::A)) {
+		a = parseArgument(nextToken(), ArgumentPosition::A);
+		if (!a || !b) {
 			advanceUntil(mem_fn(&Token::isStatementTerminator));
-			anyFailure = true;
-		}
-
-		if (anyFailure) {
 			return false;
 		}
 	}
@@ -153,119 +151,100 @@ bool Parser::parseInstruction(TokenPtr& currentToken, StatementPtr& statement) {
 	return true;
 }
 
-bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPosition position) {
+ArgumentPtr Parser::parseArgument(TokenPtr& currentToken, ArgumentPosition position) {
 	if (currentToken->isCharacter(',') || currentToken->isStatementTerminator()) {
 		_errorHandler.errorUnexpectedToken(currentToken, "an instruction argument");
-		return false;
+		return Argument::null();
 	}
 
 	if (currentToken->isCharacter('[')) {
-		auto startPos = _current;
-		if (!parseIndirectStackArgument(nextToken(), arg, position)) {
-			_current = startPos;
-			arg = move(Argument::indirect(position, parseExpression(true, true)));
+		auto argument = parseIndirectStackArgument(nextToken(), position);
+		if (!argument) {
+			--_current;
+			argument = move(Argument::indirect(position, parseExpression(true, true)));
 		}
 
-		if (!isNextTokenChar(']')) {
-			_errorHandler.errorUnexpectedToken(*_current, ']');
-			return false;
+		auto &nxtToken = nextToken();
+		if (!nxtToken->isCharacter(']')) {
+			--_current;
+			_errorHandler.errorUnexpectedToken(nxtToken, ']');
+			return Argument::null();
 		}
 
-		nextToken();
-		return true;
-	}
-
-	if (parseMnemonicStackArgument(currentToken, arg, position)) {
-		return true;
+		return argument;
+	} else if (currentToken->isIdentifier()) {
+		auto stackArgument = parseMnemonicStackArgument(currentToken, position);
+		if (stackArgument) {
+			return stackArgument;
+		}
 	}
 
 	--_current;
-	arg = move(Argument::expression(position, parseExpression(true, false)));
-	return true;
+	return Argument::expression(position, parseExpression(true, false));
 }
 
-bool Parser::parseIndirectStackArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPosition position) {
-	if (currentToken->isIdentifier()) {
-		if (!iequals(currentToken->content, "SP")) {
-			return false;
-		}
+ArgumentPtr Parser::parseIndirectStackArgument(TokenPtr& currentToken, ArgumentPosition position) {
+	if (currentToken->isIdentifier() && iequals(currentToken->content, "SP")) {
 
-		if (isNextTokenChar(']')) {
-			arg = move(Argument::stackPeek(currentToken->location, position));
-			return true;
-		} else if (isNextToken(mem_fn(&Token::isIncrement))) {
+		auto& nxtToken = nextToken();
+		if (nxtToken->isCharacter(']')) {
+			--_current;
+			return Argument::stackPeek(currentToken->location, position);
+		} else if (nxtToken->isIncrement()) {
 			if (position != ArgumentPosition::A) {
-				_errorHandler.error(currentToken->location, boost::format("[SP++] is not allowed as argument %s.")
-					% str(position));
+				_errorHandler.error(currentToken->location, "[SP++] is not allowed as argument b.");
 			}
 
-			nextToken();
-			arg = move(Argument::stackPop(currentToken->location, position));
-			return true;
+			return Argument::stackPop(currentToken->location, position);
 		}
 
-		return false;
+		--_current;
 	} else if (currentToken->isDecrement()) {
 		auto& nxtToken = nextToken();
 		if (nxtToken->isIdentifier() && iequals(nxtToken->content, "SP")) {
 			if (position != ArgumentPosition::B) {
-				_errorHandler.error(currentToken->location, boost::format("[--SP] is not allowed as argument %s.")
-					% str(position));
+				_errorHandler.error(currentToken->location, "[--SP] is not allowed as argument a.");
 			}
 
-			arg = move(Argument::stackPush(currentToken->location, position));
-			return true;
+			return Argument::stackPush(currentToken->location, position);
 		}
 
-		return false;
+		--_current;
 	}
 
-	return false;
+	return Argument::null();
 }
 
-bool Parser::parseMnemonicStackArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPosition position) {
-	if (!currentToken->isIdentifier()) {
-		return false;
-	}
-
+ArgumentPtr Parser::parseMnemonicStackArgument(TokenPtr& currentToken, ArgumentPosition position) {
 	if (iequals(currentToken->content, "PUSH")) {
 		if (position != ArgumentPosition::B) {
-			_errorHandler.error(currentToken->location, boost::format("PUSH is not allowed as argument %s.")
-				% str(position));
+			_errorHandler.error(currentToken->location, "PUSH is not allowed as argument a.");
 		}
-		arg = move(Argument::stackPush(currentToken->location, position));
-		return true;
+
+		return Argument::stackPush(currentToken->location, position);
 	} else if (iequals(currentToken->content, "POP")) {
 		if (position != ArgumentPosition::A) {
-			_errorHandler.error(currentToken->location, boost::format("POP is not allowed as argument %s.")
-				% str(position));
+			_errorHandler.error(currentToken->location, "POP is not allowed as argument a.");
 		}
-		arg = move(Argument::stackPop(currentToken->location, position));
-		return true;
+
+		return Argument::stackPop(currentToken->location, position);
 	} else if (iequals(currentToken->content, "PEEK")) {
-		arg = move(Argument::stackPeek(currentToken->location, position));
-		return true;
+		return Argument::stackPeek(currentToken->location, position);
 	} else if (iequals(currentToken->content, "PICK")) {
 		auto rightOperand = parseExpression(false, false);
 
 		if (rightOperand->isEvaluated()) {
-			arg = move(Argument::indirect(position,
-				ExpressionPtr(new EvaluatedRegister(currentToken->location, Register::SP,
-					true, rightOperand->getEvaluatedValue())
-				)
-			));
+			return Argument::indirect(position, Expression::evaluatedRegister(
+				currentToken->location, Register::SP, rightOperand->getEvaluatedValue()));
 		} else {
-			auto leftOperand = ExpressionPtr(new RegisterOperand(currentToken->location, Register::SP));
-			arg = move(Argument::indirect(position,
-				ExpressionPtr(new BinaryOperation(currentToken->location, BinaryOperator::PLUS,
-					leftOperand, rightOperand)
-				)
-			));
+			auto leftOperand = Expression::registerOperand(currentToken->location, Register::SP);
+
+			return Argument::indirect(position, Expression::binaryOperation(currentToken->location,
+				BinaryOperator::PLUS, leftOperand, rightOperand));
 		}
-		return true;
 	}
 
-	return false;
+	return Argument::null();
 }
 
 ExpressionPtr Parser::parseExpression(bool allowRegisters, bool insideIndirection) {

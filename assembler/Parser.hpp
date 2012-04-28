@@ -18,9 +18,9 @@ namespace dcpu { namespace parser {
 
 		bool parseLabel(lexer::TokenPtr&, ast::StatementPtr&);
 		bool parseInstruction(lexer::TokenPtr&, ast::StatementPtr&);
-		bool parseIndirectStackArgument(lexer::TokenPtr&, ast::ArgumentPtr&, ast::ArgumentPosition);
-		bool parseMnemonicStackArgument(lexer::TokenPtr&, ast::ArgumentPtr&, ast::ArgumentPosition);
-		bool parseArgument(lexer::TokenPtr&, ast::ArgumentPtr&, ast::ArgumentPosition);
+		ast::ArgumentPtr parseArgument(lexer::TokenPtr&, ast::ArgumentPosition);
+		ast::ArgumentPtr parseIndirectStackArgument(lexer::TokenPtr&, ast::ArgumentPosition);
+		ast::ArgumentPtr parseMnemonicStackArgument(lexer::TokenPtr&, ast::ArgumentPosition);
 		ast::ExpressionPtr parseExpression(bool, bool);
 
 		bool isNextTokenChar(char);
