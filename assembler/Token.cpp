@@ -9,7 +9,9 @@ using namespace std;
 namespace dcpu { namespace lexer {
 
 	Location::Location(const std::string &sourceName, uint32_t line, uint32_t column)
-	    : sourceName(sourceName), line(line), column(column) {}
+		: sourceName(sourceName), line(line), column(column) {}
+
+	Location::Location() : sourceName(""), line(0), column(0) {}
 
 	ostream& operator<< (ostream& stream, const Location& location) {
 		stream << str(location);

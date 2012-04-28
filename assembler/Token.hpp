@@ -28,6 +28,7 @@ namespace dcpu { namespace lexer {
 		std::uint32_t line;
 		std::uint32_t column;
 
+		Location();
 		Location(const std::string&, std::uint32_t, std::uint32_t);
 	};
 

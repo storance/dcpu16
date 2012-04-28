@@ -253,7 +253,7 @@ namespace dcpu { namespace parser {
 	}
 
 	ExpressionPtr Parser::parseExpression(bool allowRegisters, bool insideIndirection) {
-		ExpressionParser parser(_current, _end, errorHandler, insideIndirection, allowRegisters);
+		ExpressionParser parser(_current, _end, errorHandler, allowRegisters, true, insideIndirection);
 		auto expr = parser.parse();
 
 		if (expr->isEvaluatable() && !expr->isEvaluated()) {

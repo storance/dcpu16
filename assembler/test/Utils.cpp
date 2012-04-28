@@ -125,6 +125,6 @@ void runExpressionParser(const string &content, ExpressionPtr &expr, bool inside
 	ErrorHandlerPtr errorHandler = make_shared<ErrorHandler>();
 
 	auto begin = lexer->tokens.begin();
-	ExpressionParser parser(begin, lexer->tokens.end(), errorHandler, insideIndirect, allowRegisters);
+	ExpressionParser parser(begin, lexer->tokens.end(), errorHandler, allowRegisters, true, insideIndirect);
 	expr = move(parser.parse());
 }

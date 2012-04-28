@@ -19,23 +19,33 @@ namespace dcpu { namespace parser {
 		OperatorDefinition(ast::BinaryOperator, std::function<bool (TokenPtr&)>, bool, bool);
 	};
 
+	class FoundRegister {
+	public:
+		bool found;
+		ast::Register _register;
+		lexer::Location location;
+
+		FoundRegister();
+
+		void set(ast::Register _register, const lexer::Location &location);
+		operator bool();
+	};
 
 	class ExpressionParser {
 	protected:
 		typedef ExpressionPtr (ExpressionParser::*ExpressionParserFunc)();
 
-		TokenIterator &_current, _end;
-		ErrorHandlerPtr _errorHandler;
-		bool _insideIndirect;
-		bool _allowRegisters;
-		bool _foundRegister;
+		TokenIterator &current, end;
+		ErrorHandlerPtr errorHandler;
+		bool labelsAllowed, registersAllowed, indirection;
+		FoundRegister foundRegister;
 
 		void checkForNonLiteralExpression(const OperatorDefinition *, ExpressionPtr&, ExpressionPtr&);
 		ExpressionPtr parseBinaryOperation(ExpressionParserFunc, std::initializer_list<OperatorDefinition>);
 		ExpressionPtr parsePrimaryExpression(TokenPtr&);
 		ExpressionPtr parseGroupedExpression();
 		ExpressionPtr parseIdentifierExpression(TokenPtr&);
-		ExpressionPtr parseLabelExpression();
+		ExpressionPtr parseLabelExpression(TokenPtr&);
 		ExpressionPtr parseLiteralExpression(TokenPtr&);
 		ExpressionPtr parseUnaryOperation();
 		ExpressionPtr parseMultiplyOperation();
@@ -47,7 +57,7 @@ namespace dcpu { namespace parser {
 
 		TokenPtr& nextToken();
 	public:
-		ExpressionParser(TokenIterator&, TokenIterator, ErrorHandlerPtr&, bool, bool);
+		ExpressionParser(TokenIterator&, TokenIterator, ErrorHandlerPtr&, bool, bool, bool);
 
 		ExpressionPtr parse();
 	};
