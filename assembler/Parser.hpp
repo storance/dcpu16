@@ -4,36 +4,37 @@
 #include <cstdint>
 
 #include "ast/Statement.hpp"
+#include "SymbolTable.hpp"
+#include "ErrorHandler.hpp"
 #include "ExpressionParser.hpp"
+#include "Types.hpp"
 
 namespace dcpu { namespace parser {
 	class Parser {
 	protected:
-		typedef lexer::TokenList::iterator Iterator;
+		TokenIterator _current, _end;
+		uint16Ptr _outputPosition;
 
-		Iterator _current, _end;
-		dcpu::ErrorHandler &_errorHandler;
-		dcpu::SymbolTable &_symbolTable;
-		std::uint16_t _outputPosition;
+		StatementPtr parseLabel(TokenPtr&);
+		StatementPtr parseInstruction(TokenPtr&);
+		ArgumentPtr parseArgument(TokenPtr&, ast::ArgumentPosition);
+		ArgumentPtr parseIndirectStackArgument(TokenPtr&, ast::ArgumentPosition);
+		ArgumentPtr parseMnemonicStackArgument(TokenPtr&, ast::ArgumentPosition);
+		ExpressionPtr parseExpression(bool, bool);
 
-		ast::StatementPtr parseLabel(lexer::TokenPtr&);
-		ast::StatementPtr parseInstruction(lexer::TokenPtr&);
-		ast::ArgumentPtr parseArgument(lexer::TokenPtr&, ast::ArgumentPosition);
-		ast::ArgumentPtr parseIndirectStackArgument(lexer::TokenPtr&, ast::ArgumentPosition);
-		ast::ArgumentPtr parseMnemonicStackArgument(lexer::TokenPtr&, ast::ArgumentPosition);
-		ast::ExpressionPtr parseExpression(bool, bool);
-
-		bool isNextTokenChar(char);
-		bool isNextToken(std::function<bool (const lexer::Token&)>);
-		lexer::TokenPtr& nextToken();
+		TokenPtr& nextToken();
 		void moveBack();
 		void advanceUntil(std::function<bool (const lexer::Token&)>);
 
-		bool addStatement(ast::StatementPtr&&);
-	public:
-		ast::StatementList statements;
+		bool addStatement(StatementPtr&&);
 
-		Parser(Iterator start, Iterator end, dcpu::ErrorHandler &errorHandler, dcpu::SymbolTable &symbolTable);
+		Parser(lexer::Lexer &lexer, ErrorHandlerPtr&, SymbolTablePtr&, uint16Ptr &);
+	public:
+		ErrorHandlerPtr errorHandler;
+		SymbolTablePtr symbolTable;
+		StatementList statements;
+
+		Parser(lexer::Lexer &lexer);
 
 		void parse();
 	};

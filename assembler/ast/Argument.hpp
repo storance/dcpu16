@@ -5,6 +5,8 @@
 
 #include "Common.hpp"
 #include "Expression.hpp"
+#include "../Types.hpp"
+#include "../Token.hpp"
 
 namespace dcpu { namespace ast {
 	class Argument {
@@ -26,9 +28,7 @@ namespace dcpu { namespace ast {
 		static std::unique_ptr<Argument> indirect(ArgumentPosition, ExpressionPtr&&);
 		static std::unique_ptr<Argument> expression(ArgumentPosition, ExpressionPtr&&);
 		static std::unique_ptr<Argument> null();
-	};
-
-	typedef std::unique_ptr<Argument> ArgumentPtr;
+	};	
 
 	class StackArgument : public Argument {
 	public:
@@ -64,9 +64,6 @@ namespace dcpu { namespace ast {
 		virtual uint8_t compile(std::vector<std::uint16_t> &output);
 		virtual std::string str() const;
 	};
-
-	std::string str(ArgumentPosition);
-	std::string str(StackOperation);
 
 	std::string str(const ArgumentPtr &);
 } }

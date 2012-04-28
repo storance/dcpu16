@@ -4,29 +4,29 @@ using namespace std;
 using namespace dcpu::ast;
 
 namespace dcpu { namespace compiler {
-	Compiler::Compiler(StatementList &statements, ErrorHandler &errorHandler, SymbolTable &table)
-		: _statements(statements), _errorHandler(errorHandler), _table(table) {}
+	Compiler::Compiler(ErrorHandlerPtr &errorHandler, SymbolTablePtr &symbolTable)
+		: errorHandler(errorHandler), symbolTable(symbolTable) {}
 
-	void Compiler::compile() {
-		for (auto& stmt : _statements) {
-        	stmt->evaluateExpressions(_table, _errorHandler);
+	void Compiler::compile(StatementList &statements) {
+		for (auto& stmt : statements) {
+        	stmt->evaluateExpressions(symbolTable, errorHandler);
     	}
 
     	bool anyCompressed = false;
     	do {
     		anyCompressed = false;
-    		for (auto& stmt : _statements) {
-	        	anyCompressed |= stmt->compress(_table);
+    		for (auto& stmt : statements) {
+	        	anyCompressed |= stmt->compress(symbolTable);
 	    	}
     	} while (anyCompressed);
 
-    	for (auto& stmt : _statements) {
-        	stmt->compile(_output);
+    	for (auto& stmt : statements) {
+        	stmt->compile(output);
     	}
 	}
 
 	void Compiler::write(ostream &out, OutputFormat format) {
-		for (auto word : _output) {
+		for (auto word : output) {
 	        uint8_t b1 = word & 0xff;
 	        uint8_t b2 = (word >> 8) & 0xff;
 

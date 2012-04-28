@@ -10,19 +10,27 @@
 
 #include "ast/OpcodeDefinition.hpp"
 #include "ast/RegisterDefinition.hpp"
-#include "SymbolTable.hpp"
-#include "ExpressionParser.hpp"
 
 using namespace std;
-using namespace std::placeholders;
+using namespace placeholders;
 using namespace dcpu::lexer;
 using namespace dcpu::ast;
 using namespace boost::algorithm;
 
 namespace dcpu { namespace parser {
+	Parser::Parser(Lexer &lexer)
+		: _current(lexer.tokens.begin()),
+		_end(lexer.tokens.end()),
+		_outputPosition(new uint16_t(0)),
+		errorHandler(new ErrorHandler()),
+		symbolTable(new SymbolTable()) {}
 
-	Parser::Parser(Iterator start, Iterator end, ErrorHandler &errorHandler, dcpu::SymbolTable &symbolTable)
-		: _current(start), _end(end), _errorHandler(errorHandler), _symbolTable(symbolTable), _outputPosition(0) {}
+	Parser::Parser(Lexer &lexer, ErrorHandlerPtr& errorHandler, SymbolTablePtr& symbolTable, uint16Ptr &outputPosition) 
+		: _current(lexer.tokens.begin()),
+		_end(lexer.tokens.end()),
+		_outputPosition(outputPosition),
+		errorHandler(errorHandler),
+		symbolTable(symbolTable) {}
 
 	void Parser::parse() {
 		while (_current != _end) {
@@ -51,15 +59,15 @@ namespace dcpu { namespace parser {
 			return false;
 		}
 
-		std::uint16_t oldPositiion = _outputPosition;
+		uint16_t oldPosition = *_outputPosition;
 		try {
-			statement->buildSymbolTable(_symbolTable, _outputPosition);
-		} catch (std::exception &e) {
-			_errorHandler.error(statement->_location, e.what());
+			statement->buildSymbolTable(symbolTable, _outputPosition);
+		} catch (exception &e) {
+			errorHandler->error(statement->_location, e.what());
 		}
 
-		if (_outputPosition < oldPositiion) {
-			_errorHandler.error(statement->_location, "binary output has exceeded the DCPU-16's memory "
+		if (*_outputPosition < oldPosition) {
+			errorHandler->error(statement->_location, "binary output has exceeded the DCPU-16's memory "
 				"size (65,536 words).");
 		}
 
@@ -75,9 +83,9 @@ namespace dcpu { namespace parser {
 			if (nextTkn->isIdentifier()) {
 				return Statement::label(currentToken->location, nextTkn->content);
 			} else if (nextTkn->isStatementTerminator()) {
-				_errorHandler.errorUnexpectedToken(nextTkn, "a label name");
+				errorHandler->errorUnexpectedToken(nextTkn, "a label name");
 			} else {
-				_errorHandler.errorUnexpectedToken(currentToken, "a label or instruction");
+				errorHandler->errorUnexpectedToken(currentToken, "a label or instruction");
 				advanceUntil(mem_fn(&Token::isStatementTerminator));
 			}
 		} else if (currentToken->isIdentifier()) {
@@ -88,7 +96,7 @@ namespace dcpu { namespace parser {
 				moveBack();
 			}
 		} else {
-			_errorHandler.errorUnexpectedToken(currentToken, "a label or instruction");
+			errorHandler->errorUnexpectedToken(currentToken, "a label or instruction");
 			advanceUntil(mem_fn(&Token::isStatementTerminator));
 		}
 
@@ -103,7 +111,7 @@ namespace dcpu { namespace parser {
 		OpcodeDefinition* opcodeDef = lookupOpcode(currentToken->content);
 
 		if (!opcodeDef) {
-			_errorHandler.error(currentToken->location, 
+			errorHandler->error(currentToken->location, 
 						boost::format("Unrecognized instruction '%s'") % currentToken->content);
 			advanceUntil(mem_fn(&Token::isStatementTerminator));
 			return Statement::null();
@@ -128,7 +136,7 @@ namespace dcpu { namespace parser {
 
 			auto& nextTkn = nextToken();
 			if (!nextTkn->isCharacter(',')) {
-				_errorHandler.errorUnexpectedToken(nextTkn, ',');
+				errorHandler->errorUnexpectedToken(nextTkn, ',');
 				moveBack();
 			}
 
@@ -141,7 +149,7 @@ namespace dcpu { namespace parser {
 
 		auto& eolToken = nextToken();
 		if (!eolToken->isStatementTerminator()) {
-			_errorHandler.errorUnexpectedToken(eolToken, "'newline' or 'eof'");
+			errorHandler->errorUnexpectedToken(eolToken, "'newline' or 'eof'");
 			advanceUntil(mem_fn(&Token::isStatementTerminator));
 		}
 
@@ -150,7 +158,7 @@ namespace dcpu { namespace parser {
 
 	ArgumentPtr Parser::parseArgument(TokenPtr& currentToken, ArgumentPosition position) {
 		if (currentToken->isCharacter(',') || currentToken->isStatementTerminator()) {
-			_errorHandler.errorUnexpectedToken(currentToken, "an instruction argument");
+			errorHandler->errorUnexpectedToken(currentToken, "an instruction argument");
 			return Argument::null();
 		}
 
@@ -164,7 +172,7 @@ namespace dcpu { namespace parser {
 			auto &nxtToken = nextToken();
 			if (!nxtToken->isCharacter(']')) {
 				moveBack();
-				_errorHandler.errorUnexpectedToken(nxtToken, ']');
+				errorHandler->errorUnexpectedToken(nxtToken, ']');
 				return Argument::null();
 			}
 
@@ -189,7 +197,7 @@ namespace dcpu { namespace parser {
 				return Argument::stackPeek(currentToken->location, position);
 			} else if (nxtToken->isIncrement()) {
 				if (position != ArgumentPosition::A) {
-					_errorHandler.error(currentToken->location, "[SP++] is not allowed as argument b.");
+					errorHandler->error(currentToken->location, "[SP++] is not allowed as argument b.");
 				}
 
 				return Argument::stackPop(currentToken->location, position);
@@ -200,7 +208,7 @@ namespace dcpu { namespace parser {
 			auto& nxtToken = nextToken();
 			if (nxtToken->isIdentifier() && iequals(nxtToken->content, "SP")) {
 				if (position != ArgumentPosition::B) {
-					_errorHandler.error(currentToken->location, "[--SP] is not allowed as argument a.");
+					errorHandler->error(currentToken->location, "[--SP] is not allowed as argument a.");
 				}
 
 				return Argument::stackPush(currentToken->location, position);
@@ -215,13 +223,13 @@ namespace dcpu { namespace parser {
 	ArgumentPtr Parser::parseMnemonicStackArgument(TokenPtr& currentToken, ArgumentPosition position) {
 		if (iequals(currentToken->content, "PUSH")) {
 			if (position != ArgumentPosition::B) {
-				_errorHandler.error(currentToken->location, "PUSH is not allowed as argument a.");
+				errorHandler->error(currentToken->location, "PUSH is not allowed as argument a.");
 			}
 
 			return Argument::stackPush(currentToken->location, position);
 		} else if (iequals(currentToken->content, "POP")) {
 			if (position != ArgumentPosition::A) {
-				_errorHandler.error(currentToken->location, "POP is not allowed as argument a.");
+				errorHandler->error(currentToken->location, "POP is not allowed as argument a.");
 			}
 
 			return Argument::stackPop(currentToken->location, position);
@@ -245,7 +253,7 @@ namespace dcpu { namespace parser {
 	}
 
 	ExpressionPtr Parser::parseExpression(bool allowRegisters, bool insideIndirection) {
-		ExpressionParser parser(_current, _end, _errorHandler, insideIndirection, allowRegisters);
+		ExpressionParser parser(_current, _end, errorHandler, insideIndirection, allowRegisters);
 		auto expr = parser.parse();
 
 		if (expr->isEvaluatable() && !expr->isEvaluated()) {
@@ -263,18 +271,6 @@ namespace dcpu { namespace parser {
 
 			_current++;
 		}
-	}
-
-	bool Parser::isNextTokenChar(char c) {
-		return isNextToken(bind(&Token::isCharacter, placeholders::_1, c));
-	}
-
-	bool Parser::isNextToken(function<bool (const Token&)> predicate) {
-		if (_current == _end) {
-			return false;
-		}
-
-		return predicate(**_current);
 	}
 
 	TokenPtr& Parser::nextToken() {

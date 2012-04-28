@@ -4,8 +4,10 @@
 #include <cstdint>
 
 #include "ast/Statement.hpp"
+#include "ast/Common.hpp"
 #include "ErrorHandler.hpp"
 #include "SymbolTable.hpp"
+#include "Types.hpp"
 
 namespace dcpu { namespace compiler {
 	enum class OutputFormat {
@@ -14,15 +16,15 @@ namespace dcpu { namespace compiler {
 	};
 
 	class Compiler {
-		ast::StatementList &_statements;
-		ErrorHandler &_errorHandler;
-		SymbolTable &_table;
+	private:
+		ErrorHandlerPtr errorHandler;
+		SymbolTablePtr symbolTable;
 
-		std::vector<std::uint16_t> _output;
+		std::vector<std::uint16_t> output;
 	public:
-		Compiler(ast::StatementList &statements, ErrorHandler &_errorHandler, SymbolTable &_table);
+		Compiler(ErrorHandlerPtr &errorHandler, SymbolTablePtr &symbolTable);
 
-		void compile();
+		void compile(StatementList &statement);
 		void write(std::ostream &out, OutputFormat format=OutputFormat::BigEndian);
 	};
 }}

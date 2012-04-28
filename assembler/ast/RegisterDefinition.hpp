@@ -14,5 +14,4 @@ namespace dcpu { namespace ast {
 	};
 
 	RegisterDefinition* lookupRegister(const std::string&);
-	std::string str(Register);
 }}

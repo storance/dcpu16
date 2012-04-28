@@ -18,11 +18,11 @@ namespace dcpu { namespace ast {
 
 	Statement::~Statement() {}
 
-	void Statement::evaluateExpressions(SymbolTable& table, ErrorHandler &errorHandler) {
+	void Statement::evaluateExpressions(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler) {
 
 	}
 	
-	bool Statement::compress(SymbolTable& table) {
+	bool Statement::compress(SymbolTablePtr& table) {
 		return false;
 	}
 	
@@ -63,8 +63,8 @@ namespace dcpu { namespace ast {
 		return (boost::format("%s:") % _name).str();
 	}
 
-	void Label::buildSymbolTable(SymbolTable& table, uint16_t &position) const {
-		table.add(*this, position);
+	void Label::buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const {
+		table->add(*this, *position);
 	}
 
 	/*************************************************************************
@@ -88,23 +88,23 @@ namespace dcpu { namespace ast {
 		}
 	}
 
-	void Instruction::buildSymbolTable(SymbolTable& table, uint16_t &position) const {
-		++position;
+	void Instruction::buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const {
+		++*position;
 
 		if (_b && _b->isNextWordRequired()) {
-			++position;
+			++*position;
 		}
 
 		if (_a && _a->isNextWordRequired()) {
-			++position;
+			++*position;
 		}
 	}
 
-	void Instruction::evaluateExpressions(SymbolTable& table, ErrorHandler &errorHandler) {
+	void Instruction::evaluateExpressions(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler) {
 
 	}
 	
-	bool Instruction::compress(SymbolTable& table) {
+	bool Instruction::compress(SymbolTablePtr& table) {
 		return false;
 	}
 	

@@ -128,30 +128,6 @@ namespace dcpu { namespace ast {
 	 *
 	 *************************************************************************/
 
-	string str(ArgumentPosition position) {
-		switch (position) {
-		case ArgumentPosition::A:
-			return "a";
-		case ArgumentPosition::B:
-			return "b";
-		default:
-			return str(boost::format("<Unknown ArgumentPosition %04x>") % static_cast<int>(position));
-		}
-	}
-
-	string str(StackOperation operation) {
-		switch (operation) {
-		case StackOperation::PUSH:
-			return "PUSH";
-		case StackOperation::POP:
-			return "POP";
-		case StackOperation::PEEK:
-			return "PEEK";
-		default:
-			return str(boost::format("<Unknown StackOperation %04x>") % static_cast<int>(operation));
-		}
-	}
-
 	string str(const ArgumentPtr &argument) {
 		return argument->str();
 	}

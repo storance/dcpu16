@@ -12,23 +12,10 @@ using namespace dcpu::ast;
 using namespace dcpu::parser;
 using namespace dcpu::lexer;
 
-void runParser(const string &content, ExpressionPtr &expr, bool insideIndirect,
-	bool allowRegisters) {
-
-	Lexer lexer(content.begin(), content.end(), "<ExpressionParserTest>");
-	lexer.parse();
-
-	ErrorHandler errorHandler;
-
-	auto begin = lexer.tokens.begin();
-	ExpressionParser parser(begin, lexer.tokens.end(), errorHandler, insideIndirect, allowRegisters);
-	expr = move(parser.parse());
-}
-
 TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 	ExpressionPtr expr;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("1 + 2 * 3", expr, false, true));
+	ASSERT_NO_FATAL_FAILURE(runExpressionParser("1 + 2 * 3", expr, false, true));
 	{
 		SCOPED_TRACE("Expression 1 + 2 * 3");
 		assertIsBinaryOperation(BinaryOperator::PLUS,
@@ -40,7 +27,7 @@ TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 		)(expr);
 	}
 
-	ASSERT_NO_FATAL_FAILURE(runParser("1 & 2 | 3 ^ 4", expr, false, true));
+	ASSERT_NO_FATAL_FAILURE(runExpressionParser("1 & 2 | 3 ^ 4", expr, false, true));
 	{
 		SCOPED_TRACE("Expression 1 & 2 | 3 ^ 4");
 		assertIsBinaryOperation(BinaryOperator::OR,
@@ -54,7 +41,7 @@ TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 		)(expr);
 	}
 
-	ASSERT_NO_FATAL_FAILURE(runParser("1 << 4 & 2 >> 3", expr, false, true));
+	ASSERT_NO_FATAL_FAILURE(runExpressionParser("1 << 4 & 2 >> 3", expr, false, true));
 	{
 		SCOPED_TRACE("Expression 1 << 4 & 2 >> 3");
 		assertIsBinaryOperation(BinaryOperator::AND,
@@ -68,7 +55,7 @@ TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 		)(expr);
 	}
 
-	ASSERT_NO_FATAL_FAILURE(runParser("1 + 2 << 3 >> 4 - 5", expr, false, true));
+	ASSERT_NO_FATAL_FAILURE(runExpressionParser("1 + 2 << 3 >> 4 - 5", expr, false, true));
 	{
 		SCOPED_TRACE("Expression 1 + 2 << 3 >> 4 - 5");
 		assertIsBinaryOperation(BinaryOperator::SHIFT_RIGHT,
@@ -84,7 +71,7 @@ TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 		)(expr);
 	}
 
-	ASSERT_NO_FATAL_FAILURE(runParser("1 * 2 + 3 / 4 % 5", expr, false, true));
+	ASSERT_NO_FATAL_FAILURE(runExpressionParser("1 * 2 + 3 / 4 % 5", expr, false, true));
 	{
 		SCOPED_TRACE("Expression 1 * 2 + 3 / 4 % 5");
 		assertIsBinaryOperation(BinaryOperator::PLUS,
@@ -101,7 +88,7 @@ TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 		)(expr);
 	}
 
-	ASSERT_NO_FATAL_FAILURE(runParser("-1 * !-2 / +3 % ~4", expr, false, true));
+	ASSERT_NO_FATAL_FAILURE(runExpressionParser("-1 * !-2 / +3 % ~4", expr, false, true));
 	{
 		SCOPED_TRACE("Expression -1 * !-2 / +3 % ~4");
 		assertIsBinaryOperation(BinaryOperator::MODULO,
@@ -115,7 +102,7 @@ TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 		)(expr);
 	}
 
-	ASSERT_NO_FATAL_FAILURE(runParser("-(1 + 2) * (3 + 4)", expr, false, true));
+	ASSERT_NO_FATAL_FAILURE(runExpressionParser("-(1 + 2) * (3 + 4)", expr, false, true));
 	{
 		SCOPED_TRACE("Expression -(1 + 2) * (3 + 4)");
 		assertIsBinaryOperation(BinaryOperator::MULTIPLY,

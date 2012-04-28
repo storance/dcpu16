@@ -13,8 +13,6 @@ using namespace dcpu::ast;
 using namespace dcpu::parser;
 using namespace dcpu::lexer;
 
-typedef StatementList::iterator StatementIterator;
-
 typedef function<void (ArgumentPtr&)> ArgumentFunc;
 typedef function<void (ExpressionPtr&)> ExpressionFunc;
 
@@ -99,34 +97,15 @@ ArgumentFunc assertArgumentIsNull() {
 	};
 }
 
-void runParser(const string &content, int expectedStatements, StatementList &statements, SymbolTable &table) {
-	Lexer lexer(content.begin(), content.end(), "<ParserTest>");
-	lexer.parse();
-
-	ErrorHandler errorHandler;
-
-	Parser parser(lexer.tokens.begin(), lexer.tokens.end(), errorHandler, table);
-	parser.parse();
-
-	statements = move(parser.statements);
-
-	ASSERT_EQ(expectedStatements, statements.size());
-}
-
-void runParser(const string &content, int expectedStatements, StatementList &statements) {
-	SymbolTable table;
-	runParser(content, expectedStatements, statements, table);
-}
-
 TEST(ParserTest, InstructionTest) {
-	StatementList statements;
+	std::shared_ptr<Parser> parser;
 
 	ASSERT_NO_FATAL_FAILURE(runParser("SET A, B\nADD A, B\nSUB A, B\nMUL A, B\nMLI A, B\nDIV A, B\nDVI A, B\nMOD A, B\n"
 		"AND A, B\nBOR A, B\nXOR A, B\nSHR A, B\nASR A, B\nSHL A, B\nSTI A, B\nIFB A, B\nIFC A, B\nIFE A, B\nIFN A, B\n"
 		"IFG A, B\nIFA A, B\nIFL A, B\nIFU A, B\nADX A, B\nSBX A, B\nJSR A\nHCF A\nINT A\nIAG A\nIAS A\nHWN A\nHWQ A\n"
-		"HWI A\nJMP A\nMDI A, B\nSTD A, B\nRFI A\n IAQ A\n", 38, statements));
+		"HWI A\nJMP A\nMDI A, B\nSTD A, B\nRFI A\n IAQ A\n", 38, parser));
 
-	auto it = statements.begin();
+	auto it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
@@ -385,28 +364,27 @@ TEST(ParserTest, InstructionTest) {
 }
 
 TEST(ParserTest, LabelTest) {
-	SymbolTable table;
-	StatementList statements;
+	std::shared_ptr<Parser> parser;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n:label2\nlabel3: SET A, B\n: label4 SET A, B", 6, statements, table));
+	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n:label2\nlabel3: SET A, B\n: label4 SET A, B", 6, parser));
 
-	auto it = statements.begin();
+	auto it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertLabel(it, "label1");
-		EXPECT_EQ(0, *table.lookup("label1"));
+		EXPECT_EQ(0, *parser->symbolTable->lookup("label1"));
 	}
 
 	{
 		SCOPED_TRACE("Statement: 2"); 
 		assertLabel(it, "label2");
-		EXPECT_EQ(0, *table.lookup("label2"));
+		EXPECT_EQ(0, *parser->symbolTable->lookup("label2"));
 	}
 
 	{
 		SCOPED_TRACE("Statement: 3"); 
 		assertLabel(it, "label3");
-		EXPECT_EQ(0, *table.lookup("label3"));
+		EXPECT_EQ(0, *parser->symbolTable->lookup("label3"));
 	}
 
 	{
@@ -419,7 +397,7 @@ TEST(ParserTest, LabelTest) {
 	{
 		SCOPED_TRACE("Statement: 5"); 
 		assertLabel(it, "label4");
-		EXPECT_EQ(1, *table.lookup("label4"));
+		EXPECT_EQ(1, *parser->symbolTable->lookup("label4"));
 	}
 
 	{
@@ -431,12 +409,12 @@ TEST(ParserTest, LabelTest) {
 }
 
 TEST(ParserTest, RegisterTest) {
-	StatementList statements;
+	std::shared_ptr<Parser> parser;
 
 	ASSERT_NO_FATAL_FAILURE(runParser("SET A, A\nSET B, B\nSET C, C\nSET X, X\nSET Y, Y\n"
-		"SET Z, Z\nSET I, I\nSET J, J\nSET PC, PC\nSET SP, SP\nSET EX, EX\n", 11, statements));
+		"SET Z, Z\nSET I, I\nSET J, J\nSET PC, PC\nSET SP, SP\nSET EX, EX\n", 11, parser));
 
-	auto it = statements.begin();
+	auto it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
@@ -516,10 +494,10 @@ TEST(ParserTest, RegisterTest) {
 }
 
 TEST(ParserTest, SimpleExpressionTest) {
-	StatementList statements;
+	std::shared_ptr<Parser> parser;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("set 4 * 2, 1 + 2", 1, statements));
-	auto it = statements.begin();
+	ASSERT_NO_FATAL_FAILURE(runParser("set 4 * 2, 1 + 2", 1, parser));
+	auto it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
@@ -529,10 +507,10 @@ TEST(ParserTest, SimpleExpressionTest) {
 }
 
 TEST(ParserTest, IndirectionTest) {
-	StatementList statements;
+	std::shared_ptr<Parser> parser;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("set [A], [1 * 2]", 1, statements));
-	auto it = statements.begin();
+	ASSERT_NO_FATAL_FAILURE(runParser("set [A], [1 * 2]", 1, parser));
+	auto it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
@@ -541,8 +519,8 @@ TEST(ParserTest, IndirectionTest) {
 		);
 	}
 
-	ASSERT_NO_FATAL_FAILURE(runParser("set [B - 4], [5 + J]", 1, statements));
-	it = statements.begin();
+	ASSERT_NO_FATAL_FAILURE(runParser("set [B - 4], [5 + J]", 1, parser));
+	it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
@@ -555,10 +533,10 @@ TEST(ParserTest, IndirectionTest) {
 }
 
 TEST(ParserTest, LabelReferencesTest) {
-	StatementList statements;
+	std::shared_ptr<Parser> parser;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("label: set label, [label * 2]\n:a SET a, $a", 4, statements));
-	auto it = statements.begin();
+	ASSERT_NO_FATAL_FAILURE(runParser("label: set label, [label * 2]\n:a SET a, $a", 4, parser));
+	auto it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertLabel(it, "label");
@@ -591,10 +569,10 @@ TEST(ParserTest, LabelReferencesTest) {
 }
 
 TEST(ParserTest, StackArgumentsTest) {
-	StatementList statements;
+	std::shared_ptr<Parser> parser;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, [SP]\nset B, [SP++]\nset [--SP] , C", 3, statements));
-	auto it = statements.begin();
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, [SP]\nset B, [SP++]\nset [--SP] , C", 3, parser));
+	auto it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
@@ -616,8 +594,8 @@ TEST(ParserTest, StackArgumentsTest) {
 			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::C)));
 	}
 
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, PEEK\nset B, POP\nset PUSH , C\nset PICK 5, PICK 1 + 2", 4, statements));
-	it = statements.begin();
+	ASSERT_NO_FATAL_FAILURE(runParser("set A, PEEK\nset B, POP\nset PUSH , C\nset PICK 5, PICK 1 + 2", 4, parser));
+	it = parser->statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,

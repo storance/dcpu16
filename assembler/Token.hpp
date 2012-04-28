@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <list>
 
+#include "Types.hpp"
+
 namespace dcpu { namespace lexer {
 
 	enum class TokenType {
@@ -70,10 +72,6 @@ namespace dcpu { namespace lexer {
 
 		InvalidIntegerToken(const Location&, const std::string&, std::uint8_t);
 	};
-
-
-	typedef std::unique_ptr<Token> TokenPtr;
-	typedef std::list<TokenPtr> TokenList;
 
 	IntegerToken* asInteger(TokenPtr& token);
 	InvalidIntegerToken* asInvalidInteger(TokenPtr& token);

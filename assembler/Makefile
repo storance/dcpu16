@@ -7,6 +7,7 @@ OBJECTS = $(OUTPUT_DIR)/Parser.o \
 		  $(OUTPUT_DIR)/ExpressionParser.o \
 		  $(OUTPUT_DIR)/Lexer.o \
 		  $(OUTPUT_DIR)/ErrorHandler.o \
+		  $(OUTPUT_DIR)/Common.o \
 		  $(OUTPUT_DIR)/Statement.o \
 		  $(OUTPUT_DIR)/Argument.o \
 		  $(OUTPUT_DIR)/Expression.o \
@@ -34,6 +35,9 @@ $(OUTPUT_DIR)/Compiler.o: Compiler.cpp Compiler.hpp ast/*.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/Token.o: Token.cpp Token.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/Common.o: ast/Common.cpp ast/Common.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/Statement.o: ast/Statement.cpp ast/Statement.hpp ast/Argument.hpp ast/Expression.hpp ast/OpcodeDefinition.hpp Token.hpp | $(OUTPUT_DIR)

@@ -8,9 +8,8 @@
 #include "Common.hpp"
 #include "OpcodeDefinition.hpp"
 #include "Argument.hpp"
-#include "../ErrorHandler.hpp"
-
-namespace dcpu { class SymbolTable; }
+#include "../Types.hpp"
+#include "../Token.hpp"
 
 namespace dcpu { namespace ast {
 	class Statement {
@@ -21,18 +20,15 @@ namespace dcpu { namespace ast {
 		virtual ~Statement();
 
 		virtual std::string str() const=0;
-		virtual void buildSymbolTable(SymbolTable& table, std::uint16_t &position) const=0;
-		virtual void evaluateExpressions(SymbolTable& table, ErrorHandler &errorHandler);
-		virtual bool compress(SymbolTable& table);
+		virtual void buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const=0;
+		virtual void evaluateExpressions(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler);
+		virtual bool compress(SymbolTablePtr& table);
 		virtual void compile(std::vector<std::uint16_t> &output);
 
-		static std::unique_ptr<Statement> label(const lexer::Location&, const std::string &);
-		static std::unique_ptr<Statement> instruction(const lexer::Location&, Opcode, ArgumentPtr&, ArgumentPtr&);
-		static std::unique_ptr<Statement> null();
+		static StatementPtr label(const lexer::Location&, const std::string &);
+		static StatementPtr instruction(const lexer::Location&, Opcode, ArgumentPtr&, ArgumentPtr&);
+		static StatementPtr null();
 	};
-
-	typedef std::unique_ptr<Statement> StatementPtr;
-	typedef std::list<StatementPtr> StatementList;
 
 	class Instruction : public Statement {
 	public:
@@ -43,9 +39,9 @@ namespace dcpu { namespace ast {
 		Instruction(const lexer::Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
 
 		virtual std::string str() const;
-		virtual void buildSymbolTable(SymbolTable& table, std::uint16_t &position) const;
-		virtual void evaluateExpressions(SymbolTable& table, ErrorHandler &errorHandler);
-		virtual bool compress(SymbolTable& table);
+		virtual void buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const;
+		virtual void evaluateExpressions(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler);
+		virtual bool compress(SymbolTablePtr& table);
 		virtual void compile(std::vector<std::uint16_t> &output);
 	};
 
@@ -57,7 +53,7 @@ namespace dcpu { namespace ast {
 		Label(const lexer::Location&, const std::string&);
 
 		virtual std::string str() const;
-		virtual void buildSymbolTable(SymbolTable& table, std::uint16_t &position) const;
+		virtual void buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const;
 	};
 
 	std::string str(const StatementPtr&);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace dcpu { namespace ast {
 	enum class LabelType {
 		Global,
@@ -82,4 +84,11 @@ namespace dcpu { namespace ast {
 		NOT,
 		BITWISE_NOT
 	};
+
+	std::string str(ArgumentPosition);
+	std::string str(StackOperation);
+	std::string str(UnaryOperator);
+	std::string str(BinaryOperator);
+	std::string str(Opcode);
+	std::string str(Register);
 }}

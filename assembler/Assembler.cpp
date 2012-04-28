@@ -35,13 +35,11 @@ int main(int argc, char **argv) {
     Lexer lexer(storage.begin(), storage.end(), argv[1]);
     lexer.parse();
 
-    ErrorHandler errorHandler;
-    SymbolTable table;
-    Parser parser(lexer.tokens.begin(), lexer.tokens.end(), errorHandler, table);
+    Parser parser(lexer);
     parser.parse();
 
-    if (errorHandler.hasErrors()) {
-        errorHandler.summary();
+    if (parser.errorHandler->hasErrors()) {
+        parser.errorHandler->summary();
         return 1;
     }
 

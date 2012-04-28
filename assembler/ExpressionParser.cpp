@@ -21,7 +21,7 @@ namespace dcpu { namespace parser {
 			leftRequiresLiteral(leftRequiresLiteral),
 			rightRequiresLiteral(rightRequiresLiteral) {}
 
-	ExpressionParser::ExpressionParser(Iterator& current, Iterator end, dcpu::ErrorHandler& errorHandler,
+	ExpressionParser::ExpressionParser(TokenIterator& current, TokenIterator end, ErrorHandlerPtr& errorHandler,
 		bool insideIndirect, bool allowRegisters) 
 		: _current(current),
 		  _end(end),
@@ -109,13 +109,13 @@ namespace dcpu { namespace parser {
 		bool rightLiteralRequired = operatorDef->rightRequiresLiteral || !_insideIndirect;
 
 		if (leftLiteralRequired && !left->isLiteral()) {
-			_errorHandler.error(left->_location, boost::format("The left operand of '%s' must evaluate to a literal.") 
+			_errorHandler->error(left->_location, boost::format("The left operand of '%s' must evaluate to a literal.") 
 				% str(operatorDef->_operator));
 			left = move(Expression::invalid(left->_location));
 		}
 
 		if (rightLiteralRequired && !right->isLiteral()) {
-			_errorHandler.error(right->_location, boost::format("The right operand of '%s' must evaluate to a literal.") 
+			_errorHandler->error(right->_location, boost::format("The right operand of '%s' must evaluate to a literal.") 
 				% str(operatorDef->_operator));
 			right = move(Expression::invalid(right->_location));
 		}
@@ -139,7 +139,7 @@ namespace dcpu { namespace parser {
 
 		ExpressionPtr operand = parseUnaryOperation();
 		if (!operand->isLiteral()) {
-			_errorHandler.error(currentToken->location, boost::format("The operand for unary '%s' must evaluate to "
+			_errorHandler->error(currentToken->location, boost::format("The operand for unary '%s' must evaluate to "
 				"a literal.") % str(_operator));
 			return ExpressionPtr(new InvalidExpression(currentToken->location));
 		}
@@ -157,7 +157,7 @@ namespace dcpu { namespace parser {
 		} else if (currentToken->isInteger()) {
 			return parseLiteralExpression(currentToken);
 		} else {
-			_errorHandler.errorUnexpectedToken(currentToken, "a label name, register, or literal");
+			_errorHandler->errorUnexpectedToken(currentToken, "a label name, register, or literal");
 			return Expression::invalid(currentToken->location);
 		}
 	}
@@ -168,7 +168,7 @@ namespace dcpu { namespace parser {
 		auto& nextTkn = nextToken();
 		if (!nextTkn->isCharacter(')')) {
 			--_current;
-			_errorHandler.errorUnexpectedToken(nextTkn, ')');
+			_errorHandler->errorUnexpectedToken(nextTkn, ')');
 		}
 
 		return expr;
@@ -178,20 +178,20 @@ namespace dcpu { namespace parser {
 		auto registerDef = lookupRegister(currentToken->content);
 		if (registerDef) {
 			if (_foundRegister) {
-				_errorHandler.error(currentToken->location, boost::format("Unexpected register '%s'; more than "
+				_errorHandler->error(currentToken->location, boost::format("Unexpected register '%s'; more than "
 					"one register is not allowed in an expression.") % str(registerDef->_register));
 				return Expression::invalid(currentToken->location);
 			}
 
 			_foundRegister = true;
 			if (!_allowRegisters) {
-				_errorHandler.error(currentToken->location, boost::format("Unexpected register '%s'; registers "
+				_errorHandler->error(currentToken->location, boost::format("Unexpected register '%s'; registers "
 					"are not allowed here.") % str(registerDef->_register));
 				return Expression::invalid(currentToken->location);
 			}
 
 			if (_insideIndirect && !registerDef->_indirectable) {
-				_errorHandler.error(currentToken->location, boost::format("Unexpected register '%1%'; '%1%' is not "
+				_errorHandler->error(currentToken->location, boost::format("Unexpected register '%1%'; '%1%' is not "
 					"indirectable.") % str(registerDef->_register));
 				return Expression::invalid(currentToken->location);
 			}
@@ -206,7 +206,7 @@ namespace dcpu { namespace parser {
 		auto& nextTkn = nextToken();
 
 		if (!nextTkn->isIdentifier()) {
-			_errorHandler.errorUnexpectedToken(nextTkn, "a label name");
+			_errorHandler->errorUnexpectedToken(nextTkn, "a label name");
 
 			return Expression::invalid(nextTkn->location);
 		}
@@ -217,7 +217,7 @@ namespace dcpu { namespace parser {
 	ExpressionPtr ExpressionParser::parseLiteralExpression(TokenPtr& currentToken) {
 		IntegerToken* intToken = asInteger(currentToken);
 		if (intToken->overflow) {
-			_errorHandler.warning(intToken->location, boost::format(
+			_errorHandler->warning(intToken->location, boost::format(
 				"%s is larger than the maximum intermediary value (%d).") % intToken->content % UINT32_MAX);
 		}
 

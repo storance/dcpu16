@@ -15,5 +15,4 @@ namespace dcpu { namespace ast {
 	};
 
 	OpcodeDefinition* lookupOpcode(const std::string&);
-	std::string str(Opcode);
 }}

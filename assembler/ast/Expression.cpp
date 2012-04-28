@@ -517,48 +517,6 @@ namespace dcpu { namespace ast {
 	 *
 	 *************************************************************************/
 
-	string str(UnaryOperator op) {
-		switch (op) {
-		case UnaryOperator::PLUS:
-			return "+";
-		case UnaryOperator::MINUS:
-			return "-";
-		case UnaryOperator::NOT:
-			return "!";
-		case UnaryOperator::BITWISE_NOT:
-			return "~";
-		}
-
-		return "<Unknown UnaryOperator>";
-	}
-
-	string str(BinaryOperator op) {
-		switch (op) {
-		case BinaryOperator::PLUS:
-			return "+";
-		case BinaryOperator::MINUS:
-			return "-";
-		case BinaryOperator::MULTIPLY:
-			return "*";
-		case BinaryOperator::DIVIDE:
-			return "/";
-		case BinaryOperator::MODULO:
-			return "%";
-		case BinaryOperator::SHIFT_LEFT:
-			return "<<";
-		case BinaryOperator::SHIFT_RIGHT:
-			return ">>";
-		case BinaryOperator::AND:
-			return "&";
-		case BinaryOperator::OR:
-			return "|";
-		case BinaryOperator::XOR:
-			return "^";
-		}
-
-		return "<Unknown BinaryOperator>";
-	}
-
 	string str(const Expression& expr) {
 		return expr.str();
 	}

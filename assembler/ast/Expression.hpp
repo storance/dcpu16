@@ -7,12 +7,10 @@
 
 #include "Common.hpp"
 #include "RegisterDefinition.hpp"
+#include "../Types.hpp"
 #include "../Token.hpp"
 
 namespace dcpu { namespace ast {
-	class Expression;
-	typedef std::unique_ptr<Expression> ExpressionPtr;
-
 	class Expression {
 	public:
 		lexer::Location _location;
@@ -168,9 +166,6 @@ namespace dcpu { namespace ast {
 		virtual void updateEvaluatedValue(std::int32_t newValue);
 		virtual std::string str() const;
 	};
-
-	std::string str(UnaryOperator);
-	std::string str(BinaryOperator);
 
 	std::string str(const Expression&);
 	std::string str(const ExpressionPtr&);

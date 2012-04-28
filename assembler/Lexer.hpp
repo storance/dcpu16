@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "Token.hpp"
+#include "Types.hpp"
 
 namespace dcpu { namespace lexer {
 	class Lexer {

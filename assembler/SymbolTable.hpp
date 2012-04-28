@@ -3,6 +3,7 @@
 #include <string>
 #include <list>
 #include <map>
+#include <memory>
 #include <cstdint>
 
 #include "ast/Statement.hpp"
