@@ -14,15 +14,15 @@ namespace dcpu { namespace compiler {
 	};
 
 	class Compiler {
-		StatementList &_statements;
+		ast::StatementList &_statements;
 		ErrorHandler &_errorHandler;
 		SymbolTable &_table;
 
-		vector<std::uint16_t> _output;
+		std::vector<std::uint16_t> _output;
 	public:
-		Compiler(StatementList &statements, ErrorHandler &_errorHandler, SymbolTable &_table);
+		Compiler(ast::StatementList &statements, ErrorHandler &_errorHandler, SymbolTable &_table);
 
 		void compile();
-		void write(ostream &out, OutputFormat format=OutputFormat::BigEndian);
+		void write(std::ostream &out, OutputFormat format=OutputFormat::BigEndian);
 	};
 }}

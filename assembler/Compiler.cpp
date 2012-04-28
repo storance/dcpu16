@@ -1,8 +1,11 @@
 #include "Compiler.hpp"
 
+using namespace std;
+using namespace dcpu::ast;
+
 namespace dcpu { namespace compiler {
 	Compiler::Compiler(StatementList &statements, ErrorHandler &errorHandler, SymbolTable &table)
-		: _statements(statements), _errorHandler(errorHandler), _table(table), _format(format) {}
+		: _statements(statements), _errorHandler(errorHandler), _table(table) {}
 
 	void Compiler::compile() {
 		for (auto& stmt : _statements) {
@@ -15,7 +18,7 @@ namespace dcpu { namespace compiler {
     		for (auto& stmt : _statements) {
 	        	anyCompressed |= stmt->compress(_table);
 	    	}
-    	} while (anyCompressed)
+    	} while (anyCompressed);
 
     	for (auto& stmt : _statements) {
         	stmt->compile(_output);

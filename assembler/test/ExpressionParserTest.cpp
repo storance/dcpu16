@@ -25,7 +25,7 @@ void runParser(const string &content, ExpressionPtr &expr, bool insideIndirect,
 	expr = move(parser.parse());
 }
 
-TEST(ParserTest, OperatorPrecedenceTest) {
+TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 	ExpressionPtr expr;
 
 	ASSERT_NO_FATAL_FAILURE(runParser("1 + 2 * 3", expr, false, true));
