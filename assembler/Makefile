@@ -16,8 +16,10 @@ OBJECTS = $(OUTPUT_DIR)/Parser.o \
 		  $(OUTPUT_DIR)/SymbolTable.o
 
 TEST_OBJECTS = $(OBJECTS) \
+			   $(OUTPUT_DIR)/Utils.o \
 			   $(OUTPUT_DIR)/LexerTest.o \
-			   $(OUTPUT_DIR)/ParserTest.o 
+			   $(OUTPUT_DIR)/ParserTest.o \
+			   $(OUTPUT_DIR)/ExpressionParserTest.o 
 
 all: assembler
 
@@ -63,10 +65,16 @@ $(OUTPUT_DIR)/Lexer.o: Lexer.cpp Lexer.hpp Token.hpp | $(OUTPUT_DIR)
 $(OUTPUT_DIR):
 	mkdir $@
 
+$(OUTPUT_DIR)/Utils.o: test/Utils.cpp test/Utils.hpp ast/Expression.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
 $(OUTPUT_DIR)/LexerTest.o: test/LexerTest.cpp Lexer.hpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandler.hpp ast/*.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandler.hpp ast/*.hpp test/Utils.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/ExpressionParserTest.o: test/ExpressionParserTest.cpp ExpressionParser.hpp ExpressionParser.cpp ast/*.hpp test/Utils.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 unittest: $(TEST_OBJECTS)

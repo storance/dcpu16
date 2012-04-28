@@ -3,11 +3,9 @@
 #include <string>
 #include <cstdint>
 
-namespace dcpu { namespace ast {
-	enum class Register : std::uint8_t {
-		A, B, C, X, Y, Z, I, J, SP, PC, EX
-	};
+#include "Common.hpp"
 
+namespace dcpu { namespace ast {
 	struct RegisterDefinition {
 		Register _register;
 		bool _indirectable;

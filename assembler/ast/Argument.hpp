@@ -3,30 +3,19 @@
 #include <string>
 #include <cstdint>
 
+#include "Common.hpp"
 #include "Expression.hpp"
 
 namespace dcpu { namespace ast {
-	enum class StackOperation {
-		PUSH,
-		POP,
-		PEEK
-	};
-
-	enum class ArgumentPosition {
-		A,
-		B
-	};
-
 	class Argument {
 	public:
 		lexer::Location _location;
 		ArgumentPosition _position;
 
-		//virtual void compile()=0;
-
 		Argument(const lexer::Location&, ArgumentPosition);
 		virtual ~Argument();
 
+		virtual uint8_t compile(std::vector<std::uint16_t> &output)=0;
 		virtual bool isNextWordRequired() const=0;
 		virtual std::string str() const=0;
 	};
@@ -39,6 +28,7 @@ namespace dcpu { namespace ast {
 
 		StackArgument(const lexer::Location&, ArgumentPosition, StackOperation);
 
+		virtual uint8_t compile(std::vector<std::uint16_t> &output);
 		virtual bool isNextWordRequired() const;
 		virtual std::string str() const;
 	};
@@ -50,6 +40,7 @@ namespace dcpu { namespace ast {
 		IndirectArgument(ArgumentPosition, ExpressionPtr&&);
 		IndirectArgument(ArgumentPosition, ExpressionPtr&);
 
+		virtual uint8_t compile(std::vector<std::uint16_t> &output);
 		virtual bool isNextWordRequired() const;
 		virtual std::string str() const;
 	};
@@ -61,6 +52,7 @@ namespace dcpu { namespace ast {
 		ExpressionArgument(ArgumentPosition, ExpressionPtr&&);
 		ExpressionArgument(ArgumentPosition, ExpressionPtr&);
 
+		virtual uint8_t compile(std::vector<std::uint16_t> &output);
 		virtual bool isNextWordRequired() const;
 		virtual std::string str() const;
 	};

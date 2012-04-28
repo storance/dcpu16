@@ -2,63 +2,60 @@
 
 #include <string>
 #include <list>
+#include <vector>
 #include <cstdint>
 
+#include "Common.hpp"
 #include "OpcodeDefinition.hpp"
 #include "Argument.hpp"
+#include "../ErrorHandler.hpp"
 
+namespace dcpu { class SymbolTable; }
 
-namespace dcpu { 
-	class SymbolTable;
+namespace dcpu { namespace ast {
+	class Statement {
+	public:
+		lexer::Location _location;
 
-	namespace ast {
-		enum class LabelType {
-			Global,
-			Local,
-			GlobalNoAttach
-		};
+		Statement(const lexer::Location&);
+		virtual ~Statement();
 
-		class Statement {
-		public:
-			lexer::Location _location;
+		virtual std::string str() const=0;
+		virtual void buildSymbolTable(SymbolTable& table, std::uint16_t &position) const=0;
+		virtual void evaluateExpressions(SymbolTable& table, ErrorHandler &errorHandler);
+		virtual bool compress(SymbolTable& table);
+		virtual void compile(std::vector<std::uint16_t> &output);
+	};
 
-			//virtual void buildSymbolTable()=0;
-			//virtual void compile()=0;
+	typedef std::unique_ptr<ast::Statement> StatementPtr;
+	typedef std::list<StatementPtr> StatementList;
 
-			Statement(const lexer::Location&);
-			virtual ~Statement();
+	class Instruction : public Statement {
+	public:
+		Opcode _opcode;
+		ArgumentPtr _a;
+		ArgumentPtr _b;
 
-			virtual std::string str() const=0;
-			virtual void buildSymbolTable(SymbolTable& table, std::uint16_t &position) const=0;
-		};
+		Instruction(const lexer::Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
+		Instruction(const lexer::Location&, Opcode, ArgumentPtr &&a, ArgumentPtr &&b);
 
-		typedef std::unique_ptr<ast::Statement> StatementPtr;
-		typedef std::list<StatementPtr> StatementList;
+		virtual std::string str() const;
+		virtual void buildSymbolTable(SymbolTable& table, std::uint16_t &position) const;
+		virtual void evaluateExpressions(SymbolTable& table, ErrorHandler &errorHandler);
+		virtual bool compress(SymbolTable& table);
+		virtual void compile(std::vector<std::uint16_t> &output);
+	};
 
-		class Instruction : public Statement {
-		public:
-			Opcode _opcode;
-			ArgumentPtr _a;
-			ArgumentPtr _b;
+	class Label : public Statement {
+	public:
+		LabelType _type;
+		std::string _name;
 
-			Instruction(const lexer::Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
-			Instruction(const lexer::Location&, Opcode, ArgumentPtr &&a, ArgumentPtr &&b);
+		Label(const lexer::Location&, const std::string&);
 
-			virtual std::string str() const;
-			virtual void buildSymbolTable(SymbolTable& table, std::uint16_t &position) const;
-		};
+		virtual std::string str() const;
+		virtual void buildSymbolTable(SymbolTable& table, std::uint16_t &position) const;
+	};
 
-		class Label : public Statement {
-		public:
-			LabelType _type;
-			std::string _name;
-
-			Label(const lexer::Location&, const std::string&);
-
-			virtual std::string str() const;
-			virtual void buildSymbolTable(SymbolTable& table, std::uint16_t &position) const;
-		};
-
-		std::string str(const StatementPtr&);
-	}
-}
+	std::string str(const StatementPtr&);
+}}

@@ -7,12 +7,33 @@
 
 #include "Parser.hpp"
 #include "SymbolTable.hpp"
+#include "Compiler.hpp"
 
 using namespace std;
 using namespace dcpu;
 using namespace dcpu::ast;
 using namespace dcpu::lexer;
 using namespace dcpu::parser;
+
+void compile(StatementList &statements, SymbolTable &table, ostream &out, bool littleEndian) {
+    vector<std::uint16_t> words;
+    for (auto& stmt : statements) {
+        stmt->compile(words);
+    }
+
+    for (auto word : words) {
+        uint8_t b1 = word & 0xff;
+        uint8_t b2 = (word >> 8) & 0xff;
+
+        if (littleEndian) {
+            out.put(b1);
+            out.put(b2);
+        } else {
+            out.put(b2);
+            out.put(b1);
+        }
+    }
+}
 
 int main(int argc, char **argv) {
 	if (argc < 2) {

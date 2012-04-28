@@ -39,7 +39,7 @@ namespace dcpu { namespace ast {
 		{"int", OpcodeDefinition(Opcode::INT, 1)},
 		{"iag", OpcodeDefinition(Opcode::IAG, 1)},
 		{"ias", OpcodeDefinition(Opcode::IAS, 1)},
-		{"iap", OpcodeDefinition(Opcode::IAP, 1)},
+		{"rfi", OpcodeDefinition(Opcode::RFI, 1)},
 		{"iaq", OpcodeDefinition(Opcode::IAQ, 1)},
 		{"hwn", OpcodeDefinition(Opcode::HWN, 1)},
 		{"hwq", OpcodeDefinition(Opcode::HWQ, 1)},
@@ -125,8 +125,8 @@ namespace dcpu { namespace ast {
 			return "IAG";
 		case Opcode::IAS:
 			return "IAS";
-		case Opcode::IAP:
-			return "IAP";
+		case Opcode::RFI:
+			return "RFI";
 		case Opcode::IAQ:
 			return "IAQ";
 		case Opcode::HWN:

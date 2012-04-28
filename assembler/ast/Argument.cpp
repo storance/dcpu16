@@ -1,5 +1,6 @@
 #include "Argument.hpp"
 
+#include <stdexcept>
 #include <boost/format.hpp>
 
 using namespace std;
@@ -33,6 +34,16 @@ namespace dcpu { namespace ast {
 		return false;
 	}
 
+	uint8_t StackArgument::compile(std::vector<std::uint16_t> &output) {
+		if (_operation == StackOperation::PUSH || _operation == StackOperation::POP) {
+			return 0x18;
+		} else if (_operation == StackOperation::PEEK) {
+			return 0x19;
+		}
+
+		throw new logic_error(boost::str(boost::format("Unknown StackOperation %d") % static_cast<int>(_operation)));
+	}
+
 	/*************************************************************************
 	 *
 	 * IndirectArgument
@@ -50,7 +61,11 @@ namespace dcpu { namespace ast {
 	}
 
 	bool IndirectArgument::isNextWordRequired() const {
-		return _expr->isNextWordRequired();
+		return _expr->isNextWordRequired(_position, false);
+	}
+
+	uint8_t IndirectArgument::compile(std::vector<std::uint16_t> &output) {
+		return _expr->compile(output, _position, true, false);
 	}
 
 	/*************************************************************************
@@ -70,7 +85,11 @@ namespace dcpu { namespace ast {
 	}
 
 	bool ExpressionArgument::isNextWordRequired() const {
-		return _expr->isNextWordRequired();
+		return _expr->isNextWordRequired(_position, false);
+	}
+
+	uint8_t ExpressionArgument::compile(std::vector<std::uint16_t> &output) {
+		return _expr->compile(output, _position, false, false);
 	}
 
 	/*************************************************************************

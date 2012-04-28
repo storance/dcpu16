@@ -1,8 +1,8 @@
 #include <iostream>
 #include <list>
-#include <functional>
 #include <gtest/gtest.h>
 
+#include "Utils.hpp"
 #include "../Parser.hpp"
 #include "../SymbolTable.hpp"
 
@@ -99,66 +99,6 @@ ArgumentFunc assertArgumentIsNull() {
 	};
 }
 
-ExpressionFunc assertIsBinaryOperation(BinaryOperator expectedOperation,
-	ExpressionFunc assertLeft, ExpressionFunc assertRight) {
-
-	return [=] (ExpressionPtr& expr) {
-		BinaryOperation* binaryOp = dynamic_cast<BinaryOperation*>(expr.get());
-
-		ASSERT_TRUE(binaryOp != nullptr);
-		EXPECT_EQ(expectedOperation, binaryOp->_operator);
-		{
-			SCOPED_TRACE("Verify left-hand expression");
-			assertLeft(binaryOp->_left);
-		}
-		{
-			SCOPED_TRACE("Verify right-hand expression");
-			assertRight(binaryOp->_right);
-		}
-	};
-}
-
-ExpressionFunc assertIsUnaryOperation(UnaryOperator expectedOperation, ExpressionFunc assertOperand) {
-
-	return [=] (ExpressionPtr& expr) {
-		UnaryOperation* unaryOp = dynamic_cast<UnaryOperation*>(expr.get());
-
-		ASSERT_TRUE(unaryOp != nullptr);
-		EXPECT_EQ(expectedOperation, unaryOp->_operator);
-		{
-			SCOPED_TRACE("Verify operand");
-			assertOperand(unaryOp->_operand);
-		}
-	};
-}
-
-ExpressionFunc assertIsLabelRef(const string &labelName) {
-	return [=] (ExpressionPtr& expr) {
-		LabelReferenceOperand* labelRefOp = dynamic_cast<LabelReferenceOperand*>(expr.get());
-
-		ASSERT_TRUE(labelRefOp != nullptr);
-		EXPECT_EQ(labelName, labelRefOp->_label);
-	};
-}
-
-ExpressionFunc assertIsRegister(Register expectedRegister) {
-	return [=] (ExpressionPtr& expr) {
-		RegisterOperand* registerOp = dynamic_cast<RegisterOperand*>(expr.get());
-
-		ASSERT_TRUE(registerOp != nullptr);
-		EXPECT_EQ(expectedRegister, registerOp->_register);
-	};
-}
-
-ExpressionFunc assertIsLiteral(uint32_t expectedValue) {
-	return [=] (ExpressionPtr& expr) {
-		LiteralOperand* literalOp = dynamic_cast<LiteralOperand*>(expr.get());
-
-		ASSERT_TRUE(literalOp != nullptr);
-		EXPECT_EQ(expectedValue, literalOp->_value);
-	};
-}
-
 void runParser(const string &content, int expectedStatements, StatementList &statements, SymbolTable &table) {
 	Lexer lexer(content.begin(), content.end(), "<ParserTest>");
 	lexer.parse();
@@ -178,30 +118,269 @@ void runParser(const string &content, int expectedStatements, StatementList &sta
 	runParser(content, expectedStatements, statements, table);
 }
 
-TEST(ParserTest, ParseInstruction) {
+TEST(ParserTest, InstructionTest) {
 	StatementList statements;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("SET A, 1\n   add pc  ,\ti\n\njsr X", 3, statements));
+	ASSERT_NO_FATAL_FAILURE(runParser("SET A, B\nADD A, B\nSUB A, B\nMUL A, B\nMLI A, B\nDIV A, B\nDVI A, B\nMOD A, B\n"
+		"AND A, B\nBOR A, B\nXOR A, B\nSHR A, B\nASR A, B\nSHL A, B\nSTI A, B\nIFB A, B\nIFC A, B\nIFE A, B\nIFN A, B\n"
+		"IFG A, B\nIFA A, B\nIFL A, B\nIFU A, B\nADX A, B\nSBX A, B\nJSR A\nHCF A\nINT A\nIAG A\nIAS A\nHWN A\nHWQ A\n"
+		"HWI A\nJMP A\nMDI A, B\nSTD A, B\nRFI A\n IAQ A\n", 38, statements));
 
 	auto it = statements.begin();
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsLiteral(1)));
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
 	}
 
 	{
 		SCOPED_TRACE("Statement: 2"); 
 		assertInstruction(it, Opcode::ADD,
-			assertArgumentIsExpression(assertIsRegister(Register::PC)),
-			assertArgumentIsExpression(assertIsRegister(Register::I)));
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
 	}
 
 	{
 		SCOPED_TRACE("Statement: 3"); 
+		assertInstruction(it, Opcode::SUB,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 4"); 
+		assertInstruction(it, Opcode::MUL,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 5"); 
+		assertInstruction(it, Opcode::MLI,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 6"); 
+		assertInstruction(it, Opcode::DIV,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 7"); 
+		assertInstruction(it, Opcode::DVI,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 8"); 
+		assertInstruction(it, Opcode::MOD,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 9"); 
+		assertInstruction(it, Opcode::AND,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 10"); 
+		assertInstruction(it, Opcode::BOR,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 11"); 
+		assertInstruction(it, Opcode::XOR,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 12"); 
+		assertInstruction(it, Opcode::SHR,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 13"); 
+		assertInstruction(it, Opcode::ASR,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 14"); 
+		assertInstruction(it, Opcode::SHL,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 15"); 
+		assertInstruction(it, Opcode::STI,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 16"); 
+		assertInstruction(it, Opcode::IFB,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 16"); 
+		assertInstruction(it, Opcode::IFC,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 18"); 
+		assertInstruction(it, Opcode::IFE,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 19"); 
+		assertInstruction(it, Opcode::IFN,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 20"); 
+		assertInstruction(it, Opcode::IFG,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 21"); 
+		assertInstruction(it, Opcode::IFA,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 22"); 
+		assertInstruction(it, Opcode::IFL,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+
+	{
+		SCOPED_TRACE("Statement: 23"); 
+		assertInstruction(it, Opcode::IFU,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 24"); 
+		assertInstruction(it, Opcode::ADX,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 25"); 
+		assertInstruction(it, Opcode::SBX,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 26"); 
 		assertInstruction(it, Opcode::JSR,
-			assertArgumentIsExpression(assertIsRegister(Register::X)));
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 27"); 
+		assertInstruction(it, Opcode::HCF,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 28"); 
+		assertInstruction(it, Opcode::INT,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 29"); 
+		assertInstruction(it, Opcode::IAG,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 30"); 
+		assertInstruction(it, Opcode::IAS,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 31"); 
+		assertInstruction(it, Opcode::HWN,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 32"); 
+		assertInstruction(it, Opcode::HWQ,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 33"); 
+		assertInstruction(it, Opcode::HWI,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 34"); 
+		assertInstruction(it, Opcode::JMP,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 35"); 
+		assertInstruction(it, Opcode::MDI,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 36"); 
+		assertInstruction(it, Opcode::STD,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 37"); 
+		assertInstruction(it, Opcode::RFI,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 38"); 
+		assertInstruction(it, Opcode::IAQ,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
 	}
 }
 
@@ -233,8 +412,8 @@ TEST(ParserTest, LabelTest) {
 	{
 		SCOPED_TRACE("Statement: 4"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
 	}
 
 	{
@@ -246,8 +425,93 @@ TEST(ParserTest, LabelTest) {
 	{
 		SCOPED_TRACE("Statement: 6"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+}
+
+TEST(ParserTest, RegisterTest) {
+	StatementList statements;
+
+	ASSERT_NO_FATAL_FAILURE(runParser("SET A, A\nSET B, B\nSET C, C\nSET X, X\nSET Y, Y\n"
+		"SET Z, Z\nSET I, I\nSET J, J\nSET PC, PC\nSET SP, SP\nSET EX, EX\n", 11, statements));
+
+	auto it = statements.begin();
+	{
+		SCOPED_TRACE("Statement: 1"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 2"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 3"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::C)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::C)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 4"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::X)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::X)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 5"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::Y)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::Y)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 6"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::Z)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::Z)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 7"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::I)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::I)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 8"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::J)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::J)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 9"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::PC)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::PC)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 10"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::SP)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::SP)));
+	}
+
+	{
+		SCOPED_TRACE("Statement: 11"); 
+		assertInstruction(it, Opcode::SET,
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::EX)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::EX)));
 	}
 }
 
@@ -259,10 +523,8 @@ TEST(ParserTest, SimpleExpressionTest) {
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(
-				assertIsBinaryOperation(BinaryOperator::MULTIPLY, assertIsLiteral(4), assertIsLiteral(2))),
-			assertArgumentIsExpression(
-				assertIsBinaryOperation(BinaryOperator::PLUS, assertIsLiteral(1), assertIsLiteral(2))));
+			assertArgumentIsExpression(assertIsEvaluatedLiteral(8)),
+			assertArgumentIsExpression(assertIsEvaluatedLiteral(3)));
 	}
 }
 
@@ -274,9 +536,9 @@ TEST(ParserTest, IndirectionTest) {
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsIndirect(assertIsRegister(Register::A)),
-			assertArgumentIsIndirect(
-				assertIsBinaryOperation(BinaryOperator::MULTIPLY, assertIsLiteral(1), assertIsLiteral(2))));
+			assertArgumentIsIndirect(assertIsEvaluatedRegister(Register::A)),
+			assertArgumentIsIndirect(assertIsEvaluatedLiteral(2))
+		);
 	}
 
 	ASSERT_NO_FATAL_FAILURE(runParser("set [B - 4], [5 + J]", 1, statements));
@@ -285,157 +547,9 @@ TEST(ParserTest, IndirectionTest) {
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
 			assertArgumentIsIndirect(
-				assertIsBinaryOperation(BinaryOperator::MINUS, assertIsRegister(Register::B), assertIsLiteral(4))),
+				assertIsEvaluatedRegister(Register::B, true, -4)),
 			assertArgumentIsIndirect(
-				assertIsBinaryOperation(BinaryOperator::PLUS, assertIsLiteral(5), assertIsRegister(Register::J))));
-	}
-}
-
-TEST(ParserTest, OperatorPrecedenceTest) {
-	StatementList statements;
-
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, 1 + 2 * 3", 1, statements));
-	auto it = statements.begin();
-	{
-		SCOPED_TRACE("Statement: 1"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(
-				assertIsBinaryOperation(BinaryOperator::PLUS,
-					assertIsLiteral(1),
-					assertIsBinaryOperation(BinaryOperator::MULTIPLY, 
-						assertIsLiteral(2),
-						assertIsLiteral(3)
-					)
-				)
-			)
-		);
-	}
-
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, 1 & 2 | 3 ^ 4", 1, statements));
-	it = statements.begin();
-	{
-		SCOPED_TRACE("Statement: 1"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(
-				assertIsBinaryOperation(BinaryOperator::OR,
-					assertIsBinaryOperation(BinaryOperator::AND,
-						assertIsLiteral(1),
-						assertIsLiteral(2)
-					), assertIsBinaryOperation(BinaryOperator::XOR, 
-						assertIsLiteral(3),
-						assertIsLiteral(4)
-					)
-				)
-			)
-		);
-	}
-
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, 1 << 4 & 2 >> 3", 1, statements));
-	it = statements.begin();
-	{
-		SCOPED_TRACE("Statement: 1"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(
-				assertIsBinaryOperation(BinaryOperator::AND,
-					assertIsBinaryOperation(BinaryOperator::SHIFT_LEFT,
-						assertIsLiteral(1),
-						assertIsLiteral(4)
-					), assertIsBinaryOperation(BinaryOperator::SHIFT_RIGHT, 
-						assertIsLiteral(2),
-						assertIsLiteral(3)
-					)
-				)
-			)
-		);
-	}
-
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, 1 + 2 << 3 >> 4 - 5", 1, statements));
-	it = statements.begin();
-	{
-		SCOPED_TRACE("Statement: 1"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(
-				assertIsBinaryOperation(BinaryOperator::SHIFT_RIGHT,
-					assertIsBinaryOperation(BinaryOperator::SHIFT_LEFT,
-						assertIsBinaryOperation(BinaryOperator::PLUS,
-							assertIsLiteral(1),
-							assertIsLiteral(2)
-						), assertIsLiteral(3)
-					), assertIsBinaryOperation(BinaryOperator::MINUS,
-						assertIsLiteral(4),
-						assertIsLiteral(5)
-					)
-				)
-			)
-		);
-	}
-
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, 1 * 2 + 3 / 4 % 5", 1, statements));
-	it = statements.begin();
-	{
-		SCOPED_TRACE("Statement: 1"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(
-				assertIsBinaryOperation(BinaryOperator::PLUS,
-					assertIsBinaryOperation(BinaryOperator::MULTIPLY,
-						assertIsLiteral(1),
-						assertIsLiteral(2)
-					), assertIsBinaryOperation(BinaryOperator::MODULO,
-						assertIsBinaryOperation(BinaryOperator::DIVIDE,
-							assertIsLiteral(3),
-							assertIsLiteral(4)
-						),
-						assertIsLiteral(5)
-					)
-				)
-			)
-		);
-	}
-
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, -1 * !-2 / +3 % ~4", 1, statements));
-	it = statements.begin();
-	{
-		SCOPED_TRACE("Statement: 1"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(
-				assertIsBinaryOperation(BinaryOperator::MODULO,
-					assertIsBinaryOperation(BinaryOperator::DIVIDE,
-						assertIsBinaryOperation(BinaryOperator::MULTIPLY,
-							assertIsUnaryOperation(UnaryOperator::MINUS, assertIsLiteral(1)),
-							assertIsUnaryOperation(UnaryOperator::NOT,
-								assertIsUnaryOperation(UnaryOperator::MINUS, assertIsLiteral(2)))
-						), assertIsUnaryOperation(UnaryOperator::PLUS, assertIsLiteral(3))
-					), assertIsUnaryOperation(UnaryOperator::BITWISE_NOT, assertIsLiteral(4))
-				)
-			)
-		);
-	}
-
-	ASSERT_NO_FATAL_FAILURE(runParser("set A, -(1 + 2) * (3 + 4)", 1, statements));
-	it = statements.begin();
-	{
-		SCOPED_TRACE("Statement: 1"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(
-				assertIsBinaryOperation(BinaryOperator::MULTIPLY,
-					assertIsUnaryOperation(UnaryOperator::MINUS,
-						assertIsBinaryOperation(BinaryOperator::PLUS,
-							assertIsLiteral(1),
-							assertIsLiteral(2)
-						)
-					), assertIsBinaryOperation(BinaryOperator::PLUS,
-						assertIsLiteral(3),
-						assertIsLiteral(4)
-					)
-				)
-			)
+				assertIsEvaluatedRegister(Register::J, true, 5))
 		);
 	}
 }
@@ -455,7 +569,12 @@ TEST(ParserTest, LabelReferencesTest) {
 		assertInstruction(it, Opcode::SET,
 			assertArgumentIsExpression(assertIsLabelRef("label")),
 			assertArgumentIsIndirect(
-				assertIsBinaryOperation(BinaryOperator::MULTIPLY, assertIsLabelRef("label"), assertIsLiteral(2))));
+				assertIsBinaryOperation(BinaryOperator::MULTIPLY,
+					assertIsLabelRef("label"),
+					assertIsLiteral(2)
+				)
+			)
+		);
 	}
 
 	{
@@ -466,7 +585,7 @@ TEST(ParserTest, LabelReferencesTest) {
 	{
 		SCOPED_TRACE("Statement: 2"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
 			assertArgumentIsExpression(assertIsLabelRef("a")));
 	}
 }
@@ -479,14 +598,14 @@ TEST(ParserTest, StackArgumentsTest) {
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
 			assertArgumentIsStack(StackOperation::PEEK));
 	}
 
 	{
 		SCOPED_TRACE("Statement: 2"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::B)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)),
 			assertArgumentIsStack(StackOperation::POP));
 	}
 
@@ -494,7 +613,7 @@ TEST(ParserTest, StackArgumentsTest) {
 		SCOPED_TRACE("Statement: 3"); 
 		assertInstruction(it, Opcode::SET,
 			assertArgumentIsStack(StackOperation::PUSH),
-			assertArgumentIsExpression(assertIsRegister(Register::C)));
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::C)));
 	}
 
 	ASSERT_NO_FATAL_FAILURE(runParser("set A, PEEK\nset B, POP\nset PUSH , C\nset PICK 5, PICK 1 + 2", 4, statements));
@@ -502,14 +621,14 @@ TEST(ParserTest, StackArgumentsTest) {
 	{
 		SCOPED_TRACE("Statement: 1"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::A)),
 			assertArgumentIsStack(StackOperation::PEEK));
 	}
 
 	{
 		SCOPED_TRACE("Statement: 2"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::B)),
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::B)),
 			assertArgumentIsStack(StackOperation::POP));
 	}
 
@@ -517,372 +636,14 @@ TEST(ParserTest, StackArgumentsTest) {
 		SCOPED_TRACE("Statement: 3"); 
 		assertInstruction(it, Opcode::SET,
 			assertArgumentIsStack(StackOperation::PUSH),
-			assertArgumentIsExpression(assertIsRegister(Register::C)));
+			assertArgumentIsExpression(assertIsEvaluatedRegister(Register::C)));
 	}
 
 	{
 		SCOPED_TRACE("Statement: 4"); 
 		assertInstruction(it, Opcode::SET,
-			assertArgumentIsIndirect(assertIsBinaryOperation(BinaryOperator::PLUS,
-				assertIsRegister(Register::SP), assertIsLiteral(5))
-			),
-			assertArgumentIsIndirect(assertIsBinaryOperation(BinaryOperator::PLUS,
-				assertIsRegister(Register::SP),
-				assertIsBinaryOperation(BinaryOperator::PLUS,
-					assertIsLiteral(1), assertIsLiteral(2)
-				)
-			))
+			assertArgumentIsIndirect(assertIsEvaluatedRegister(Register::SP, true, 5)),
+			assertArgumentIsIndirect(assertIsEvaluatedRegister(Register::SP, true, 3))
 		);
-	}
-}
-
-TEST(ParserTest, InstructionTest) {
-	StatementList statements;
-
-	ASSERT_NO_FATAL_FAILURE(runParser("SET A, B\nADD A, B\nSUB A, B\nMUL A, B\nMLI A, B\nDIV A, B\nDVI A, B\nMOD A, B\n"
-		"AND A, B\nBOR A, B\nXOR A, B\nSHR A, B\nASR A, B\nSHL A, B\nSTI A, B\nIFB A, B\nIFC A, B\nIFE A, B\nIFN A, B\n"
-		"IFG A, B\nIFA A, B\nIFL A, B\nIFU A, B\nADX A, B\nSBX A, B\nJSR A\nHCF A\nINT A\nIAG A\nIAS A\nHWN A\nHWQ A\n"
-		"HWI A\nJMP A\nMDI A, B\nSTD A, B\nIAP A\n IAQ A\n", 38, statements));
-
-	auto it = statements.begin();
-	{
-		SCOPED_TRACE("Statement: 1"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 2"); 
-		assertInstruction(it, Opcode::ADD,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 3"); 
-		assertInstruction(it, Opcode::SUB,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 4"); 
-		assertInstruction(it, Opcode::MUL,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 5"); 
-		assertInstruction(it, Opcode::MLI,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 6"); 
-		assertInstruction(it, Opcode::DIV,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 7"); 
-		assertInstruction(it, Opcode::DVI,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 8"); 
-		assertInstruction(it, Opcode::MOD,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 9"); 
-		assertInstruction(it, Opcode::AND,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 10"); 
-		assertInstruction(it, Opcode::BOR,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 11"); 
-		assertInstruction(it, Opcode::XOR,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 12"); 
-		assertInstruction(it, Opcode::SHR,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 13"); 
-		assertInstruction(it, Opcode::ASR,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 14"); 
-		assertInstruction(it, Opcode::SHL,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 15"); 
-		assertInstruction(it, Opcode::STI,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 16"); 
-		assertInstruction(it, Opcode::IFB,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 16"); 
-		assertInstruction(it, Opcode::IFC,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 18"); 
-		assertInstruction(it, Opcode::IFE,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 19"); 
-		assertInstruction(it, Opcode::IFN,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 20"); 
-		assertInstruction(it, Opcode::IFG,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 21"); 
-		assertInstruction(it, Opcode::IFA,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 22"); 
-		assertInstruction(it, Opcode::IFL,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-
-	{
-		SCOPED_TRACE("Statement: 23"); 
-		assertInstruction(it, Opcode::IFU,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 24"); 
-		assertInstruction(it, Opcode::ADX,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 25"); 
-		assertInstruction(it, Opcode::SBX,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 26"); 
-		assertInstruction(it, Opcode::JSR,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 27"); 
-		assertInstruction(it, Opcode::HCF,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 28"); 
-		assertInstruction(it, Opcode::INT,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 29"); 
-		assertInstruction(it, Opcode::IAG,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 30"); 
-		assertInstruction(it, Opcode::IAS,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 31"); 
-		assertInstruction(it, Opcode::HWN,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 32"); 
-		assertInstruction(it, Opcode::HWQ,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 33"); 
-		assertInstruction(it, Opcode::HWI,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 34"); 
-		assertInstruction(it, Opcode::JMP,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 35"); 
-		assertInstruction(it, Opcode::MDI,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 36"); 
-		assertInstruction(it, Opcode::STD,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 37"); 
-		assertInstruction(it, Opcode::IAP,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 38"); 
-		assertInstruction(it, Opcode::IAQ,
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-}
-
-TEST(ParserTest, RegisterTest) {
-	StatementList statements;
-
-	ASSERT_NO_FATAL_FAILURE(runParser("SET A, A\nSET B, B\nSET C, C\nSET X, X\nSET Y, Y\n"
-		"SET Z, Z\nSET I, I\nSET J, J\nSET PC, PC\nSET SP, SP\nSET EX, EX\n", 11, statements));
-
-	auto it = statements.begin();
-	{
-		SCOPED_TRACE("Statement: 1"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::A)),
-			assertArgumentIsExpression(assertIsRegister(Register::A)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 2"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::B)),
-			assertArgumentIsExpression(assertIsRegister(Register::B)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 3"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::C)),
-			assertArgumentIsExpression(assertIsRegister(Register::C)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 4"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::X)),
-			assertArgumentIsExpression(assertIsRegister(Register::X)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 5"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::Y)),
-			assertArgumentIsExpression(assertIsRegister(Register::Y)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 6"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::Z)),
-			assertArgumentIsExpression(assertIsRegister(Register::Z)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 7"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::I)),
-			assertArgumentIsExpression(assertIsRegister(Register::I)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 8"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::J)),
-			assertArgumentIsExpression(assertIsRegister(Register::J)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 9"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::PC)),
-			assertArgumentIsExpression(assertIsRegister(Register::PC)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 10"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::SP)),
-			assertArgumentIsExpression(assertIsRegister(Register::SP)));
-	}
-
-	{
-		SCOPED_TRACE("Statement: 11"); 
-		assertInstruction(it, Opcode::SET,
-			assertArgumentIsExpression(assertIsRegister(Register::EX)),
-			assertArgumentIsExpression(assertIsRegister(Register::EX)));
 	}
 }

@@ -51,7 +51,11 @@ void Parser::parse() {
 
 void Parser::addStatement(StatementPtr& statement) {
 	std::uint16_t oldPositiion = _outputPosition;
-	statement->buildSymbolTable(_symbolTable, _outputPosition);
+	try {
+		statement->buildSymbolTable(_symbolTable, _outputPosition);
+	} catch (std::exception &e) {
+		_errorHandler.error(statement->_location, e.what());
+	}
 
 	if (_outputPosition < oldPositiion) {
 		_errorHandler.error(statement->_location, "binary output has exceeded the DCPU-16's memory "
@@ -242,14 +246,22 @@ bool Parser::parseMnemonicStackArgument(TokenPtr& currentToken, ArgumentPtr& arg
 		arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::PEEK)));
 		return true;
 	} else if (boost::algorithm::iequals(currentToken->content, "PICK")) {
-		auto leftOperand = ExpressionPtr(new RegisterOperand(currentToken->location, Register::SP));
 		auto rightOperand = parseExpression(false, false);
 
-		arg = move(ArgumentPtr(new IndirectArgument(position,
-			ExpressionPtr(new BinaryOperation(
-				currentToken->location, BinaryOperator::PLUS, leftOperand, rightOperand)
-			)
-		)));
+		if (rightOperand->isEvaluatable()) {
+			arg = move(ArgumentPtr(new IndirectArgument(position,
+				ExpressionPtr(new EvaluatedRegister(currentToken->location, Register::SP,
+					true, rightOperand->evaluate()->getValue())
+				)
+			)));
+		} else {
+			auto leftOperand = ExpressionPtr(new RegisterOperand(currentToken->location, Register::SP));
+			arg = move(ArgumentPtr(new IndirectArgument(position,
+				ExpressionPtr(new BinaryOperation(currentToken->location, BinaryOperator::PLUS,
+					leftOperand, rightOperand)
+				)
+			)));
+		}
 		return true;
 	}
 
@@ -258,7 +270,13 @@ bool Parser::parseMnemonicStackArgument(TokenPtr& currentToken, ArgumentPtr& arg
 
 ExpressionPtr Parser::parseExpression(bool allowRegisters, bool insideIndirection) {
 	ExpressionParser parser(_current, _end, _errorHandler, insideIndirection, allowRegisters);
-	return parser.parse();
+	auto expr = parser.parse();
+
+	if (expr->isEvaluatable()) {
+		return expr->evaluate();
+	}
+
+	return expr;
 }
 
 void Parser::advanceUntil(function<bool (const Token&)> predicate) {

@@ -18,13 +18,25 @@ namespace dcpu { namespace ast {
 
 	Statement::~Statement() {}
 
+	void Statement::evaluateExpressions(SymbolTable& table, ErrorHandler &errorHandler) {
+
+	}
+	
+	bool Statement::compress(SymbolTable& table) {
+		return false;
+	}
+	
+	void Statement::compile(vector<uint16_t> &output) {
+
+	}
+
 	/*************************************************************************
 	 *
 	 * Label
 	 *
 	 *************************************************************************/
 
-	Label::Label(const Location &location, const std::string &name)
+	Label::Label(const Location &location, const string &name)
 		: Statement(location), _name(name) {
 		if (boost::starts_with(_name, "..@")) {
 			_type = LabelType::GlobalNoAttach;
@@ -39,7 +51,7 @@ namespace dcpu { namespace ast {
 		return (boost::format("%s:") % _name).str();
 	}
 
-	void Label::buildSymbolTable(SymbolTable& table, std::uint16_t &position) const {
+	void Label::buildSymbolTable(SymbolTable& table, uint16_t &position) const {
 		table.add(*this, position);
 	}
 
@@ -67,7 +79,7 @@ namespace dcpu { namespace ast {
 		}
 	}
 
-	void Instruction::buildSymbolTable(SymbolTable& table, std::uint16_t &position) const {
+	void Instruction::buildSymbolTable(SymbolTable& table, uint16_t &position) const {
 		++position;
 
 		if (_b && _b->isNextWordRequired()) {
@@ -76,6 +88,33 @@ namespace dcpu { namespace ast {
 
 		if (_a && _a->isNextWordRequired()) {
 			++position;
+		}
+	}
+
+	void Instruction::evaluateExpressions(SymbolTable& table, ErrorHandler &errorHandler) {
+
+	}
+	
+	bool Instruction::compress(SymbolTable& table) {
+		return false;
+	}
+	
+	void Instruction::compile(vector<uint16_t> &output) {
+		// Allows the arg compile to push their next word to output while we're still building the instruction
+		output.push_back(0);
+		uint16_t &instruction = output.back();
+		if (_opcode == Opcode::JMP) {
+			instruction = static_cast<uint16_t>(Opcode::SET) | (0x1c << 5);
+		} else {
+			instruction = static_cast<uint16_t>(_opcode);
+		}
+
+		if (_a) {
+			instruction |= (_a->compile(output) & 0x3f) << 10;
+		}
+
+		if (_b) {
+			instruction |= (_b->compile(output) & 0x1f) << 5;
 		}
 	}
 
