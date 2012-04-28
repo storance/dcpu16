@@ -16,8 +16,8 @@ namespace dcpu { namespace parser {
 		dcpu::SymbolTable &_symbolTable;
 		std::uint16_t _outputPosition;
 
-		bool parseLabel(lexer::TokenPtr&, ast::StatementPtr&);
-		bool parseInstruction(lexer::TokenPtr&, ast::StatementPtr&);
+		ast::StatementPtr parseLabel(lexer::TokenPtr&);
+		ast::StatementPtr parseInstruction(lexer::TokenPtr&);
 		ast::ArgumentPtr parseArgument(lexer::TokenPtr&, ast::ArgumentPosition);
 		ast::ArgumentPtr parseIndirectStackArgument(lexer::TokenPtr&, ast::ArgumentPosition);
 		ast::ArgumentPtr parseMnemonicStackArgument(lexer::TokenPtr&, ast::ArgumentPosition);
@@ -26,9 +26,10 @@ namespace dcpu { namespace parser {
 		bool isNextTokenChar(char);
 		bool isNextToken(std::function<bool (const lexer::Token&)>);
 		lexer::TokenPtr& nextToken();
+		void moveBack();
 		void advanceUntil(std::function<bool (const lexer::Token&)>);
 
-		void addStatement(ast::StatementPtr&);
+		bool addStatement(ast::StatementPtr&&);
 	public:
 		ast::StatementList statements;
 

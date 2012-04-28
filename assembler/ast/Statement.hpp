@@ -25,9 +25,13 @@ namespace dcpu { namespace ast {
 		virtual void evaluateExpressions(SymbolTable& table, ErrorHandler &errorHandler);
 		virtual bool compress(SymbolTable& table);
 		virtual void compile(std::vector<std::uint16_t> &output);
+
+		static std::unique_ptr<Statement> label(const lexer::Location&, const std::string &);
+		static std::unique_ptr<Statement> instruction(const lexer::Location&, Opcode, ArgumentPtr&, ArgumentPtr&);
+		static std::unique_ptr<Statement> null();
 	};
 
-	typedef std::unique_ptr<ast::Statement> StatementPtr;
+	typedef std::unique_ptr<Statement> StatementPtr;
 	typedef std::list<StatementPtr> StatementList;
 
 	class Instruction : public Statement {
@@ -37,7 +41,6 @@ namespace dcpu { namespace ast {
 		ArgumentPtr _b;
 
 		Instruction(const lexer::Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
-		Instruction(const lexer::Location&, Opcode, ArgumentPtr &&a, ArgumentPtr &&b);
 
 		virtual std::string str() const;
 		virtual void buildSymbolTable(SymbolTable& table, std::uint16_t &position) const;

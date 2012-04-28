@@ -30,6 +30,18 @@ namespace dcpu { namespace ast {
 
 	}
 
+	StatementPtr Statement::label(const lexer::Location& location, const std::string& name) {
+		return StatementPtr(new Label(location, name));
+	}
+
+	StatementPtr Statement::instruction(const lexer::Location& location, Opcode opcode, ArgumentPtr& a, ArgumentPtr& b) {
+		return StatementPtr(new Instruction(location, opcode, a, b));
+	}
+
+	StatementPtr Statement::null() {
+		return StatementPtr();
+	}
+
 	/*************************************************************************
 	 *
 	 * Label
@@ -62,9 +74,6 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	Instruction::Instruction(const Location &location, Opcode opcode, ArgumentPtr& a, ArgumentPtr& b)
-		: Statement(location), _opcode(opcode), _a(move(a)), _b(move(b)) {}
-
-	Instruction::Instruction(const Location &location, Opcode opcode, ArgumentPtr&& a, ArgumentPtr&& b)
 		: Statement(location), _opcode(opcode), _a(move(a)), _b(move(b)) {}
 
 	string Instruction::str() const {
