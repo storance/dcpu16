@@ -73,7 +73,7 @@ ExpressionFunc assertIsEvaluatedRegister(Register expectedRegister, bool expecte
 		ASSERT_TRUE(registerOp != nullptr);
 		EXPECT_EQ(expectedRegister, registerOp->_register);
 		EXPECT_EQ(expectedHasOffset, registerOp->_hasOffset);
-		EXPECT_EQ(expectedValue, registerOp->getValue());
+		EXPECT_EQ(expectedValue, registerOp->getEvaluatedValue());
 	};
 }
 
@@ -86,6 +86,6 @@ ExpressionFunc assertIsEvaluatedLiteral(int32_t expectedValue) {
 		EvaluatedLiteral* literalOp = dynamic_cast<EvaluatedLiteral*>(expr.get());
 
 		ASSERT_TRUE(literalOp != nullptr);
-		EXPECT_EQ(expectedValue, literalOp->getValue());
+		EXPECT_EQ(expectedValue, literalOp->getEvaluatedValue());
 	};
 }

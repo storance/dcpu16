@@ -10,10 +10,6 @@
 #include "../Token.hpp"
 
 namespace dcpu { namespace ast {
-	class EvaluatedExpression;
-
-	typedef std::unique_ptr<EvaluatedExpression> EvaluatedExpressionPtr;
-
 	class Expression {
 	public:
 		lexer::Location _location;
@@ -22,36 +18,42 @@ namespace dcpu { namespace ast {
 		Expression(const lexer::Location&);
 		virtual ~Expression();
 
-		virtual uint8_t compile(std::vector<std::uint16_t> &output, ArgumentPosition position, bool indirect,
-			bool forceNextWord);
-		virtual EvaluatedExpressionPtr evaluate() const=0;
+		virtual uint8_t compile(std::vector<std::uint16_t> &, ArgumentPosition, bool, bool);
+		virtual std::unique_ptr<Expression> evaluate() const=0;
 		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const=0;
-		virtual bool isEvalsToLiteral() const=0;
+		virtual bool isLiteral() const=0;
 		virtual bool isEvaluatable() const=0;
+		virtual bool isEvaluated();
+		virtual std::int32_t getEvaluatedValue();
+		virtual void updateEvaluatedValue(std::int32_t newValue);
 		virtual std::string str() const=0;
 	};
 
 	typedef std::unique_ptr<Expression> ExpressionPtr;
 
 	class UnaryOperation : public Expression {
-		bool _cachedEvalsToLiteral;
-		bool _cachedEvaluatable;
+		bool _cachedIsLiteral;
+		bool _cachedIsEvaluatable;
+
+		void updateCache();
 	public:
 		UnaryOperator _operator;
 		ExpressionPtr _operand;
 
 		UnaryOperation(const lexer::Location&, UnaryOperator, ExpressionPtr&);
 
-		virtual EvaluatedExpressionPtr evaluate() const;
+		virtual ExpressionPtr evaluate() const;
 		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isEvalsToLiteral() const;
+		virtual bool isLiteral() const;
 		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
 	};
 
 	class BinaryOperation : public Expression {
-		bool _cachedEvalsToLiteral;
-		bool _cachedEvaluatable;
+		bool _cachedIsLiteral;
+		bool _cachedIsEvaluatable;
+
+		void updateCache();
 	public:
 		BinaryOperator _operator;
 		ExpressionPtr _left;
@@ -59,9 +61,9 @@ namespace dcpu { namespace ast {
 
 		BinaryOperation(const lexer::Location&, BinaryOperator, ExpressionPtr&, ExpressionPtr&);
 
-		virtual EvaluatedExpressionPtr evaluate() const;
+		virtual ExpressionPtr evaluate() const;
 		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isEvalsToLiteral() const;
+		virtual bool isLiteral() const;
 		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
 	};
@@ -72,9 +74,9 @@ namespace dcpu { namespace ast {
 
 		RegisterOperand(const lexer::Location&, Register);
 
-		virtual EvaluatedExpressionPtr evaluate() const;
+		virtual ExpressionPtr evaluate() const;
 		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isEvalsToLiteral() const;
+		virtual bool isLiteral() const;
 		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
 	};
@@ -85,9 +87,9 @@ namespace dcpu { namespace ast {
 
 		LiteralOperand(const lexer::Location&, std::uint32_t);
 
-		virtual EvaluatedExpressionPtr evaluate() const;
+		virtual ExpressionPtr evaluate() const;
 		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isEvalsToLiteral() const;
+		virtual bool isLiteral() const;
 		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
 	};
@@ -100,9 +102,9 @@ namespace dcpu { namespace ast {
 		LabelReferenceOperand(const lexer::Location&, const std::string&);
 		LabelReferenceOperand(lexer::TokenPtr& token);
 
-		virtual EvaluatedExpressionPtr evaluate() const;
+		virtual ExpressionPtr evaluate() const;
 		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isEvalsToLiteral() const;
+		virtual bool isLiteral() const;
 		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
 	};
@@ -111,9 +113,9 @@ namespace dcpu { namespace ast {
 	public:
 		InvalidExpression(const lexer::Location&);
 
-		virtual EvaluatedExpressionPtr evaluate() const;
+		virtual ExpressionPtr evaluate() const;
 		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isEvalsToLiteral() const;
+		virtual bool isLiteral() const;
 		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
 	};
@@ -122,24 +124,21 @@ namespace dcpu { namespace ast {
 	protected:
 		std::int32_t _value;
 	public:
-		std::int32_t getValue();
-		virtual void setValue(std::int32_t);
-
 		EvaluatedExpression(const lexer::Location&, std::int32_t value);
 
-		virtual bool isRegister() const=0;
 		virtual bool isEvaluatable() const;
+		virtual bool isEvaluated();
+		virtual std::int32_t getEvaluatedValue();
+		virtual void updateEvaluatedValue(std::int32_t newValue);
 	};
 
 	class EvaluatedLiteral : public EvaluatedExpression {
 	public:
 		EvaluatedLiteral(const lexer::Location&, std::int32_t value);
 
-		virtual bool isRegister() const;
-		virtual bool isEvalsToLiteral() const;
-		virtual uint8_t compile(std::vector<std::uint16_t> &output, ArgumentPosition position, bool indirect,
-			bool forceNextWord);
-		virtual EvaluatedExpressionPtr evaluate() const;
+		virtual ExpressionPtr evaluate() const;
+		virtual uint8_t compile(std::vector<std::uint16_t>&, ArgumentPosition, bool, bool);
+		virtual bool isLiteral() const;
 		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
 		virtual std::string str() const;
 	};
@@ -149,16 +148,14 @@ namespace dcpu { namespace ast {
 		ast::Register _register;
 		bool _hasOffset;
 
+		EvaluatedRegister(const lexer::Location&, ast::Register _register);
 		EvaluatedRegister(const lexer::Location&, ast::Register _register, bool hasOffset, std::int32_t offset);
 
-		virtual void setValue(std::int32_t);
-
-		virtual bool isRegister() const;
-		virtual uint8_t compile(std::vector<std::uint16_t> &output, ArgumentPosition position, bool indirect,
-			bool forceNextWord);
-		virtual bool isEvalsToLiteral() const;
-		virtual EvaluatedExpressionPtr evaluate() const;
+		virtual ExpressionPtr evaluate() const;
+		virtual uint8_t compile(std::vector<std::uint16_t>&, ArgumentPosition, bool, bool);
+		virtual bool isLiteral() const;
 		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
+		virtual void updateEvaluatedValue(std::int32_t newValue);
 		virtual std::string str() const;
 	};
 

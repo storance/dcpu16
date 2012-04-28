@@ -17,6 +17,7 @@ using namespace std;
 using namespace std::placeholders;
 using namespace dcpu::lexer;
 using namespace dcpu::ast;
+using namespace boost::algorithm;
 
 namespace dcpu { namespace parser {
 
@@ -162,7 +163,7 @@ bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPos
 		auto startPos = _current;
 		if (!parseIndirectStackArgument(nextToken(), arg, position)) {
 			_current = startPos;
-			arg = move(ArgumentPtr(new IndirectArgument(position, parseExpression(true, true))));
+			arg = move(Argument::indirect(position, parseExpression(true, true)));
 		}
 
 		if (!isNextTokenChar(']')) {
@@ -179,19 +180,18 @@ bool Parser::parseArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPos
 	}
 
 	--_current;
-	ExpressionPtr expr = move(parseExpression(true, false));
-	arg = move(ArgumentPtr(new ExpressionArgument(position, expr)));
+	arg = move(Argument::expression(position, parseExpression(true, false)));
 	return true;
 }
 
 bool Parser::parseIndirectStackArgument(TokenPtr& currentToken, ArgumentPtr& arg, ArgumentPosition position) {
 	if (currentToken->isIdentifier()) {
-		if (!boost::algorithm::iequals(currentToken->content, "SP")) {
+		if (!iequals(currentToken->content, "SP")) {
 			return false;
 		}
 
 		if (isNextTokenChar(']')) {
-			arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::PEEK)));
+			arg = move(Argument::stackPeek(currentToken->location, position));
 			return true;
 		} else if (isNextToken(mem_fn(&Token::isIncrement))) {
 			if (position != ArgumentPosition::A) {
@@ -200,20 +200,20 @@ bool Parser::parseIndirectStackArgument(TokenPtr& currentToken, ArgumentPtr& arg
 			}
 
 			nextToken();
-			arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::POP)));
+			arg = move(Argument::stackPop(currentToken->location, position));
 			return true;
 		}
 
 		return false;
 	} else if (currentToken->isDecrement()) {
 		auto& nxtToken = nextToken();
-		if (nxtToken->isIdentifier() && boost::algorithm::iequals(nxtToken->content, "SP")) {
+		if (nxtToken->isIdentifier() && iequals(nxtToken->content, "SP")) {
 			if (position != ArgumentPosition::B) {
 				_errorHandler.error(currentToken->location, boost::format("[--SP] is not allowed as argument %s.")
 					% str(position));
 			}
 
-			arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::PUSH)));
+			arg = move(Argument::stackPush(currentToken->location, position));
 			return true;
 		}
 
@@ -228,39 +228,39 @@ bool Parser::parseMnemonicStackArgument(TokenPtr& currentToken, ArgumentPtr& arg
 		return false;
 	}
 
-	if (boost::algorithm::iequals(currentToken->content, "PUSH")) {
+	if (iequals(currentToken->content, "PUSH")) {
 		if (position != ArgumentPosition::B) {
 			_errorHandler.error(currentToken->location, boost::format("PUSH is not allowed as argument %s.")
 				% str(position));
 		}
-		arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::PUSH)));
+		arg = move(Argument::stackPush(currentToken->location, position));
 		return true;
-	} else if (boost::algorithm::iequals(currentToken->content, "POP")) {
+	} else if (iequals(currentToken->content, "POP")) {
 		if (position != ArgumentPosition::A) {
 			_errorHandler.error(currentToken->location, boost::format("POP is not allowed as argument %s.")
 				% str(position));
 		}
-		arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::POP)));
+		arg = move(Argument::stackPop(currentToken->location, position));
 		return true;
-	} else if (boost::algorithm::iequals(currentToken->content, "PEEK")) {
-		arg = move(ArgumentPtr(new StackArgument(currentToken->location, position, StackOperation::PEEK)));
+	} else if (iequals(currentToken->content, "PEEK")) {
+		arg = move(Argument::stackPeek(currentToken->location, position));
 		return true;
-	} else if (boost::algorithm::iequals(currentToken->content, "PICK")) {
+	} else if (iequals(currentToken->content, "PICK")) {
 		auto rightOperand = parseExpression(false, false);
 
-		if (rightOperand->isEvaluatable()) {
-			arg = move(ArgumentPtr(new IndirectArgument(position,
+		if (rightOperand->isEvaluated()) {
+			arg = move(Argument::indirect(position,
 				ExpressionPtr(new EvaluatedRegister(currentToken->location, Register::SP,
-					true, rightOperand->evaluate()->getValue())
+					true, rightOperand->getEvaluatedValue())
 				)
-			)));
+			));
 		} else {
 			auto leftOperand = ExpressionPtr(new RegisterOperand(currentToken->location, Register::SP));
-			arg = move(ArgumentPtr(new IndirectArgument(position,
+			arg = move(Argument::indirect(position,
 				ExpressionPtr(new BinaryOperation(currentToken->location, BinaryOperator::PLUS,
 					leftOperand, rightOperand)
 				)
-			)));
+			));
 		}
 		return true;
 	}
@@ -272,7 +272,7 @@ ExpressionPtr Parser::parseExpression(bool allowRegisters, bool insideIndirectio
 	ExpressionParser parser(_current, _end, _errorHandler, insideIndirection, allowRegisters);
 	auto expr = parser.parse();
 
-	if (expr->isEvaluatable()) {
+	if (expr->isEvaluatable() && !expr->isEvaluated()) {
 		return expr->evaluate();
 	}
 

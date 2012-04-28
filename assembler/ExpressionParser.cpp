@@ -108,13 +108,13 @@ namespace dcpu { namespace parser {
 		bool leftLiteralRequired = operatorDef->leftRequiresLiteral || !_insideIndirect;
 		bool rightLiteralRequired = operatorDef->rightRequiresLiteral || !_insideIndirect;
 
-		if (leftLiteralRequired && !left->isEvalsToLiteral()) {
+		if (leftLiteralRequired && !left->isLiteral()) {
 			_errorHandler.error(left->_location, boost::format("The left operand of '%s' must evaluate to a literal.") 
 				% str(operatorDef->_operator));
 			left = move(ExpressionPtr(new InvalidExpression(left->_location)));
 		}
 
-		if (rightLiteralRequired && !right->isEvalsToLiteral()) {
+		if (rightLiteralRequired && !right->isLiteral()) {
 			_errorHandler.error(right->_location, boost::format("The right operand of '%s' must evaluate to a literal.") 
 				% str(operatorDef->_operator));
 			right = move(ExpressionPtr(new InvalidExpression(right->_location)));
@@ -138,7 +138,7 @@ namespace dcpu { namespace parser {
 		}
 
 		ExpressionPtr operand = parseUnaryOperation();
-		if (!operand->isEvalsToLiteral()) {
+		if (!operand->isLiteral()) {
 			_errorHandler.error(currentToken->location, boost::format("The operand for unary '%s' must evaluate to "
 				"a literal.") % str(_operator));
 			return ExpressionPtr(new InvalidExpression(currentToken->location));

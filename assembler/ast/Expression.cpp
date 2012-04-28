@@ -24,6 +24,18 @@ namespace dcpu { namespace ast {
 		throw logic_error("Expression must be evaluated before it can be compiled");
 	}
 
+	bool Expression::isEvaluated() {
+		return false;
+	}
+
+	int32_t Expression::getEvaluatedValue() {
+		throw logic_error("Expression must be evaluated before it's value can be retrieved");
+	}
+
+	void Expression::updateEvaluatedValue(int32_t newValue) {
+		throw logic_error("Expression must be evaluated before it's value can be updated");
+	}
+
 	/*************************************************************************
 	 *
 	 * UnaryOperation
@@ -33,44 +45,55 @@ namespace dcpu { namespace ast {
 	UnaryOperation::UnaryOperation(const Location& location, UnaryOperator op, ExpressionPtr& operand)
 		: Expression(location), _operator(op), _operand(move(operand)) {
 
-		_cachedEvalsToLiteral = _operand->isEvalsToLiteral();
-		_cachedEvaluatable = _operand->isEvaluatable();
+		updateCache();
 	}
 
-	bool UnaryOperation::isEvalsToLiteral() const {
-		return _cachedEvalsToLiteral;
+	void UnaryOperation::updateCache() {
+		_cachedIsLiteral = _operand->isLiteral();
+		_cachedIsEvaluatable = _operand->isEvaluatable();
+	}
+
+	bool UnaryOperation::isLiteral() const {
+		return _cachedIsLiteral;
 	}
 
 	bool UnaryOperation::isEvaluatable() const {
-		return _cachedEvaluatable;
+		return _cachedIsEvaluatable;
 	}
 	
 	bool UnaryOperation::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
 		return _operand->isNextWordRequired(position, forceNextWord);
 	}
 
-	EvaluatedExpressionPtr UnaryOperation::evaluate() const {
+	ExpressionPtr UnaryOperation::evaluate() const {
+		if (!isEvaluatable()) {
+			throw logic_error("Expression is not evaluatable");
+		}
+
 		auto evaluatedOperand = _operand->evaluate();
-		if (evaluatedOperand->isRegister()) {
-			throw new logic_error(boost::str(boost::format("Unary '%s' not supported on a register") 
+		if (!evaluatedOperand->isLiteral()) {
+			throw logic_error(boost::str(boost::format("The operand for unary '%s' must be a literal") 
 				% ast::str(_operator)));
 		}
 		
+		int32_t value = evaluatedOperand->getEvaluatedValue();
+
 		switch (_operator) {
 		case UnaryOperator::PLUS:
-			evaluatedOperand->setValue(+evaluatedOperand->getValue());
+			value = +value;
 			break;
 		case UnaryOperator::MINUS:
-			evaluatedOperand->setValue(-evaluatedOperand->getValue());
+			value = -value;
 			break;
 		case UnaryOperator::NOT:
-			evaluatedOperand->setValue(~evaluatedOperand->getValue());
+			value = !value;
 			break;
 		case UnaryOperator::BITWISE_NOT:
-			evaluatedOperand->setValue(~evaluatedOperand->getValue());
+			value = ~value;
 			break;
 		}
 
+		evaluatedOperand->updateEvaluatedValue(value);
 		return evaluatedOperand;
 	}
 
@@ -86,16 +109,21 @@ namespace dcpu { namespace ast {
 
 	BinaryOperation::BinaryOperation(const Location& location, BinaryOperator op, ExpressionPtr& left,
 		ExpressionPtr& right) : Expression(location), _operator(op), _left(move(left)), _right(move(right)) {
-		_cachedEvalsToLiteral = _left->isEvalsToLiteral() && _right->isEvalsToLiteral();
-		_cachedEvaluatable = _left->isEvaluatable() && _right->isEvaluatable();
+		
+		updateCache();
 	}
 
-	bool BinaryOperation::isEvalsToLiteral() const {
-		return _cachedEvalsToLiteral;
+	void BinaryOperation::updateCache() {
+		_cachedIsLiteral = _left->isLiteral() && _right->isLiteral();
+		_cachedIsEvaluatable = _left->isEvaluatable() && _right->isEvaluatable();
+	}
+
+	bool BinaryOperation::isLiteral() const {
+		return _cachedIsLiteral;
 	}
 
 	bool BinaryOperation::isEvaluatable() const {
-		return _cachedEvaluatable;
+		return _cachedIsEvaluatable;
 	}
 	
 	bool BinaryOperation::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
@@ -103,23 +131,27 @@ namespace dcpu { namespace ast {
 		return true;
 	}
 
-	EvaluatedExpressionPtr BinaryOperation::evaluate() const {
+	ExpressionPtr BinaryOperation::evaluate() const {
+		if (!isEvaluatable()) {
+			throw logic_error("Expression is not evaluatable");
+		}
+
 		auto evaluatedLeft = _left->evaluate();
 		auto evaluatedRight = _right->evaluate();
 
-		int32_t leftValue = evaluatedLeft->getValue();
-		int32_t rightValue = evaluatedRight->getValue();
+		if (_operator != BinaryOperator::PLUS && _operator != BinaryOperator::MINUS && !evaluatedLeft->isLiteral()) {
+			throw logic_error(boost::str(boost::format("The left operand of '%s' must be a literal") 
+				% ast::str(_operator)));
+		}
+
+		if (_operator != BinaryOperator::PLUS && !evaluatedRight->isLiteral()) {
+			throw logic_error(boost::str(boost::format("The right operand of '%s' must be a literal") 
+				% ast::str(_operator)));
+		}
+
+		int32_t leftValue = evaluatedLeft->getEvaluatedValue();
+		int32_t rightValue = evaluatedRight->getEvaluatedValue();
 		int32_t resultValue = 0;
-
-		if (_operator != BinaryOperator::PLUS && _operator != BinaryOperator::MINUS && evaluatedLeft->isRegister()) {
-			throw new logic_error(boost::str(boost::format("The left operand of '%s' must not be a register") 
-				% ast::str(_operator)));
-		}
-
-		if (_operator != BinaryOperator::PLUS && evaluatedRight->isRegister()) {
-			throw new logic_error(boost::str(boost::format("The right operand of '%s' must not be a register") 
-				% ast::str(_operator)));
-		}
 
 		switch (_operator) {
 		case BinaryOperator::PLUS:
@@ -154,12 +186,12 @@ namespace dcpu { namespace ast {
 			break;
 		}
 
-		if (evaluatedRight->isRegister()) {
-			evaluatedRight->setValue(resultValue);
+		if (!evaluatedRight->isLiteral()) {
+			evaluatedRight->updateEvaluatedValue(resultValue);
 
 			return evaluatedRight;
 		} else {
-			evaluatedLeft->setValue(resultValue);
+			evaluatedLeft->updateEvaluatedValue(resultValue);
 
 			return evaluatedLeft;
 		}
@@ -178,7 +210,7 @@ namespace dcpu { namespace ast {
 	RegisterOperand::RegisterOperand(const Location& location, Register reg) 
 		: Expression(location), _register(reg) {}
 
-	bool RegisterOperand::isEvalsToLiteral() const {
+	bool RegisterOperand::isLiteral() const {
 		return false;
 	}
 
@@ -190,8 +222,8 @@ namespace dcpu { namespace ast {
 		return false;
 	}
 
-	EvaluatedExpressionPtr RegisterOperand::evaluate() const {
-		return EvaluatedExpressionPtr(new EvaluatedRegister(_location, _register, false, 0));
+	ExpressionPtr RegisterOperand::evaluate() const {
+		return ExpressionPtr(new EvaluatedRegister(_location, _register, false, 0));
 	}
 
 	string RegisterOperand::str() const {
@@ -207,7 +239,7 @@ namespace dcpu { namespace ast {
 	LiteralOperand::LiteralOperand(const Location& location, uint32_t value)
 		: Expression(location), _value(value) {}
 
-	bool LiteralOperand::isEvalsToLiteral() const {
+	bool LiteralOperand::isLiteral() const {
 		return true;
 	}
 
@@ -224,8 +256,8 @@ namespace dcpu { namespace ast {
 		return true;
 	}
 
-	EvaluatedExpressionPtr LiteralOperand::evaluate() const {
-		return EvaluatedExpressionPtr(new EvaluatedLiteral(_location, _value));
+	ExpressionPtr LiteralOperand::evaluate() const {
+		return ExpressionPtr(new EvaluatedLiteral(_location, _value));
 	}
 
 	string LiteralOperand::str() const {
@@ -244,7 +276,7 @@ namespace dcpu { namespace ast {
 	LabelReferenceOperand::LabelReferenceOperand(TokenPtr& token)
 		:Expression(token->location), _label(token->content), _position(nullptr) {}
 
-	bool LabelReferenceOperand::isEvalsToLiteral() const {
+	bool LabelReferenceOperand::isLiteral() const {
 		return true;
 	}
 
@@ -256,11 +288,11 @@ namespace dcpu { namespace ast {
 		return true;
 	}
 
-	EvaluatedExpressionPtr LabelReferenceOperand::evaluate() const {
+	ExpressionPtr LabelReferenceOperand::evaluate() const {
 		if (_position != nullptr) {
-			return EvaluatedExpressionPtr(new EvaluatedLiteral(_location, *_position));
+			return ExpressionPtr(new EvaluatedLiteral(_location, *_position));
 		} else {
-			return EvaluatedExpressionPtr();
+			return ExpressionPtr();
 		}
 	}
 
@@ -276,7 +308,7 @@ namespace dcpu { namespace ast {
 
 	InvalidExpression::InvalidExpression(const Location& location) : Expression(location) {}
 
-	bool InvalidExpression::isEvalsToLiteral() const {
+	bool InvalidExpression::isLiteral() const {
 		return true;
 	}
 
@@ -288,8 +320,8 @@ namespace dcpu { namespace ast {
 		return false;
 	}
 
-	EvaluatedExpressionPtr InvalidExpression::evaluate() const {
-		return EvaluatedExpressionPtr();
+	ExpressionPtr InvalidExpression::evaluate() const {
+		return ExpressionPtr();
 	}
 
 	string InvalidExpression::str() const {
@@ -306,16 +338,22 @@ namespace dcpu { namespace ast {
 		: Expression(location), _value(value) {}
 
 	bool EvaluatedExpression::isEvaluatable() const {
+		return false;
+	}
+
+	bool EvaluatedExpression::isEvaluated() {
 		return true;
 	}
 
-	int32_t EvaluatedExpression::getValue() {
+	int32_t EvaluatedExpression::getEvaluatedValue() {
 		return _value;
 	}
 
-	void EvaluatedExpression::setValue(int32_t newValue) {
+	void EvaluatedExpression::updateEvaluatedValue(int32_t newValue) {
 		_value = newValue;
 	}
+
+	
 
 	/*************************************************************************
 	 *
@@ -326,16 +364,12 @@ namespace dcpu { namespace ast {
 	EvaluatedLiteral::EvaluatedLiteral(const lexer::Location& location, int32_t value) 
 		: EvaluatedExpression(location, value) {}
 
-	bool EvaluatedLiteral::isRegister() const {
-		return false;
-	}
-
-	bool EvaluatedLiteral::isEvalsToLiteral() const {
+	bool EvaluatedLiteral::isLiteral() const {
 		return true;
 	}
 
-	EvaluatedExpressionPtr EvaluatedLiteral::evaluate() const {
-		return EvaluatedExpressionPtr(new EvaluatedLiteral(_location, _value));
+	ExpressionPtr EvaluatedLiteral::evaluate() const {
+		return ExpressionPtr(new EvaluatedLiteral(_location, _value));
 	}
 
 	uint8_t EvaluatedLiteral::compile(std::vector<std::uint16_t> &output, ArgumentPosition position, bool indirect,
@@ -370,20 +404,23 @@ namespace dcpu { namespace ast {
 	 *
 	 *************************************************************************/
 
+	EvaluatedRegister::EvaluatedRegister(const lexer::Location& location, ast::Register _register)
+		: EvaluatedExpression(location, 0), _register(_register), _hasOffset(false) {}
+
 	EvaluatedRegister::EvaluatedRegister(const lexer::Location& location, Register _register, bool hasOffset,
 		int32_t offset) : EvaluatedExpression(location, offset), _register(_register), _hasOffset(hasOffset) {}
 
-	void EvaluatedRegister::setValue(int32_t newValue) {
+	void EvaluatedRegister::updateEvaluatedValue(int32_t newValue) {
 		_hasOffset = true;
 		_value = newValue;
 	}
 
-	bool EvaluatedRegister::isRegister() const {
-		return true;
+	bool EvaluatedRegister::isLiteral() const {
+		return false;
 	}
 
-	bool EvaluatedRegister::isEvalsToLiteral() const {
-		return false;
+	ExpressionPtr EvaluatedRegister::evaluate() const {
+		return ExpressionPtr(new EvaluatedRegister(_location, _register, _hasOffset, _value));
 	}
 
 	uint8_t EvaluatedRegister::compile(std::vector<std::uint16_t> &output, ArgumentPosition position, bool indirect,
@@ -425,10 +462,6 @@ namespace dcpu { namespace ast {
 				return 0x08 + static_cast<int>(_register);
 			}
 		}
-	}
-
-	EvaluatedExpressionPtr EvaluatedRegister::evaluate() const {
-		return EvaluatedExpressionPtr(new EvaluatedRegister(_location, _register, _hasOffset, _value));
 	}
 
 	bool EvaluatedRegister::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {

@@ -17,6 +17,30 @@ namespace dcpu { namespace ast {
 
 	Argument::~Argument() {}
 
+	ArgumentPtr Argument::stack(const Location& location, ArgumentPosition position, StackOperation operation) {
+		return ArgumentPtr(new StackArgument(location, position, operation));
+	}
+
+	ArgumentPtr Argument::stackPop(const Location& location, ArgumentPosition position) {
+		return stack(location, position, StackOperation::POP);
+	}
+
+	ArgumentPtr Argument::stackPush(const Location& location, ArgumentPosition position) {
+		return stack(location, position, StackOperation::PUSH);
+	}
+
+	ArgumentPtr Argument::stackPeek(const Location& location, ArgumentPosition position) {
+		return stack(location, position, StackOperation::PEEK);
+	}
+
+	ArgumentPtr Argument::indirect(ArgumentPosition position, ExpressionPtr &&expr) {
+	return ArgumentPtr(new IndirectArgument(position, expr));
+	}
+
+	ArgumentPtr Argument::expression(ArgumentPosition position, ExpressionPtr &&expr) {
+		return ArgumentPtr(new ExpressionArgument(position, expr));
+	}
+
 	/*************************************************************************
 	 *
 	 * StackArgument
@@ -35,13 +59,15 @@ namespace dcpu { namespace ast {
 	}
 
 	uint8_t StackArgument::compile(std::vector<std::uint16_t> &output) {
-		if (_operation == StackOperation::PUSH || _operation == StackOperation::POP) {
+		switch (_operation) {
+		case StackOperation::PUSH:
+		case StackOperation::POP:
 			return 0x18;
-		} else if (_operation == StackOperation::PEEK) {
+		case StackOperation::PEEK:
 			return 0x19;
+		default:
+			throw new logic_error(ast::str(_operation));
 		}
-
-		throw new logic_error(boost::str(boost::format("Unknown StackOperation %d") % static_cast<int>(_operation)));
 	}
 
 	/*************************************************************************
@@ -105,7 +131,7 @@ namespace dcpu { namespace ast {
 		case ArgumentPosition::B:
 			return "b";
 		default:
-			return "<Unknown ArgumentPosition>";
+			return str(boost::format("<Unknown ArgumentPosition %04x>") % static_cast<int>(position));
 		}
 	}
 
@@ -118,7 +144,7 @@ namespace dcpu { namespace ast {
 		case StackOperation::PEEK:
 			return "PEEK";
 		default:
-			return "<Unknown StackOperation>";
+			return str(boost::format("<Unknown StackOperation %04x>") % static_cast<int>(operation));
 		}
 	}
 
