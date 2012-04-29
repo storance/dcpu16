@@ -1,0 +1,34 @@
+Emulator
+============
+* Update to support spec version 1.7
+* Console output
+* Keyboard input
+* Simulator dcpu-16's clock speed
+* Interactive debugger
+
+Disassembler
+===========
+* Update to support spec version 1.7
+
+Assembler
+============
+* inline character literal
+* dat, data
+* .dw
+* .db
+* .ascii
+* .asciip
+* .asciic
+* .org
+* .include
+* .incbin
+* inline boolean operators (<, >, <=, >=, ==, !=, <>, ||, &&, ^^)
+* .rep/.end
+* .define, .def, .equ
+* .undef
+* .if, .elif, .else, ifdef, ifndef
+* isdef()
+* .align
+* .error
+* .echo
+* .macro
