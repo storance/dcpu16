@@ -227,15 +227,15 @@ TEST(ParserTest, LabelTest) {
 	Location location("<Test>", 1, 1);
 	std::shared_ptr<Parser> parser;
 
-	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n:label2\nlabel3: SET A, B\n: label4 SET A, B", 6, parser));
+	ASSERT_NO_FATAL_FAILURE(runParser("label1 :\n:..@label2\n.label3: SET A, B\n: label4 SET A, B", 6, parser));
 
 	auto it = parser->statements.begin();
 
 	EXPECT_EQ(*it++, Statement::label(location, "label1", LabelType::Global));
 
-	EXPECT_EQ(*it++, Statement::label(location, "label2", LabelType::Global));
+	EXPECT_EQ(*it++, Statement::label(location, "..@label2", LabelType::Global));
 
-	EXPECT_EQ(*it++, Statement::label(location, "label3", LabelType::Global));
+	EXPECT_EQ(*it++, Statement::label(location, ".label3", LabelType::Global));
 
 	EXPECT_EQ(*it++, Statement::instruction(location, Opcode::SET,
 		Argument::expression(ArgumentPosition::A, Expression::evaluatedRegister(location, Register::B)),
@@ -252,11 +252,11 @@ TEST(ParserTest, LabelTest) {
 	ASSERT_TRUE(parser->symbolTable->lookup("label1"));
 	EXPECT_EQ(0, *parser->symbolTable->lookup("label1"));
 
-	ASSERT_TRUE(parser->symbolTable->lookup("label2"));
-	EXPECT_EQ(0, *parser->symbolTable->lookup("label2"));
+	ASSERT_TRUE(parser->symbolTable->lookup("..@label2"));
+	EXPECT_EQ(0, *parser->symbolTable->lookup("..@label2"));
 
-	ASSERT_TRUE(parser->symbolTable->lookup("label3"));
-	EXPECT_EQ(0, *parser->symbolTable->lookup("label3"));
+	ASSERT_TRUE(parser->symbolTable->lookup("label1.label3"));
+	EXPECT_EQ(0, *parser->symbolTable->lookup("label1.label3"));
 
 	ASSERT_TRUE(parser->symbolTable->lookup("label4"));
 	EXPECT_EQ(1, *parser->symbolTable->lookup("label4"));
