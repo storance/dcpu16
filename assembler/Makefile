@@ -21,7 +21,8 @@ TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/Utils.o \
 			   $(OUTPUT_DIR)/ParserTest.o \
 			   $(OUTPUT_DIR)/LexerTest.o \
-			   $(OUTPUT_DIR)/ExpressionParserTest.o 
+			   $(OUTPUT_DIR)/ExpressionParserTest.o \
+			   $(OUTPUT_DIR)/ExpressionEvalTest.o
 
 all: assembler
 
@@ -83,6 +84,9 @@ $(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandl
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/ExpressionParserTest.o: test/ExpressionParserTest.cpp ExpressionParser.hpp ExpressionParser.cpp ast/*.hpp test/Utils.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/ExpressionEvalTest.o: test/ExpressionEvalTest.cpp ast/*.hpp test/Utils.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 unittest: $(TEST_OBJECTS)
