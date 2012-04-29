@@ -257,7 +257,14 @@ namespace dcpu { namespace parser {
 		auto expr = parser.parse();
 
 		if (expr->isEvaluatable() && !expr->isEvaluated()) {
-			return expr->evaluate();
+			auto evaluatedExpr = expr->evaluate();
+			if (evaluatedExpr->getEvaluatedValue() > UINT16_MAX) {
+				errorHandler->warning(evaluatedExpr->location, "overflow detected");
+			} else if (evaluatedExpr->getEvaluatedValue() < INT16_MIN) {
+				errorHandler->warning(evaluatedExpr->location, "underflow detected");
+			}
+			
+			return evaluatedExpr;
 		}
 
 		return expr;

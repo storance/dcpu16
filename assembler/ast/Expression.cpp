@@ -234,10 +234,12 @@ namespace dcpu { namespace ast {
 
 		if (!evaluatedRight->isLiteral()) {
 			evaluatedRight->setEvaluatedValue(resultValue);
+			evaluatedRight->location = location;
 
 			return evaluatedRight;
 		} else {
 			evaluatedLeft->setEvaluatedValue(resultValue);
+			evaluatedLeft->location = location;
 
 			return evaluatedLeft;
 		}
