@@ -138,7 +138,11 @@ namespace dcpu { namespace ast {
 	}
 
 	bool ExpressionArgument::isNextWordRequired() const {
-		return expr->isNextWordRequired(flags);
+		if (expr->isEvaluated()) {
+			return expr->isNextWordRequired(flags);
+		} else {
+			return nextWordRequired;
+		}
 	}
 
 	CompileResult ExpressionArgument::compile() const {
