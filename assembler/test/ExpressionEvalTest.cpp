@@ -93,6 +93,39 @@ TEST(ExpressionEvalTest, BitwiseOrTest) {
 	EXPECT_EQ(Expression::evaluatedLiteral(location, 0xd), expr->evaluate());
 }
 
+TEST(ExpressionEvalTest, UnaryMinus) {
+	auto expr = Expression::unaryOperation(location, UnaryOperator::MINUS,
+		Expression::literalOperand(location, 7));
+
+	EXPECT_EQ(Expression::evaluatedLiteral(location, -7), expr->evaluate());
+}
+
+TEST(ExpressionEvalTest, UnaryPlus) {
+	auto expr = Expression::unaryOperation(location, UnaryOperator::PLUS,
+		Expression::literalOperand(location, 7));
+
+	EXPECT_EQ(Expression::evaluatedLiteral(location, 7), expr->evaluate());
+}
+
+TEST(ExpressionEvalTest, UnaryNot) {
+	auto expr = Expression::unaryOperation(location, UnaryOperator::NOT,
+		Expression::literalOperand(location, 7));
+
+	EXPECT_EQ(Expression::evaluatedLiteral(location, 0), expr->evaluate());
+
+	auto expr2 = Expression::unaryOperation(location, UnaryOperator::NOT,
+		Expression::literalOperand(location, 0));
+
+	EXPECT_EQ(Expression::evaluatedLiteral(location, 1), expr2->evaluate());
+}
+
+TEST(ExpressionEvalTest, UnaryBitwiseNot) {
+	auto expr = Expression::unaryOperation(location, UnaryOperator::BITWISE_NOT,
+		Expression::literalOperand(location, 7));
+
+	EXPECT_EQ(Expression::evaluatedLiteral(location, -8), expr->evaluate());
+}
+
 TEST(ExpressionEvalTest, RegisterTest) {
 	auto expr = Expression::binaryOperation(location, BinaryOperator::PLUS,
 		Expression::registerOperand(location, Register::A),
