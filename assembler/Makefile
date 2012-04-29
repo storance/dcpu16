@@ -26,6 +26,8 @@ TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/ExprParserTest.o \
 			   $(OUTPUT_DIR)/ExprEvalTest.o
 
+TEST_FILTER = *
+
 all: assembler
 
 assembler: $(OUTPUT_DIR)/Assembler.o $(OBJECTS)
@@ -98,7 +100,7 @@ unittest: $(TEST_OBJECTS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lgtest -lgtest_main -o $@
 
 test: unittest
-	./unittest
+	./unittest --gtest_filter=$(TEST_FILTER)
 
 clean:
 	rm -Rf target
