@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../ast/Expression.hpp"
+#include <ast/Expression.hpp>
 
 using namespace dcpu::lexer;
 using namespace dcpu::ast;

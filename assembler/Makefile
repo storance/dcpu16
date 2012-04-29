@@ -1,6 +1,7 @@
 CXX=g++
 CPP_FLAGS=-std=c++0x
 CXX_FLAGS=-g -Wall
+TEST_CXX_FLAGS=-I.
 OUTPUT_DIR=target
 
 OBJECTS = $(OUTPUT_DIR)/Parser.o \
@@ -18,7 +19,6 @@ OBJECTS = $(OUTPUT_DIR)/Parser.o \
 		  $(OUTPUT_DIR)/Compiler.o
 
 TEST_OBJECTS = $(OBJECTS) \
-			   $(OUTPUT_DIR)/Utils.o \
 			   $(OUTPUT_DIR)/ParserTest.o \
 			   $(OUTPUT_DIR)/LexerTest.o \
 			   $(OUTPUT_DIR)/ExprParserTest.o \
@@ -74,20 +74,17 @@ $(OUTPUT_DIR)/Lexer.o: Lexer.cpp Lexer.hpp Token.hpp | $(OUTPUT_DIR)
 $(OUTPUT_DIR):
 	mkdir $@
 
-$(OUTPUT_DIR)/Utils.o: test/Utils.cpp test/Utils.hpp ast/Expression.hpp | $(OUTPUT_DIR)
-	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
-
 $(OUTPUT_DIR)/LexerTest.o: test/LexerTest.cpp Lexer.hpp Token.hpp | $(OUTPUT_DIR)
-	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandler.hpp ast/*.hpp test/Utils.hpp | $(OUTPUT_DIR)
-	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+$(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandler.hpp ast/*.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/ExprParserTest.o: test/ExprParserTest.cpp ExpressionParser.hpp ExpressionParser.cpp ast/*.hpp test/Utils.hpp | $(OUTPUT_DIR)
-	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+$(OUTPUT_DIR)/ExprParserTest.o: test/ExprParserTest.cpp ExpressionParser.hpp ExpressionParser.cpp ast/*.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/ExprEvalTest.o: test/ExprEvalTest.cpp ast/*.hpp test/Utils.hpp | $(OUTPUT_DIR)
-	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+$(OUTPUT_DIR)/ExprEvalTest.o: test/ExprEvalTest.cpp ast/*.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 unittest: $(TEST_OBJECTS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lgtest -lgtest_main -o $@

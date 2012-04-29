@@ -3,11 +3,20 @@
 #include <iostream>
 #include <gtest/gtest.h>
 
-#include "Utils.hpp"
+#include <Lexer.hpp>
 
 using namespace std;
 using namespace dcpu;
 using namespace dcpu::lexer;
+
+void runLexer(const string &content, int expectedTokens, shared_ptr<Lexer> &lex) {
+	lex = make_shared<Lexer>(content.begin(), content.end(), "<Test>");
+    lex->parse();
+
+    if (expectedTokens > -1) {
+    	ASSERT_EQ(expectedTokens, lex->tokens.size());
+    }
+}
 
 void assertInvalidInteger(TokenPtr &token, const std::string &expectedContent, uint8_t expectedBase) {
 	ASSERT_TRUE(token->isInvalidInteger());

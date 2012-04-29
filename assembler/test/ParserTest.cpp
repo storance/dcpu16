@@ -2,16 +2,24 @@
 #include <list>
 #include <gtest/gtest.h>
 
-#include "Utils.hpp"
-#include "../Parser.hpp"
-#include "../SymbolTable.hpp"
+#include <Parser.hpp>
+#include <SymbolTable.hpp>
 
 using namespace std;
-using namespace std::placeholders;
 using namespace dcpu;
 using namespace dcpu::ast;
 using namespace dcpu::parser;
 using namespace dcpu::lexer;
+
+void runParser(const string &content, int expectedStatements, shared_ptr<Parser> &parser) {
+	Lexer lexer(content.begin(), content.end(), "<Test>");
+    lexer.parse();
+
+	parser = make_shared<Parser>(lexer);
+	parser->parse();
+
+    ASSERT_EQ(expectedStatements, parser->statements.size());
+}
 
 TEST(ParserTest, InstructionTest) {
 	Location location("<Test>", 1, 1);

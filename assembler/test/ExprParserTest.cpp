@@ -2,8 +2,8 @@
 #include <list>
 #include <gtest/gtest.h>
 
-#include "Utils.hpp"
-#include "../ExpressionParser.hpp"
+#include <ExpressionParser.hpp>
+#include <Lexer.hpp>
 
 using namespace std;
 using namespace std::placeholders;
@@ -11,6 +11,17 @@ using namespace dcpu;
 using namespace dcpu::ast;
 using namespace dcpu::parser;
 using namespace dcpu::lexer;
+
+void runExpressionParser(const string &content, ExpressionPtr &expr, bool insideIndirect, bool allowRegisters) {
+	Lexer lexer(content.begin(), content.end(), "<Test>");
+    lexer.parse();
+
+	ErrorHandlerPtr errorHandler = make_shared<ErrorHandler>();
+
+	auto begin = lexer.tokens.begin();
+	ExpressionParser parser(begin, lexer.tokens.end(), errorHandler, allowRegisters, true, insideIndirect);
+	expr = move(parser.parse());
+}
 
 TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 	Location location("<Test>", 1, 1);
