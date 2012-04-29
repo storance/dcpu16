@@ -10,29 +10,62 @@ using namespace dcpu::lexer;
 namespace dcpu { namespace ast {
 	/*************************************************************************
 	 *
+	 * CompileFlags
+	 *
+	 *************************************************************************/
+
+	CompileFlags::CompileFlags(ArgumentPosition position, bool indirection, bool forceNextWord) 
+		: position(position), indirection(indirection), forceNextWord(forceNextWord) {}
+
+	bool CompileFlags::isArgumentA() const {
+		return position == ArgumentPosition::A;
+	}
+
+	bool CompileFlags::isArgumentB() const {
+		return position == ArgumentPosition::B;
+	}
+
+	bool CompileFlags::isIndirection() const {
+		return indirection;
+	}
+
+	bool CompileFlags::isForceNextWord() const {
+		return forceNextWord;
+	}
+
+	/*************************************************************************
+	 *
 	 * Expression
 	 *
 	 *************************************************************************/
-	Expression::Expression(const Location& location) : _location(location) {}
+	Expression::Expression(const Location& location, bool literal, bool evaluatable, bool evaluated) 
+		: literal(literal), evaluatable(evaluatable), evaluated(evaluated), location(location) {}
 
-	Expression::Expression(Expression&& other) : _location(move(other._location)) {}
+	bool Expression::isNextWordRequired(const CompileFlags& flags) const {
+		return true;
+	}
 
-	Expression::~Expression() {}
-
-	uint8_t Expression::compile(std::vector<std::uint16_t> &output, ArgumentPosition position, bool indirect,
-			bool forceNextWord) {
+	CompileResult Expression::compile(const CompileFlags& flags) const {
 		throw logic_error("Expression must be evaluated before it can be compiled");
 	}
 
 	bool Expression::isEvaluated() {
-		return false;
+		return evaluated;
+	}
+
+	bool Expression::isLiteral() {
+		return literal;
+	}
+
+	bool Expression::isEvaluatable() {
+		return evaluatable;
 	}
 
 	int32_t Expression::getEvaluatedValue() {
 		throw logic_error("Expression must be evaluated before it's value can be retrieved");
 	}
 
-	void Expression::updateEvaluatedValue(int32_t newValue) {
+	void Expression::setEvaluatedValue(int32_t newValue) {
 		throw logic_error("Expression must be evaluated before it's value can be updated");
 	}
 
@@ -41,8 +74,18 @@ namespace dcpu { namespace ast {
 		return ExpressionPtr(new UnaryOperation(location, _operator, operand));
 	}
 
+	ExpressionPtr Expression::unaryOperation(const lexer::Location& location, UnaryOperator _operator,
+		ExpressionPtr&& operand) {
+		return ExpressionPtr(new UnaryOperation(location, _operator, operand));
+	}
+
 	ExpressionPtr Expression::binaryOperation(const lexer::Location& location, BinaryOperator _operator,
 		ExpressionPtr& left, ExpressionPtr& right) {
+		return ExpressionPtr(new BinaryOperation(location, _operator, left, right));
+	}
+
+	ExpressionPtr Expression::binaryOperation(const lexer::Location& location, BinaryOperator _operator,
+		ExpressionPtr&& left, ExpressionPtr&& right) {
 		return ExpressionPtr(new BinaryOperation(location, _operator, left, right));
 	}
 
@@ -63,7 +106,7 @@ namespace dcpu { namespace ast {
 	}
 
 	ExpressionPtr Expression::evaluatedRegister(const lexer::Location& location, Register _register) {
-		return ExpressionPtr(new EvaluatedRegister(location, _register));
+		return ExpressionPtr(new EvaluatedRegister(location, _register, false, 0));
 	}
 
 	ExpressionPtr Expression::evaluatedRegister(const lexer::Location& location, Register _register, int32_t offset) {
@@ -81,39 +124,18 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	UnaryOperation::UnaryOperation(const Location& location, UnaryOperator op, ExpressionPtr& operand)
-		: Expression(location), _operator(op), _operand(move(operand)) {
+		: Expression(location, false, false, false), _operator(op), operand(move(operand)) {
 
-		updateCache();
-	}
-
-	void UnaryOperation::updateCache() {
-		_cachedIsLiteral = _operand->isLiteral();
-		_cachedIsEvaluatable = _operand->isEvaluatable();
-	}
-
-	bool UnaryOperation::isLiteral() const {
-		return _cachedIsLiteral;
-	}
-
-	bool UnaryOperation::isEvaluatable() const {
-		return _cachedIsEvaluatable;
-	}
-	
-	bool UnaryOperation::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
-		return _operand->isNextWordRequired(position, forceNextWord);
+		literal = this->operand->isLiteral();
+		evaluatable = this->operand->isEvaluatable();
 	}
 
 	ExpressionPtr UnaryOperation::evaluate() const {
-		if (!isEvaluatable()) {
+		if (!evaluatable) {
 			throw logic_error("Expression is not evaluatable");
 		}
 
-		auto evaluatedOperand = _operand->evaluate();
-		if (!evaluatedOperand->isLiteral()) {
-			throw logic_error(boost::str(boost::format("The operand for unary '%s' must be a literal") 
-				% ast::str(_operator)));
-		}
-		
+		auto evaluatedOperand = operand->evaluate();
 		int32_t value = evaluatedOperand->getEvaluatedValue();
 
 		switch (_operator) {
@@ -131,12 +153,21 @@ namespace dcpu { namespace ast {
 			break;
 		}
 
-		evaluatedOperand->updateEvaluatedValue(value);
+		evaluatedOperand->setEvaluatedValue(value);
 		return evaluatedOperand;
 	}
 
 	string UnaryOperation::str() const {
-		return (boost::format("%s(%s)") % ast::str(_operator) % _operand->str()).str();
+		return (boost::format("%s(%s)") % _operator % operand).str();
+	}
+
+	bool UnaryOperation::operator==(const Expression& other) const {
+		const UnaryOperation *otherUnary = dynamic_cast<const UnaryOperation*>(&other);
+
+		if (!otherUnary) return false;
+
+		return _operator == otherUnary->_operator 
+			&& operand == otherUnary->operand;
 	}
 
 	/*************************************************************************
@@ -146,46 +177,23 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	BinaryOperation::BinaryOperation(const Location& location, BinaryOperator op, ExpressionPtr& left,
-		ExpressionPtr& right) : Expression(location), _operator(op), _left(move(left)), _right(move(right)) {
-		
-		updateCache();
-	}
+		ExpressionPtr& right) 
+		: Expression(location, false, false, false),
+		_operator(op),
+		left(move(left)),
+		right(move(right)) {
 
-	void BinaryOperation::updateCache() {
-		_cachedIsLiteral = _left->isLiteral() && _right->isLiteral();
-		_cachedIsEvaluatable = _left->isEvaluatable() && _right->isEvaluatable();
-	}
-
-	bool BinaryOperation::isLiteral() const {
-		return _cachedIsLiteral;
-	}
-
-	bool BinaryOperation::isEvaluatable() const {
-		return _cachedIsEvaluatable;
-	}
-	
-	bool BinaryOperation::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
-		// until we can evaluate the expression, assume we have to use the next word
-		return true;
+		literal = this->left->isLiteral() && this->right->isLiteral();
+		evaluatable = this->left->isEvaluatable() && this->right->isEvaluatable();
 	}
 
 	ExpressionPtr BinaryOperation::evaluate() const {
-		if (!isEvaluatable()) {
+		if (!evaluatable) {
 			throw logic_error("Expression is not evaluatable");
 		}
 
-		auto evaluatedLeft = _left->evaluate();
-		auto evaluatedRight = _right->evaluate();
-
-		if (_operator != BinaryOperator::PLUS && _operator != BinaryOperator::MINUS && !evaluatedLeft->isLiteral()) {
-			throw logic_error(boost::str(boost::format("The left operand of '%s' must be a literal") 
-				% ast::str(_operator)));
-		}
-
-		if (_operator != BinaryOperator::PLUS && !evaluatedRight->isLiteral()) {
-			throw logic_error(boost::str(boost::format("The right operand of '%s' must be a literal") 
-				% ast::str(_operator)));
-		}
+		auto evaluatedLeft = left->evaluate();
+		auto evaluatedRight = right->evaluate();
 
 		int32_t leftValue = evaluatedLeft->getEvaluatedValue();
 		int32_t rightValue = evaluatedRight->getEvaluatedValue();
@@ -225,18 +233,28 @@ namespace dcpu { namespace ast {
 		}
 
 		if (!evaluatedRight->isLiteral()) {
-			evaluatedRight->updateEvaluatedValue(resultValue);
+			evaluatedRight->setEvaluatedValue(resultValue);
 
 			return evaluatedRight;
 		} else {
-			evaluatedLeft->updateEvaluatedValue(resultValue);
+			evaluatedLeft->setEvaluatedValue(resultValue);
 
 			return evaluatedLeft;
 		}
 	}
 
 	string BinaryOperation::str() const {
-		return (boost::format("(%s %s %s)") % _left->str() % ast::str(_operator) % _right->str()).str();
+		return (boost::format("(%s %s %s)") % left % _operator % right).str();
+	}
+
+	bool BinaryOperation::operator==(const Expression& other) const {
+		const BinaryOperation *otherBinary = dynamic_cast<const BinaryOperation*>(&other);
+
+		if (!otherBinary) return false;
+
+		return _operator == otherBinary->_operator 
+			&& left == otherBinary->left 
+			&& right == otherBinary->right;
 	}
 
 	/*************************************************************************
@@ -246,26 +264,22 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	RegisterOperand::RegisterOperand(const Location& location, Register reg) 
-		: Expression(location), _register(reg) {}
-
-	bool RegisterOperand::isLiteral() const {
-		return false;
-	}
-
-	bool RegisterOperand::isEvaluatable() const {
-		return true;
-	}
-	
-	bool RegisterOperand::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
-		return false;
-	}
+		: Expression(location, false, true, false), _register(reg) {}
 
 	ExpressionPtr RegisterOperand::evaluate() const {
-		return ExpressionPtr(new EvaluatedRegister(_location, _register, false, 0));
+		return ExpressionPtr(new EvaluatedRegister(location, _register, false, 0));
 	}
 
 	string RegisterOperand::str() const {
-		return ast::str(_register);
+		return (boost::format("%s") % _register).str();
+	}
+
+	bool RegisterOperand::operator==(const Expression& other) const {
+		const RegisterOperand *otherRegister = dynamic_cast<const RegisterOperand*>(&other);
+
+		if (!otherRegister) return false;
+
+		return _register == otherRegister->_register;
 	}
 
 	/*************************************************************************
@@ -275,31 +289,22 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	LiteralOperand::LiteralOperand(const Location& location, uint32_t value)
-		: Expression(location), _value(value) {}
-
-	bool LiteralOperand::isLiteral() const {
-		return true;
-	}
-
-	bool LiteralOperand::isEvaluatable() const {
-		return true;
-	}
-	
-	bool LiteralOperand::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
-		if (position == ArgumentPosition::B || forceNextWord) {
-			return true;
-		} else if ((int32_t)_value == -1 || _value <= 0x1e) {
-			return false;
-		}
-		return true;
-	}
+		: Expression(location, true, true, false), value(value) {}
 
 	ExpressionPtr LiteralOperand::evaluate() const {
-		return ExpressionPtr(new EvaluatedLiteral(_location, _value));
+		return ExpressionPtr(new EvaluatedLiteral(location, value));
 	}
 
 	string LiteralOperand::str() const {
-		return (boost::format("%d") % _value).str();
+		return (boost::format("%d") % value).str();
+	}
+
+	bool LiteralOperand::operator==(const Expression& other) const {
+		const LiteralOperand *otherLiteral = dynamic_cast<const LiteralOperand*>(&other);
+
+		if (!otherLiteral) return false;
+
+		return value == otherLiteral->value;
 	}
 
 	/*************************************************************************
@@ -309,30 +314,26 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	LabelOperand::LabelOperand(const Location& location, const string& label)
-		: Expression(location), _label(label), _position(nullptr) {}
-
-	bool LabelOperand::isLiteral() const {
-		return true;
-	}
-
-	bool LabelOperand::isEvaluatable() const {
-		return _position != nullptr;
-	}
-	
-	bool LabelOperand::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
-		return true;
-	}
+		: Expression(location, true, false, false), label(label), position(nullptr) {}
 
 	ExpressionPtr LabelOperand::evaluate() const {
-		if (_position != nullptr) {
-			return ExpressionPtr(new EvaluatedLiteral(_location, *_position));
-		} else {
-			return ExpressionPtr();
+		if (position == nullptr) {
+			throw new logic_error("Labels must be resolved before a LabelOperand can be evaluated");
 		}
+
+		return ExpressionPtr(new EvaluatedLiteral(location, *position));
 	}
 
 	string LabelOperand::str() const {
-		return _label;
+		return label;
+	}
+
+	bool LabelOperand::operator==(const Expression& other) const {
+		const LabelOperand *otherLabel = dynamic_cast<const LabelOperand*>(&other);
+
+		if (!otherLabel) return false;
+
+		return label == otherLabel->label && position == otherLabel->position;
 	}
 
 	/*************************************************************************
@@ -341,54 +342,21 @@ namespace dcpu { namespace ast {
 	 *
 	 *************************************************************************/
 
-	InvalidExpression::InvalidExpression(const Location& location) : Expression(location) {}
-
-	bool InvalidExpression::isLiteral() const {
-		return true;
-	}
-
-	bool InvalidExpression::isEvaluatable() const {
-		return false;
-	}
-	
-	bool InvalidExpression::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
-		return false;
-	}
+	InvalidExpression::InvalidExpression(const Location& location) : Expression(location, true, false, false) {}
 
 	ExpressionPtr InvalidExpression::evaluate() const {
-		return ExpressionPtr();
+		throw new logic_error("InvalidExpression can not be evaluated");
 	}
 
 	string InvalidExpression::str() const {
 		return "<Invalid Expression>";
 	}
 
-	/*************************************************************************
-	 *
-	 * EvaluatedExpression
-	 *
-	 *************************************************************************/
+	bool InvalidExpression::operator==(const Expression& other) const {
+		const InvalidExpression *otherInvalid = dynamic_cast<const InvalidExpression*>(&other);
 
-	EvaluatedExpression::EvaluatedExpression(const lexer::Location& location, int32_t value) 
-		: Expression(location), _value(value) {}
-
-	bool EvaluatedExpression::isEvaluatable() const {
-		return false;
+		return otherInvalid != nullptr;
 	}
-
-	bool EvaluatedExpression::isEvaluated() {
-		return true;
-	}
-
-	int32_t EvaluatedExpression::getEvaluatedValue() {
-		return _value;
-	}
-
-	void EvaluatedExpression::updateEvaluatedValue(int32_t newValue) {
-		_value = newValue;
-	}
-
-	
 
 	/*************************************************************************
 	 *
@@ -397,40 +365,51 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	EvaluatedLiteral::EvaluatedLiteral(const lexer::Location& location, int32_t value) 
-		: EvaluatedExpression(location, value) {}
+		: Expression(location, true, true, true), value(value) {}
 
-	bool EvaluatedLiteral::isLiteral() const {
-		return true;
+
+	int32_t EvaluatedLiteral::getEvaluatedValue() {
+		return value;
 	}
 
-	ExpressionPtr EvaluatedLiteral::evaluate() const {
-		return ExpressionPtr(new EvaluatedLiteral(_location, _value));
+	void EvaluatedLiteral::setEvaluatedValue(int32_t newValue) {
+		value = newValue;
 	}
 
-	uint8_t EvaluatedLiteral::compile(std::vector<std::uint16_t> &output, ArgumentPosition position, bool indirect,
-			bool forceNextWord) {
-		if (!indirect && !forceNextWord && _value >= -1 && _value <= 0x1e) {
-			return (uint8_t)(_value + 0x20);
-		}
-
-		output.push_back((uint16_t)_value);
-		if (indirect) {
-			return 0x1e;
-		} else {
-			return 0x1f;
-		}
-	}
-
-	bool EvaluatedLiteral::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
-		if (position == ArgumentPosition::B || forceNextWord) {
+	bool EvaluatedLiteral::isNextWordRequired(const CompileFlags& flags) const {
+		if (flags.isForceNextWord() || flags.isIndirection() || flags.isArgumentB()) {
 			return true;
 		}
 
-		return _value < -1 || _value > 0x1e;
+		return value < -1 || value > 30;
+	}
+
+	ExpressionPtr EvaluatedLiteral::evaluate() const {
+		return ExpressionPtr(new EvaluatedLiteral(location, value));
+	}
+
+	CompileResult EvaluatedLiteral::compile(const CompileFlags& flags) const {
+		if (flags.isIndirection()) {
+			return CompileResult(0x1e, value);
+		} else {
+			if (flags.isArgumentB() || flags.isForceNextWord() || value < -1 || value > 30) {
+				return CompileResult(0x20 + value, boost::none);
+			} else {
+				return CompileResult(0x1f, value);
+			}
+		}
 	}
 
 	string EvaluatedLiteral::str() const {
-		return (boost::format("%d") % _value).str();
+		return (boost::format("%d") % value).str();
+	}
+
+	bool EvaluatedLiteral::operator==(const Expression& other) const {
+		const EvaluatedLiteral *otherLiteral = dynamic_cast<const EvaluatedLiteral*>(&other);
+
+		if (!otherLiteral) return false;
+
+		return value == otherLiteral->value;
 	}
 
 	/*************************************************************************
@@ -438,90 +417,110 @@ namespace dcpu { namespace ast {
 	 * EvaluatedRegister
 	 *
 	 *************************************************************************/
-
-	EvaluatedRegister::EvaluatedRegister(const lexer::Location& location, ast::Register _register)
-		: EvaluatedExpression(location, 0), _register(_register), _hasOffset(false) {}
-
 	EvaluatedRegister::EvaluatedRegister(const lexer::Location& location, Register _register, bool hasOffset,
-		int32_t offset) : EvaluatedExpression(location, offset), _register(_register), _hasOffset(hasOffset) {}
+		int32_t offset) 
+		: Expression(location, false, true, true),
+		_register(_register),
+		hasOffset(hasOffset),
+		offset(offset) {}
 
-	void EvaluatedRegister::updateEvaluatedValue(int32_t newValue) {
-		_hasOffset = true;
-		_value = newValue;
+	int32_t EvaluatedRegister::getEvaluatedValue() {
+		return offset;
 	}
 
-	bool EvaluatedRegister::isLiteral() const {
-		return false;
+	void EvaluatedRegister::setEvaluatedValue(int32_t newValue) {
+		hasOffset = true;
+		offset = newValue;
+	}
+
+	bool EvaluatedRegister::isNextWordRequired(const CompileFlags& flags) const {
+		if (!hasOffset) {
+			return false;
+		}
+
+		return offset > 0 || flags.isForceNextWord();
 	}
 
 	ExpressionPtr EvaluatedRegister::evaluate() const {
-		return ExpressionPtr(new EvaluatedRegister(_location, _register, _hasOffset, _value));
+		return ExpressionPtr(new EvaluatedRegister(location, _register, hasOffset, offset));
 	}
 
-	uint8_t EvaluatedRegister::compile(std::vector<std::uint16_t> &output, ArgumentPosition position, bool indirect,
-			bool forceNextWord) {
-		// these errors should have been detected earlier, but better safe than sorry
-		if (indirect && (_register == Register::PC || _register == Register::EX)) {
-			throw invalid_argument(boost::str(boost::format("Register '%s' is not allowed in an indirection") 
-				% ast::str(_register)));
+	CompileResult EvaluatedRegister::compileRegister(const CompileFlags& flags, uint8_t noIndirection,
+		uint8_t indirectNoOffset, uint8_t indirectWithOffset) const {
+
+		if (!flags.isIndirection()) {
+			return CompileResult(noIndirection, boost::none);
 		}
 
-		if (!indirect && _hasOffset) {
-			throw invalid_argument("Registers can not be involved in expressions outside of an indirection");
-		}
-
-		if (!indirect && _hasOffset && (forceNextWord || _value != 0)) {
-			output.push_back((uint16_t)_value);
-		}
-
-		if (!indirect) {
-			if (_register == Register::SP) {
-				return 0x1b;
-			} else if (_register == Register::PC) {
-				return 0x1c;
-			} else if (_register == Register::EX) {
-				return 0x1d;
-			} else {
-				return static_cast<int>(_register);
-			}
-		} else if (_hasOffset) {
-			if (_register == Register::SP) {
-				return 0x1a;
-			} else {
-				return 0x10 + static_cast<int>(_register);
-			}
+		if (hasOffset && (flags.isForceNextWord() || offset != 0)) {
+			return CompileResult(indirectWithOffset, offset);
 		} else {
-			if (_register == Register::SP) {
-				return 0x19;
-			} else {
-				return 0x08 + static_cast<int>(_register);
-			}
+			return CompileResult(indirectNoOffset, offset);
 		}
 	}
 
-	bool EvaluatedRegister::isNextWordRequired(ArgumentPosition position, bool forceNextWord) const {
-		return _hasOffset && (_value != 0 || forceNextWord);
+	CompileResult EvaluatedRegister::compile(const CompileFlags& flags) const {
+		switch (_register) {
+		case Register::A:
+			return compileRegister(flags, 0x0, 0x8, 0x10);
+		case Register::B:
+			return compileRegister(flags, 0x1, 0x9, 0x11);
+		case Register::C:
+			return compileRegister(flags, 0x2, 0xa, 0x12);
+		case Register::X:
+			return compileRegister(flags, 0x3, 0xb, 0x13);
+		case Register::Y:
+			return compileRegister(flags, 0x4, 0xc, 0x14);
+		case Register::Z:
+			return compileRegister(flags, 0x5, 0xd, 0x15);
+		case Register::I:
+			return compileRegister(flags, 0x6, 0xe, 0x16);
+		case Register::J:
+			return compileRegister(flags, 0x7, 0xf, 0x17);
+		case Register::SP:
+			return compileRegister(flags, 0x1b, 0x19, 0x1a);
+		case Register::PC:
+			return CompileResult(0x1c, boost::none);
+		case Register::EX:
+			return CompileResult(0x1d, boost::none);
+		default:
+			throw logic_error((boost::format("%s") % _register ).str());
+		}
 	}
 
 	string EvaluatedRegister::str() const {
-		if (_hasOffset) {
-			return (boost::format("%s + %d") % ast::str(_register) % _value).str();
+		if (hasOffset) {
+			return (boost::format("%s + %d") % _register % offset).str();
 		} else {
-			return ast::str(_register);
+			return (boost::format("%s") % _register).str();
 		}
+	}
+
+	bool EvaluatedRegister::operator==(const Expression& other) const {
+		const EvaluatedRegister *otherRegister = dynamic_cast<const EvaluatedRegister*>(&other);
+
+		if (!otherRegister) return false;
+
+		return _register == otherRegister->_register 
+			&& hasOffset == otherRegister->hasOffset 
+			&& offset == otherRegister->offset;
 	}
 
 	/*************************************************************************
 	 *
-	 * Pretty Printers
+	 * Operators
 	 *
 	 *************************************************************************/
 
-	string str(const Expression& expr) {
-		return expr.str();
+	bool operator==(const ExpressionPtr &left, const ExpressionPtr &right) {
+		if (left && right) {
+			return *left == *right;
+		} else {
+			return !left == !right;
+		}
 	}
 
-	string str(const ExpressionPtr& expr) {
-		return expr->str();
+	std::ostream& operator<< (std::ostream& stream, const ExpressionPtr& expr) {
+		return stream << expr->str();
 	}
 }}

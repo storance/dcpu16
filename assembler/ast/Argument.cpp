@@ -13,9 +13,7 @@ namespace dcpu { namespace ast {
 	 *
 	 *************************************************************************/
 	Argument::Argument(const Location& location, ArgumentPosition position) 
-		: _location(location), _position(position) {}
-
-	Argument::~Argument() {}
+		: location(location), position(position) {}
 
 	ArgumentPtr Argument::stack(const Location& location, ArgumentPosition position, StackOperation operation) {
 		return ArgumentPtr(new StackArgument(location, position, operation));
@@ -52,26 +50,34 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	StackArgument::StackArgument(const Location& location, ArgumentPosition position, StackOperation operation) 
-		: Argument(location, position), _operation(operation) {}
+		: Argument(location, position), operation(operation) {}
 
 	string StackArgument::str() const {
-		return ast::str(_operation);
+		return (boost::format("%s") % operation).str();
 	}
 
 	bool StackArgument::isNextWordRequired() const {
 		return false;
 	}
 
-	uint8_t StackArgument::compile(std::vector<std::uint16_t> &output) {
-		switch (_operation) {
+	CompileResult StackArgument::compile() const {
+		switch (operation) {
 		case StackOperation::PUSH:
 		case StackOperation::POP:
-			return 0x18;
+			return CompileResult(0x18, boost::none);
 		case StackOperation::PEEK:
-			return 0x19;
+			return CompileResult(0x19, boost::none);
 		default:
-			throw new logic_error(ast::str(_operation));
+			throw logic_error(boost::str(boost::format("%s") % operation));
 		}
+	}
+
+	bool StackArgument::operator==(const Argument& other) const {
+		const StackArgument *otherStack = dynamic_cast<const StackArgument*>(&other);
+
+		if (!otherStack) return false;
+
+		return position == otherStack->position && operation == otherStack->operation;
 	}
 
 	/*************************************************************************
@@ -81,21 +87,29 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	IndirectArgument::IndirectArgument(ArgumentPosition position, ExpressionPtr& expr)
-		: Argument(expr->_location, position), _expr(move(expr)) {}
+		: Argument(expr->location, position), expr(move(expr)) {}
 
 	IndirectArgument::IndirectArgument(ArgumentPosition position, ExpressionPtr&& expr)
-		: Argument(expr->_location, position), _expr(move(expr)) {}
+		: Argument(expr->location, position), expr(move(expr)) {}
 
 	string IndirectArgument::str() const {
-		return (boost::format("[%s]") % ast::str(_expr)).str();
+		return (boost::format("[%s]") % expr).str();
 	}
 
 	bool IndirectArgument::isNextWordRequired() const {
-		return _expr->isNextWordRequired(_position, false);
+		return expr->isNextWordRequired(CompileFlags(position, true, false));
 	}
 
-	uint8_t IndirectArgument::compile(std::vector<std::uint16_t> &output) {
-		return _expr->compile(output, _position, true, false);
+	CompileResult IndirectArgument::compile() const {
+		return expr->compile(CompileFlags(position, false, false));
+	}
+
+	bool IndirectArgument::operator==(const Argument& other) const {
+		const IndirectArgument *otherIndirect = dynamic_cast<const IndirectArgument*>(&other);
+
+		if (!otherIndirect) return false;
+
+		return position == otherIndirect->position && expr == otherIndirect->expr;
 	}
 
 	/*************************************************************************
@@ -105,30 +119,46 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	ExpressionArgument::ExpressionArgument(ArgumentPosition position, ExpressionPtr& expr)
-		: Argument(expr->_location, position), _expr(move(expr)) {}
+		: Argument(expr->location, position), expr(move(expr)) {}
 
 	ExpressionArgument::ExpressionArgument(ArgumentPosition position, ExpressionPtr&& expr)
-		: Argument(expr->_location, position), _expr(move(expr)) {}
+		: Argument(expr->location, position), expr(move(expr)) {}
 
 	string ExpressionArgument::str() const {
-		return ast::str(_expr);
+		return expr->str();
 	}
 
 	bool ExpressionArgument::isNextWordRequired() const {
-		return _expr->isNextWordRequired(_position, false);
+		return expr->isNextWordRequired(CompileFlags(position, false, false));
 	}
 
-	uint8_t ExpressionArgument::compile(std::vector<std::uint16_t> &output) {
-		return _expr->compile(output, _position, false, false);
+	CompileResult ExpressionArgument::compile() const {
+		return expr->compile(CompileFlags(position, false, false));
+	}
+
+	bool ExpressionArgument::operator==(const Argument& other) const {
+		const ExpressionArgument *otherExpr = dynamic_cast<const ExpressionArgument*>(&other);
+
+		if (!otherExpr) return false;
+
+		return position == otherExpr->position && expr == otherExpr->expr;
 	}
 
 	/*************************************************************************
 	 *
-	 * Pretty Printers
+	 * Operators
 	 *
 	 *************************************************************************/
 
-	string str(const ArgumentPtr &argument) {
-		return argument->str();
+	bool operator== (const ArgumentPtr& left, const ArgumentPtr& right) {
+		if (left && right) {
+			return *left == *right;
+		} else {
+			return !left == !right;
+		}
+	}
+
+	std::ostream& operator<< (std::ostream& stream, const ArgumentPtr &argument) {
+		return stream << argument->str();
 	}
 }}

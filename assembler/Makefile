@@ -19,8 +19,8 @@ OBJECTS = $(OUTPUT_DIR)/Parser.o \
 
 TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/Utils.o \
-			   $(OUTPUT_DIR)/LexerTest.o \
 			   $(OUTPUT_DIR)/ParserTest.o \
+			   $(OUTPUT_DIR)/LexerTest.o \
 			   $(OUTPUT_DIR)/ExpressionParserTest.o 
 
 all: assembler

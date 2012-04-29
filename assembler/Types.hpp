@@ -2,7 +2,10 @@
 
 #include <list>
 #include <memory>
+#include <tuple>
 #include <cstdint>
+
+#include <boost/optional.hpp>
 
 namespace dcpu {
 
@@ -35,4 +38,6 @@ namespace dcpu {
 	typedef std::unique_ptr<lexer::Token> TokenPtr;
 	typedef std::list<TokenPtr> TokenList;
 	typedef TokenList::iterator TokenIterator;
+
+	typedef std::tuple<std::uint8_t, boost::optional<std::uint16_t>> CompileResult;
 }

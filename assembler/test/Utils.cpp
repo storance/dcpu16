@@ -8,7 +8,7 @@ using namespace dcpu::ast;
 using namespace dcpu::lexer;
 using namespace dcpu::parser;
 
-ExpressionFunc assertIsBinaryOperation(BinaryOperator expectedOperation,
+/*ExpressionFunc assertIsBinaryOperation(BinaryOperator expectedOperation,
 	ExpressionFunc assertLeft, ExpressionFunc assertRight) {
 
 	return [=] (ExpressionPtr& expr) {
@@ -91,7 +91,7 @@ ExpressionFunc assertIsEvaluatedLiteral(int32_t expectedValue) {
 		EXPECT_EQ(expectedValue, literalOp->getEvaluatedValue());
 	};
 }
-
+*/
 void runLexer(const string &content, int expectedTokens, shared_ptr<Lexer> &lex) {
 	lex = make_shared<Lexer>(content.begin(), content.end(), "<Test>");
     lex->parse();

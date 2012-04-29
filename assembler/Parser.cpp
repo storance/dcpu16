@@ -63,11 +63,11 @@ namespace dcpu { namespace parser {
 		try {
 			statement->buildSymbolTable(symbolTable, _outputPosition);
 		} catch (exception &e) {
-			errorHandler->error(statement->_location, e.what());
+			errorHandler->error(statement->location, e.what());
 		}
 
 		if (*_outputPosition < oldPosition) {
-			errorHandler->error(statement->_location, "binary output has exceeded the DCPU-16's memory "
+			errorHandler->error(statement->location, "binary output has exceeded the DCPU-16's memory "
 				"size (65,536 words).");
 		}
 

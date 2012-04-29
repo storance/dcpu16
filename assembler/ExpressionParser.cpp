@@ -134,13 +134,13 @@ namespace dcpu { namespace parser {
 		bool rightLiteralRequired = definition->rightRequiresLiteral || !indirection;
 
 		if (leftLiteralRequired && !left->isLiteral()) {
-			errorHandler->error(left->_location, format(LEFT_OPERAND_NOT_LITERAL) % str(definition->_operator));
-			left = move(Expression::invalid(left->_location));
+			errorHandler->error(left->location, format(LEFT_OPERAND_NOT_LITERAL) % definition->_operator);
+			left = move(Expression::invalid(left->location));
 		}
 
 		if (rightLiteralRequired && !right->isLiteral()) {
-			errorHandler->error(right->_location, format(RIGHT_OPERAND_NOT_LITERAL) % str(definition->_operator));
-			right = move(Expression::invalid(right->_location));
+			errorHandler->error(right->location, format(RIGHT_OPERAND_NOT_LITERAL) % definition->_operator);
+			right = move(Expression::invalid(right->location));
 		}
 	}
 
@@ -162,7 +162,7 @@ namespace dcpu { namespace parser {
 
 		ExpressionPtr operand = parseUnaryOperation();
 		if (!operand->isLiteral()) {
-			errorHandler->error(currentToken->location, format(UNARY_OPERAND_NOT_LITERAL) % str(_operator));
+			errorHandler->error(currentToken->location, format(UNARY_OPERAND_NOT_LITERAL) % _operator);
 			return Expression::invalid(currentToken->location);
 		}
 
@@ -201,21 +201,21 @@ namespace dcpu { namespace parser {
 		if (registerDef) {
 			if (foundRegister) {
 				errorHandler->error(currentToken->location, format(MULTIPLE_REGISTERS) 
-					% str(registerDef->_register)
-					% str(foundRegister._register)
-					% str(foundRegister.location));
+					% registerDef->_register
+					% foundRegister._register
+					% foundRegister.location);
 				return Expression::invalid(currentToken->location);
 			}
 
 			foundRegister.set(registerDef->_register, currentToken->location);
 			if (!registersAllowed) {
-				errorHandler->error(currentToken->location, format(REGISTER_NOT_ALLOWED) % str(registerDef->_register));
+				errorHandler->error(currentToken->location, format(REGISTER_NOT_ALLOWED) % registerDef->_register);
 				return Expression::invalid(currentToken->location);
 			}
 
 			if (indirection && !registerDef->_indirectable) {
 				errorHandler->error(currentToken->location, format(REGISTER_NOT_INDIRECTABLE) 
-					% str(registerDef->_register));
+					% registerDef->_register);
 				return Expression::invalid(currentToken->location);
 			}
 

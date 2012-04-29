@@ -14,7 +14,7 @@ namespace dcpu { namespace ast {
 	 * Statement
 	 *
 	 *************************************************************************/
-	Statement::Statement(const Location& location) : _location(location) {}
+	Statement::Statement(const Location& location) : location(location) {}
 
 	Statement::~Statement() {}
 
@@ -30,11 +30,19 @@ namespace dcpu { namespace ast {
 
 	}
 
-	StatementPtr Statement::label(const lexer::Location& location, const std::string& name) {
+	StatementPtr Statement::label(const lexer::Location &location, const string& name) {
 		return StatementPtr(new Label(location, name));
 	}
 
-	StatementPtr Statement::instruction(const lexer::Location& location, Opcode opcode, ArgumentPtr& a, ArgumentPtr& b) {
+	StatementPtr Statement::label(const lexer::Location &location, const std::string &name, LabelType type) {
+		return StatementPtr(new Label(location, name, type));
+	}
+
+	StatementPtr Statement::instruction(const Location &location, Opcode opcode, ArgumentPtr& a, ArgumentPtr& b) {
+		return StatementPtr(new Instruction(location, opcode, a, b));
+	}
+
+	StatementPtr Statement::instruction(const Location &location, Opcode opcode, ArgumentPtr &&a, ArgumentPtr &&b) {
 		return StatementPtr(new Instruction(location, opcode, a, b));
 	}
 
@@ -49,18 +57,27 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	Label::Label(const Location &location, const string &name)
-		: Statement(location), _name(name) {
-		if (boost::starts_with(_name, "..@")) {
-			_type = LabelType::GlobalNoAttach;
-		} else if (boost::starts_with(_name, ".")) {
-			_type = LabelType::Local;
+		: Statement(location), name(name) {
+		if (boost::starts_with(name, "..@")) {
+			type = LabelType::GlobalNoAttach;
+		} else if (boost::starts_with(name, ".")) {
+			type = LabelType::Local;
 		} else {
-			_type = LabelType::Global;
+			type = LabelType::Global;
 		}
 	}
 
+	Label::Label(const lexer::Location &location, const std::string &name, LabelType type)
+		: Statement(location), type(type), name(name) {}
+
 	string Label::str() const {
-		return (boost::format("%s:") % _name).str();
+		return (boost::format("%s:") % name).str();
+	}
+
+	bool Label::operator==(const Statement &other) const {
+		const Label *otherLabel = dynamic_cast<const Label*>(&other);
+
+		return name == otherLabel->name;
 	}
 
 	void Label::buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const {
@@ -74,28 +91,28 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	Instruction::Instruction(const Location &location, Opcode opcode, ArgumentPtr& a, ArgumentPtr& b)
-		: Statement(location), _opcode(opcode), _a(move(a)), _b(move(b)) {}
+		: Statement(location), opcode(opcode), a(move(a)), b(move(b)) {}
 
 	string Instruction::str() const {
-		if ((!_b && !_a) || (_b && !_a)) {
+		if ((!b && !a) || (b && !a)) {
 			return "";
 		}
 
-		if (_b) {
-			return (boost::format("%s %s, %s") % ast::str(_opcode) % ast::str(_b) % ast::str(_a)).str();	
+		if (b) {
+			return (boost::format("%s %s, %s") % opcode % b % a).str();	
 		} else {
-			return (boost::format("%s %s") % ast::str(_opcode) % ast::str(_a)).str();	
+			return (boost::format("%s %s") % opcode % a).str();	
 		}
 	}
 
 	void Instruction::buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const {
 		++*position;
 
-		if (_b && _b->isNextWordRequired()) {
+		if (b && b->isNextWordRequired()) {
 			++*position;
 		}
 
-		if (_a && _a->isNextWordRequired()) {
+		if (a && a->isNextWordRequired()) {
 			++*position;
 		}
 	}
@@ -107,27 +124,68 @@ namespace dcpu { namespace ast {
 	bool Instruction::compress(SymbolTablePtr& table) {
 		return false;
 	}
+
+	void Instruction::compile(vector<uint16_t> &output, Opcode opcode, ArgumentPtr &a, ArgumentPtr &b) {
+		uint16_t instruction = static_cast<uint16_t>(opcode);
+
+		boost::optional<uint16_t> aNextWord, bNextWord;
+		if (a) {
+			CompileResult result = a->compile();
+			instruction |= (get<0>(result) & 0x3f) << 10;
+			aNextWord = get<1>(result);
+		}
+
+		if (b) {
+			CompileResult result = b->compile();
+			instruction |= (get<0>(result) & 0x1f) << 5;
+			bNextWord = get<1>(result);
+		}
+
+		output.push_back(instruction);
+		if (aNextWord) {
+			output.push_back(*aNextWord);
+		}
+
+		if (bNextWord) {
+			output.push_back(*bNextWord);
+		}
+	}
 	
 	void Instruction::compile(vector<uint16_t> &output) {
-		// Allows the arg compile to push their next word to output while we're still building the instruction
-		output.push_back(0);
-		uint16_t &instruction = output.back();
-		if (_opcode == Opcode::JMP) {
-			instruction = static_cast<uint16_t>(Opcode::SET) | (0x1c << 5);
+		if (opcode == Opcode::JMP) {
+			auto jmpB = Argument::expression(
+				ArgumentPosition::B,
+				Expression::evaluatedRegister(location, Register::PC)
+			);
+
+			compile(output, Opcode::SET, a, b);
 		} else {
-			instruction = static_cast<uint16_t>(_opcode);
-		}
-
-		if (_a) {
-			instruction |= (_a->compile(output) & 0x3f) << 10;
-		}
-
-		if (_b) {
-			instruction |= (_b->compile(output) & 0x1f) << 5;
+			compile(output, opcode, a, b);
 		}
 	}
 
-	string str(const StatementPtr & stmt) {
-		return stmt->str();
+	bool Instruction::operator==(const Statement &other) const {
+		const Instruction *otherInstruction = dynamic_cast<const Instruction*>(&other);
+
+		return opcode == otherInstruction->opcode
+			&& a == otherInstruction->a
+			&& b == otherInstruction-> b;
+	}
+
+	/*************************************************************************
+	 *
+	 * Operators
+	 *
+	 *************************************************************************/
+	bool operator== (const StatementPtr& left, const StatementPtr& right) {
+		if (left && right) {
+			return *left == *right;
+		} else {
+			return !left == !right;
+		}
+	}
+
+	ostream& operator<< (ostream& stream, const StatementPtr &stmt) {
+		return stream << stmt->str();
 	}
 }}

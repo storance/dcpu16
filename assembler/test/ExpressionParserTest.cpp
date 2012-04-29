@@ -13,108 +13,88 @@ using namespace dcpu::parser;
 using namespace dcpu::lexer;
 
 TEST(ExpressionParserTest, OperatorPrecedenceTest) {
+	Location location("<Test>", 1, 1);
 	ExpressionPtr expr;
 
 	ASSERT_NO_FATAL_FAILURE(runExpressionParser("1 + 2 * 3", expr, false, true));
-	{
-		SCOPED_TRACE("Expression 1 + 2 * 3");
-		assertIsBinaryOperation(BinaryOperator::PLUS,
-			assertIsLiteral(1),
-			assertIsBinaryOperation(BinaryOperator::MULTIPLY, 
-				assertIsLiteral(2),
-				assertIsLiteral(3)
-			)
-		)(expr);
-	}
+	EXPECT_EQ(expr, Expression::binaryOperation(location, BinaryOperator::PLUS,
+		Expression::literalOperand(location, 1),
+		Expression::binaryOperation(location, BinaryOperator::MULTIPLY,
+			Expression::literalOperand(location, 2),
+			Expression::literalOperand(location, 3)
+		)
+	));
 
 	ASSERT_NO_FATAL_FAILURE(runExpressionParser("1 & 2 | 3 ^ 4", expr, false, true));
-	{
-		SCOPED_TRACE("Expression 1 & 2 | 3 ^ 4");
-		assertIsBinaryOperation(BinaryOperator::OR,
-			assertIsBinaryOperation(BinaryOperator::AND,
-				assertIsLiteral(1),
-				assertIsLiteral(2)
-			), assertIsBinaryOperation(BinaryOperator::XOR, 
-				assertIsLiteral(3),
-				assertIsLiteral(4)
-			)
-		)(expr);
-	}
+	EXPECT_EQ(expr, Expression::binaryOperation(location, BinaryOperator::OR,
+		Expression::binaryOperation(location, BinaryOperator::AND,
+			Expression::literalOperand(location, 1),
+			Expression::literalOperand(location, 2)
+		), Expression::binaryOperation(location, BinaryOperator::XOR,
+			Expression::literalOperand(location, 3),
+			Expression::literalOperand(location, 4)
+		)
+	));
 
 	ASSERT_NO_FATAL_FAILURE(runExpressionParser("1 << 4 & 2 >> 3", expr, false, true));
-	{
-		SCOPED_TRACE("Expression 1 << 4 & 2 >> 3");
-		assertIsBinaryOperation(BinaryOperator::AND,
-			assertIsBinaryOperation(BinaryOperator::SHIFT_LEFT,
-				assertIsLiteral(1),
-				assertIsLiteral(4)
-			), assertIsBinaryOperation(BinaryOperator::SHIFT_RIGHT, 
-				assertIsLiteral(2),
-				assertIsLiteral(3)
-			)
-		)(expr);
-	}
+	EXPECT_EQ(expr, Expression::binaryOperation(location, BinaryOperator::AND,
+		Expression::binaryOperation(location, BinaryOperator::SHIFT_LEFT,
+			Expression::literalOperand(location, 1),
+			Expression::literalOperand(location, 4)
+		), Expression::binaryOperation(location, BinaryOperator::SHIFT_RIGHT,
+			Expression::literalOperand(location, 2),
+			Expression::literalOperand(location, 3)
+		)
+	));
 
 	ASSERT_NO_FATAL_FAILURE(runExpressionParser("1 + 2 << 3 >> 4 - 5", expr, false, true));
-	{
-		SCOPED_TRACE("Expression 1 + 2 << 3 >> 4 - 5");
-		assertIsBinaryOperation(BinaryOperator::SHIFT_RIGHT,
-			assertIsBinaryOperation(BinaryOperator::SHIFT_LEFT,
-				assertIsBinaryOperation(BinaryOperator::PLUS,
-					assertIsLiteral(1),
-					assertIsLiteral(2)
-				), assertIsLiteral(3)
-			), assertIsBinaryOperation(BinaryOperator::MINUS,
-				assertIsLiteral(4),
-				assertIsLiteral(5)
-			)
-		)(expr);
-	}
+	EXPECT_EQ(expr, Expression::binaryOperation(location, BinaryOperator::SHIFT_RIGHT,
+		Expression::binaryOperation(location, BinaryOperator::SHIFT_LEFT,
+			Expression::binaryOperation(location, BinaryOperator::PLUS,
+				Expression::literalOperand(location, 1),
+				Expression::literalOperand(location, 2)
+			), Expression::literalOperand(location, 3)
+		), Expression::binaryOperation(location, BinaryOperator::MINUS,
+			Expression::literalOperand(location, 4),
+			Expression::literalOperand(location, 5)
+		)
+	));
 
 	ASSERT_NO_FATAL_FAILURE(runExpressionParser("1 * 2 + 3 / 4 % 5", expr, false, true));
-	{
-		SCOPED_TRACE("Expression 1 * 2 + 3 / 4 % 5");
-		assertIsBinaryOperation(BinaryOperator::PLUS,
-			assertIsBinaryOperation(BinaryOperator::MULTIPLY,
-				assertIsLiteral(1),
-				assertIsLiteral(2)
-			), assertIsBinaryOperation(BinaryOperator::MODULO,
-				assertIsBinaryOperation(BinaryOperator::DIVIDE,
-					assertIsLiteral(3),
-					assertIsLiteral(4)
-				),
-				assertIsLiteral(5)
-			)
-		)(expr);
-	}
+	EXPECT_EQ(expr, Expression::binaryOperation(location, BinaryOperator::PLUS,
+		Expression::binaryOperation(location, BinaryOperator::MULTIPLY,
+			Expression::literalOperand(location, 1),
+			Expression::literalOperand(location, 2)
+		), Expression::binaryOperation(location, BinaryOperator::MODULO,
+			Expression::binaryOperation(location, BinaryOperator::DIVIDE,
+				Expression::literalOperand(location, 3),
+				Expression::literalOperand(location, 4)
+			), Expression::literalOperand(location, 5)
+		)
+	));
 
 	ASSERT_NO_FATAL_FAILURE(runExpressionParser("-1 * !-2 / +3 % ~4", expr, false, true));
-	{
-		SCOPED_TRACE("Expression -1 * !-2 / +3 % ~4");
-		assertIsBinaryOperation(BinaryOperator::MODULO,
-			assertIsBinaryOperation(BinaryOperator::DIVIDE,
-				assertIsBinaryOperation(BinaryOperator::MULTIPLY,
-					assertIsUnaryOperation(UnaryOperator::MINUS, assertIsLiteral(1)),
-					assertIsUnaryOperation(UnaryOperator::NOT,
-						assertIsUnaryOperation(UnaryOperator::MINUS, assertIsLiteral(2)))
-				), assertIsUnaryOperation(UnaryOperator::PLUS, assertIsLiteral(3))
-			), assertIsUnaryOperation(UnaryOperator::BITWISE_NOT, assertIsLiteral(4))
-		)(expr);
-	}
+	EXPECT_EQ(expr, Expression::binaryOperation(location, BinaryOperator::MODULO,
+		Expression::binaryOperation(location, BinaryOperator::DIVIDE,
+			Expression::binaryOperation(location, BinaryOperator::MULTIPLY,
+				Expression::unaryOperation(location, UnaryOperator::MINUS, Expression::literalOperand(location, 1)),
+				Expression::unaryOperation(location, UnaryOperator::NOT, 
+					Expression::unaryOperation(location, UnaryOperator::MINUS, Expression::literalOperand(location, 2))
+				)
+			), Expression::unaryOperation(location, UnaryOperator::PLUS, Expression::literalOperand(location, 3))
+		), Expression::unaryOperation(location, UnaryOperator::BITWISE_NOT, Expression::literalOperand(location, 4))
+	));
 
 	ASSERT_NO_FATAL_FAILURE(runExpressionParser("-(1 + 2) * (3 + 4)", expr, false, true));
-	{
-		SCOPED_TRACE("Expression -(1 + 2) * (3 + 4)");
-		assertIsBinaryOperation(BinaryOperator::MULTIPLY,
-			assertIsUnaryOperation(UnaryOperator::MINUS,
-				assertIsBinaryOperation(BinaryOperator::PLUS,
-					assertIsLiteral(1),
-					assertIsLiteral(2)
-				)
-			), assertIsBinaryOperation(BinaryOperator::PLUS,
-				assertIsLiteral(3),
-				assertIsLiteral(4)
+	EXPECT_EQ(expr, Expression::binaryOperation(location, BinaryOperator::MULTIPLY,
+		Expression::unaryOperation(location, UnaryOperator::MINUS,
+			Expression::binaryOperation(location, BinaryOperator::PLUS,
+				Expression::literalOperand(location, 1),
+				Expression::literalOperand(location, 2)
 			)
-		)(expr);
-	}
+		), Expression::binaryOperation(location, BinaryOperator::PLUS,
+			Expression::literalOperand(location, 3),
+			Expression::literalOperand(location, 4)
+		)
+	));
 }

@@ -11,59 +11,67 @@
 namespace dcpu { namespace ast {
 	class Argument {
 	public:
-		lexer::Location _location;
-		ArgumentPosition _position;
+		lexer::Location location;
+		ArgumentPosition position;
 
 		Argument(const lexer::Location&, ArgumentPosition);
-		virtual ~Argument();
 
 		virtual bool isNextWordRequired() const=0;
-		virtual uint8_t compile(std::vector<std::uint16_t> &output)=0;
+		virtual CompileResult compile() const=0;
 		virtual std::string str() const=0;
 
-		static std::unique_ptr<Argument> stack(const lexer::Location&, ArgumentPosition, StackOperation);
-		static std::unique_ptr<Argument> stackPop(const lexer::Location&, ArgumentPosition);
-		static std::unique_ptr<Argument> stackPush(const lexer::Location&, ArgumentPosition);
-		static std::unique_ptr<Argument> stackPeek(const lexer::Location&, ArgumentPosition);
-		static std::unique_ptr<Argument> indirect(ArgumentPosition, ExpressionPtr&&);
-		static std::unique_ptr<Argument> expression(ArgumentPosition, ExpressionPtr&&);
-		static std::unique_ptr<Argument> null();
+		virtual bool operator==(const Argument&) const=0;
+
+		static ArgumentPtr stack(const lexer::Location&, ArgumentPosition, StackOperation);
+		static ArgumentPtr stackPop(const lexer::Location&, ArgumentPosition);
+		static ArgumentPtr stackPush(const lexer::Location&, ArgumentPosition);
+		static ArgumentPtr stackPeek(const lexer::Location&, ArgumentPosition);
+		static ArgumentPtr indirect(ArgumentPosition, ExpressionPtr&&);
+		static ArgumentPtr expression(ArgumentPosition, ExpressionPtr&&);
+		static ArgumentPtr null();
 	};	
 
 	class StackArgument : public Argument {
 	public:
-		StackOperation _operation;
+		StackOperation operation;
 
 		StackArgument(const lexer::Location&, ArgumentPosition, StackOperation);
 
 		virtual bool isNextWordRequired() const;
-		virtual uint8_t compile(std::vector<std::uint16_t> &output);
+		virtual CompileResult compile() const;
 		virtual std::string str() const;
+
+		virtual bool operator==(const Argument&) const;
 	};
 
 	class IndirectArgument : public Argument {
 	public:
-		ExpressionPtr _expr;
+		ExpressionPtr expr;
 
 		IndirectArgument(ArgumentPosition, ExpressionPtr&&);
 		IndirectArgument(ArgumentPosition, ExpressionPtr&);
 
 		virtual bool isNextWordRequired() const;
-		virtual uint8_t compile(std::vector<std::uint16_t> &output);
+		virtual CompileResult compile() const;
 		virtual std::string str() const;
+
+		virtual bool operator==(const Argument&) const;
 	};
 
 	class ExpressionArgument : public Argument {
 	public:
-		ExpressionPtr _expr;
+		ExpressionPtr expr;
 
 		ExpressionArgument(ArgumentPosition, ExpressionPtr&&);
 		ExpressionArgument(ArgumentPosition, ExpressionPtr&);
 
 		virtual bool isNextWordRequired() const;
-		virtual uint8_t compile(std::vector<std::uint16_t> &output);
+		virtual CompileResult compile() const;
 		virtual std::string str() const;
+
+		virtual bool operator==(const Argument&) const;
 	};
 
-	std::string str(const ArgumentPtr &);
+	bool operator== (const ArgumentPtr& left, const ArgumentPtr& right);
+	std::ostream& operator<< (std::ostream& stream, const ArgumentPtr& arg);
 } }

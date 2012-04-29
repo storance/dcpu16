@@ -11,12 +11,12 @@ using namespace boost::algorithm;
 
 namespace dcpu {
 	DuplicateLabelError::DuplicateLabelError(const Label &duplicateLabel, const Label &existingLabel) {
-		if (duplicateLabel._type == LabelType::Local) {
+		if (duplicateLabel.type == LabelType::Local) {
 			message = str(format("redeclaration of local label '%' within current scope; previous declaration at %s") 
-				% duplicateLabel._name % str(existingLabel._location));
+				% duplicateLabel.name % str(existingLabel.location));
 		} else {
 			message = str(format("redeclaration of label '%'; previous declaration at %s") 
-				% duplicateLabel._name % str(existingLabel._location));
+				% duplicateLabel.name % str(existingLabel.location));
 		}
 	}
 
@@ -46,7 +46,7 @@ namespace dcpu {
 
 	SymbolEntry &SymbolTable::getLastGlobalLabel(const std::string &labelName) {
 		for (auto it = _entries.rbegin(); it != _entries.rend(); it++) {
-			if (it->label._type == LabelType::Global) {
+			if (it->label.type == LabelType::Global) {
 				return *it;
 			}
 		}
@@ -55,20 +55,20 @@ namespace dcpu {
 	}
 
 	void SymbolTable::add(Label label, std::uint16_t position) {
-		if (label._type == LabelType::Local) {
-			SymbolEntry &entry = getLastGlobalLabel(label._name);
+		if (label.type == LabelType::Local) {
+			SymbolEntry &entry = getLastGlobalLabel(label.name);
 
-			label._name = str(format("%s%s") % entry.label._name % label._name);
+			label.name = str(format("%s%s") % entry.label.name % label.name);
 		}
 
-		auto existingEntry = _lookupTable.find(label._name);
+		auto existingEntry = _lookupTable.find(label.name);
 		if (existingEntry != _lookupTable.end()) {
 			throw DuplicateLabelError(label, existingEntry->second.label);
 		}
 
 		SymbolEntry entry(label, position);
 		_entries.push_back(entry);
-		_lookupTable.insert(pair<string, SymbolEntry&>(label._name, _entries.back()));
+		_lookupTable.insert(pair<string, SymbolEntry&>(label.name, _entries.back()));
 	}
 
 	uint16_t *SymbolTable::lookup(const string &labelName) {
@@ -88,7 +88,7 @@ namespace dcpu {
 		try {
 			SymbolEntry &entry = getLastGlobalLabel(labelName);
 
-			return str(format("%s%s") % entry.label._name % labelName);
+			return str(format("%s%s") % entry.label.name % labelName);
 		} catch (NoGlobalLabelError &e) {
 			return labelName;
 		}

@@ -4,6 +4,9 @@
 #include <vector>
 #include <memory>
 #include <cstdint>
+#include <tuple>
+
+#include <boost/optional.hpp>
 
 #include "Common.hpp"
 #include "RegisterDefinition.hpp"
@@ -11,26 +14,45 @@
 #include "../Token.hpp"
 
 namespace dcpu { namespace ast {
-	class Expression {
+	class CompileFlags {
+		ArgumentPosition position;
+		bool indirection;
+		bool forceNextWord;
 	public:
-		lexer::Location _location;
+		CompileFlags(ArgumentPosition position, bool indirection, bool forceNextWord);
 
-		Expression(Expression&&);
-		Expression(const lexer::Location&);
-		virtual ~Expression();
+		bool isArgumentA() const;
+		bool isArgumentB() const;
+		bool isIndirection() const;
+		bool isForceNextWord() const;
+	};
 
-		virtual uint8_t compile(std::vector<std::uint16_t> &, ArgumentPosition, bool, bool);
-		virtual std::unique_ptr<Expression> evaluate() const=0;
-		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const=0;
-		virtual bool isLiteral() const=0;
-		virtual bool isEvaluatable() const=0;
-		virtual bool isEvaluated();
+	class Expression {
+	protected:
+		bool literal, evaluatable, evaluated;
+
+		Expression(const lexer::Location&, bool literal, bool evaluatable, bool evaluated);
+	public:
+		lexer::Location location;
+
+		bool isLiteral();
+		bool isEvaluatable();
+		bool isEvaluated();
+
 		virtual std::int32_t getEvaluatedValue();
-		virtual void updateEvaluatedValue(std::int32_t newValue);
+		virtual void setEvaluatedValue(std::int32_t newValue);
+
+		virtual bool isNextWordRequired(const CompileFlags&) const;
+		virtual CompileResult compile(const CompileFlags&) const;
+		virtual std::unique_ptr<Expression> evaluate() const=0;
+
 		virtual std::string str() const=0;
+		virtual bool operator==(const Expression&) const=0;
 
 		static ExpressionPtr unaryOperation(const lexer::Location&, UnaryOperator, ExpressionPtr&);
+		static ExpressionPtr unaryOperation(const lexer::Location&, UnaryOperator, ExpressionPtr&&);
 		static ExpressionPtr binaryOperation(const lexer::Location&, BinaryOperator, ExpressionPtr&, ExpressionPtr&);
+		static ExpressionPtr binaryOperation(const lexer::Location&, BinaryOperator, ExpressionPtr&&, ExpressionPtr&&);
 		static ExpressionPtr literalOperand(const lexer::Location&, std::uint32_t);
 		static ExpressionPtr labelOperand(const lexer::Location&, const std::string&);
 		static ExpressionPtr registerOperand(const lexer::Location&, Register);
@@ -41,80 +63,67 @@ namespace dcpu { namespace ast {
 	};	
 
 	class UnaryOperation : public Expression {
-		bool _cachedIsLiteral;
-		bool _cachedIsEvaluatable;
-
-		void updateCache();
-	public:
+	protected:
 		UnaryOperator _operator;
-		ExpressionPtr _operand;
-
+		ExpressionPtr operand;
+	public:
 		UnaryOperation(const lexer::Location&, UnaryOperator, ExpressionPtr&);
 
 		virtual ExpressionPtr evaluate() const;
-		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isLiteral() const;
-		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
+		
+		virtual bool operator==(const Expression&) const;
 	};
 
 	class BinaryOperation : public Expression {
-		bool _cachedIsLiteral;
-		bool _cachedIsEvaluatable;
-
-		void updateCache();
-	public:
+	protected:
 		BinaryOperator _operator;
-		ExpressionPtr _left;
-		ExpressionPtr _right;
-
+		ExpressionPtr left;
+		ExpressionPtr right;
+	public:
 		BinaryOperation(const lexer::Location&, BinaryOperator, ExpressionPtr&, ExpressionPtr&);
 
 		virtual ExpressionPtr evaluate() const;
-		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isLiteral() const;
-		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
+		
+		virtual bool operator==(const Expression&) const;
 	};
 
 	class RegisterOperand : public Expression {
-	public:
+	protected:
 		Register _register;
-
+	public:
 		RegisterOperand(const lexer::Location&, Register);
 
 		virtual ExpressionPtr evaluate() const;
-		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isLiteral() const;
-		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
+		
+		virtual bool operator==(const Expression&) const;
 	};
 
 	class LiteralOperand : public Expression {
+	protected:
+		std::uint32_t value;
 	public:
-		std::uint32_t _value;
-
 		LiteralOperand(const lexer::Location&, std::uint32_t);
 
-		virtual ExpressionPtr evaluate() const;
-		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isLiteral() const;
-		virtual bool isEvaluatable() const;
+		virtual ExpressionPtr evaluate() const;;
 		virtual std::string str() const;
+		
+		virtual bool operator==(const Expression&) const;
 	};
 
 	class LabelOperand : public Expression {
+	protected:
+		std::string label;
+		std::uint16_t *position;
 	public:
-		std::string _label;
-		std::uint16_t *_position;
-
 		LabelOperand(const lexer::Location&, const std::string&);
 
 		virtual ExpressionPtr evaluate() const;
-		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isLiteral() const;
-		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
+		
+		virtual bool operator==(const Expression&) const;
 	};
 
 	class InvalidExpression : public Expression {
@@ -122,51 +131,48 @@ namespace dcpu { namespace ast {
 		InvalidExpression(const lexer::Location&);
 
 		virtual ExpressionPtr evaluate() const;
-		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual bool isLiteral() const;
-		virtual bool isEvaluatable() const;
 		virtual std::string str() const;
+		
+		virtual bool operator==(const Expression&) const;
 	};
 
-	class EvaluatedExpression : public Expression {
+	class EvaluatedLiteral : public Expression {
 	protected:
-		std::int32_t _value;
-	public:
-		EvaluatedExpression(const lexer::Location&, std::int32_t value);
-
-		virtual bool isEvaluatable() const;
-		virtual bool isEvaluated();
-		virtual std::int32_t getEvaluatedValue();
-		virtual void updateEvaluatedValue(std::int32_t newValue);
-	};
-
-	class EvaluatedLiteral : public EvaluatedExpression {
+		std::int32_t value;
 	public:
 		EvaluatedLiteral(const lexer::Location&, std::int32_t value);
 
+		virtual std::int32_t getEvaluatedValue();
+		virtual void setEvaluatedValue(std::int32_t newValue);
+
+		virtual bool isNextWordRequired(const CompileFlags&) const;
 		virtual ExpressionPtr evaluate() const;
-		virtual uint8_t compile(std::vector<std::uint16_t>&, ArgumentPosition, bool, bool);
-		virtual bool isLiteral() const;
-		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
+		virtual CompileResult compile(const CompileFlags&) const;
 		virtual std::string str() const;
+		
+		virtual bool operator==(const Expression&) const;
 	};
 
-	class EvaluatedRegister : public EvaluatedExpression {
-	public:
+	class EvaluatedRegister : public Expression {
+	protected:
 		ast::Register _register;
-		bool _hasOffset;
-
-		EvaluatedRegister(const lexer::Location&, ast::Register _register);
+		bool hasOffset;
+		std::int32_t offset;
+	public:
 		EvaluatedRegister(const lexer::Location&, ast::Register _register, bool hasOffset, std::int32_t offset);
 
+		virtual std::int32_t getEvaluatedValue();
+		virtual void setEvaluatedValue(std::int32_t newValue);
+
+		virtual bool isNextWordRequired(const CompileFlags&) const;
 		virtual ExpressionPtr evaluate() const;
-		virtual uint8_t compile(std::vector<std::uint16_t>&, ArgumentPosition, bool, bool);
-		virtual bool isLiteral() const;
-		virtual bool isNextWordRequired(ArgumentPosition position, bool forceNextWord) const;
-		virtual void updateEvaluatedValue(std::int32_t newValue);
+		virtual CompileResult compile(const CompileFlags&) const;
+		CompileResult compileRegister(const CompileFlags&, uint8_t, uint8_t, uint8_t) const;
 		virtual std::string str() const;
+		
+		virtual bool operator==(const Expression&) const;
 	};
 
-	std::string str(const Expression&);
-	std::string str(const ExpressionPtr&);
+	bool operator==(const ExpressionPtr&, const ExpressionPtr &);
+	std::ostream& operator<< (std::ostream& stream, const ExpressionPtr& expr);
 }}

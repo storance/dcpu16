@@ -84,11 +84,11 @@ namespace dcpu { namespace ast {
 		NOT,
 		BITWISE_NOT
 	};
-
-	std::string str(ArgumentPosition);
-	std::string str(StackOperation);
-	std::string str(UnaryOperator);
-	std::string str(BinaryOperator);
-	std::string str(Opcode);
-	std::string str(Register);
+	
+	std::ostream& operator<< (std::ostream& stream, ArgumentPosition);
+	std::ostream& operator<< (std::ostream& stream, StackOperation);
+	std::ostream& operator<< (std::ostream& stream, UnaryOperator);
+	std::ostream& operator<< (std::ostream& stream, BinaryOperator);
+	std::ostream& operator<< (std::ostream& stream, Opcode);
+	std::ostream& operator<< (std::ostream& stream, Register);
 }}

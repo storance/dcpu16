@@ -14,7 +14,7 @@
 namespace dcpu { namespace ast {
 	class Statement {
 	public:
-		lexer::Location _location;
+		lexer::Location location;
 
 		Statement(const lexer::Location&);
 		virtual ~Statement();
@@ -25,16 +25,21 @@ namespace dcpu { namespace ast {
 		virtual bool compress(SymbolTablePtr& table);
 		virtual void compile(std::vector<std::uint16_t> &output);
 
+		virtual bool operator==(const Statement&) const=0;
+
 		static StatementPtr label(const lexer::Location&, const std::string &);
+		static StatementPtr label(const lexer::Location&, const std::string &, LabelType type);
 		static StatementPtr instruction(const lexer::Location&, Opcode, ArgumentPtr&, ArgumentPtr&);
+		static StatementPtr instruction(const lexer::Location&, Opcode, ArgumentPtr&&, ArgumentPtr&&);
 		static StatementPtr null();
 	};
 
 	class Instruction : public Statement {
+		static void compile(std::vector<std::uint16_t> &output, Opcode opcode, ArgumentPtr &a, ArgumentPtr &b);
 	public:
-		Opcode _opcode;
-		ArgumentPtr _a;
-		ArgumentPtr _b;
+		Opcode opcode;
+		ArgumentPtr a;
+		ArgumentPtr b;
 
 		Instruction(const lexer::Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
 
@@ -43,18 +48,24 @@ namespace dcpu { namespace ast {
 		virtual void evaluateExpressions(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler);
 		virtual bool compress(SymbolTablePtr& table);
 		virtual void compile(std::vector<std::uint16_t> &output);
+
+		virtual bool operator==(const Statement&) const;
 	};
 
 	class Label : public Statement {
 	public:
-		LabelType _type;
-		std::string _name;
+		LabelType type;
+		std::string name;
 
 		Label(const lexer::Location&, const std::string&);
+		Label(const lexer::Location&, const std::string&, LabelType type);
 
 		virtual std::string str() const;
 		virtual void buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const;
+
+		virtual bool operator==(const Statement&) const;
 	};
 
-	std::string str(const StatementPtr&);
+	bool operator== (const StatementPtr& left, const StatementPtr& right);
+	std::ostream& operator<< (std::ostream& stream, const StatementPtr&);
 }}

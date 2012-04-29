@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     }
 
     for (auto& stmt : parser.statements) {
-        cout << str(stmt) << endl;
+        cout << stmt << endl;
     }
 }
 
