@@ -158,7 +158,7 @@ namespace dcpu { namespace ast {
 				Expression::evaluatedRegister(location, Register::PC)
 			);
 
-			compile(output, Opcode::SET, a, b);
+			compile(output, Opcode::SET, a, jmpB);
 		} else {
 			compile(output, opcode, a, b);
 		}

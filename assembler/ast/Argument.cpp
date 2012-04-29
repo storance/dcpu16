@@ -101,7 +101,7 @@ namespace dcpu { namespace ast {
 	}
 
 	CompileResult IndirectArgument::compile() const {
-		return expr->compile(CompileFlags(position, false, false));
+		return expr->compile(CompileFlags(position, true, false));
 	}
 
 	bool IndirectArgument::operator==(const Argument& other) const {

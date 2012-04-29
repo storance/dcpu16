@@ -21,6 +21,7 @@ OBJECTS = $(OUTPUT_DIR)/Parser.o \
 TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/ParserTest.o \
 			   $(OUTPUT_DIR)/LexerTest.o \
+			   $(OUTPUT_DIR)/CompileTest.o \
 			   $(OUTPUT_DIR)/ExprParserTest.o \
 			   $(OUTPUT_DIR)/ExprEvalTest.o
 
@@ -84,6 +85,9 @@ $(OUTPUT_DIR)/ExprParserTest.o: test/ExprParserTest.cpp ExpressionParser.hpp Exp
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/ExprEvalTest.o: test/ExprEvalTest.cpp ast/*.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/CompileTest.o: test/CompileTest.cpp ast/*.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 unittest: $(TEST_OBJECTS)

@@ -395,9 +395,9 @@ namespace dcpu { namespace ast {
 			return CompileResult(0x1e, value);
 		} else {
 			if (flags.isArgumentB() || flags.isForceNextWord() || value < -1 || value > 30) {
-				return CompileResult(0x20 + value, boost::none);
-			} else {
 				return CompileResult(0x1f, value);
+			} else {
+				return CompileResult(0x21 + value, boost::none);
 			}
 		}
 	}
@@ -457,7 +457,7 @@ namespace dcpu { namespace ast {
 		if (hasOffset && (flags.isForceNextWord() || offset != 0)) {
 			return CompileResult(indirectWithOffset, offset);
 		} else {
-			return CompileResult(indirectNoOffset, offset);
+			return CompileResult(indirectNoOffset, boost::none);
 		}
 	}
 
