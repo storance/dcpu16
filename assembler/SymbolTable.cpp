@@ -93,4 +93,10 @@ namespace dcpu {
 			return labelName;
 		}
 	}
+
+	void SymbolTable::decrementAfter(uint16_t position) {
+		for (auto it = _entries.rbegin(); it != _entries.rend() && it->position > position; it++) {
+			--it->position;
+		}
+	}
 }

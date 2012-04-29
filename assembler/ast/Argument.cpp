@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <boost/format.hpp>
 
+#include "../SymbolTable.hpp"
+
 using namespace std;
 using namespace dcpu::lexer;
 
@@ -12,8 +14,16 @@ namespace dcpu { namespace ast {
 	 * Argument
 	 *
 	 *************************************************************************/
-	Argument::Argument(const Location& location, ArgumentPosition position) 
-		: location(location), position(position) {}
+	Argument::Argument(const Location& location, const ArgumentFlags& flags) 
+		: flags(flags), location(location) {}
+
+	void Argument::resolveLabels(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler, uint16_t position) {
+
+	}
+
+	bool Argument::compress(SymbolTablePtr& table, uint16_t pc) {
+		return false;
+	}
 
 	ArgumentPtr Argument::stack(const Location& location, ArgumentPosition position, StackOperation operation) {
 		return ArgumentPtr(new StackArgument(location, position, operation));
@@ -32,11 +42,11 @@ namespace dcpu { namespace ast {
 	}
 
 	ArgumentPtr Argument::indirect(ArgumentPosition position, ExpressionPtr &&expr) {
-	return ArgumentPtr(new IndirectArgument(position, expr));
+	return ArgumentPtr(new ExpressionArgument(position, expr, true, false));
 	}
 
 	ArgumentPtr Argument::expression(ArgumentPosition position, ExpressionPtr &&expr) {
-		return ArgumentPtr(new ExpressionArgument(position, expr));
+		return ArgumentPtr(new ExpressionArgument(position, expr, false, false));
 	}
 
 	ArgumentPtr Argument::null() {
@@ -50,7 +60,7 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	StackArgument::StackArgument(const Location& location, ArgumentPosition position, StackOperation operation) 
-		: Argument(location, position), operation(operation) {}
+		: Argument(location, ArgumentFlags(position, true, false)), operation(operation) {}
 
 	string StackArgument::str() const {
 		return (boost::format("%s") % operation).str();
@@ -77,39 +87,7 @@ namespace dcpu { namespace ast {
 
 		if (!otherStack) return false;
 
-		return position == otherStack->position && operation == otherStack->operation;
-	}
-
-	/*************************************************************************
-	 *
-	 * IndirectArgument
-	 *
-	 *************************************************************************/
-
-	IndirectArgument::IndirectArgument(ArgumentPosition position, ExpressionPtr& expr)
-		: Argument(expr->location, position), expr(move(expr)) {}
-
-	IndirectArgument::IndirectArgument(ArgumentPosition position, ExpressionPtr&& expr)
-		: Argument(expr->location, position), expr(move(expr)) {}
-
-	string IndirectArgument::str() const {
-		return (boost::format("[%s]") % expr).str();
-	}
-
-	bool IndirectArgument::isNextWordRequired() const {
-		return expr->isNextWordRequired(CompileFlags(position, true, false));
-	}
-
-	CompileResult IndirectArgument::compile() const {
-		return expr->compile(CompileFlags(position, true, false));
-	}
-
-	bool IndirectArgument::operator==(const Argument& other) const {
-		const IndirectArgument *otherIndirect = dynamic_cast<const IndirectArgument*>(&other);
-
-		if (!otherIndirect) return false;
-
-		return position == otherIndirect->position && expr == otherIndirect->expr;
+		return flags == otherStack->flags && operation == otherStack->operation;
 	}
 
 	/*************************************************************************
@@ -118,22 +96,56 @@ namespace dcpu { namespace ast {
 	 *
 	 *************************************************************************/
 
-	ExpressionArgument::ExpressionArgument(ArgumentPosition position, ExpressionPtr& expr)
-		: Argument(expr->location, position), expr(move(expr)) {}
-
-	ExpressionArgument::ExpressionArgument(ArgumentPosition position, ExpressionPtr&& expr)
-		: Argument(expr->location, position), expr(move(expr)) {}
+	ExpressionArgument::ExpressionArgument(ArgumentPosition position, ExpressionPtr& expr, bool indirect,
+		bool forceNextWord) : Argument(expr->location, ArgumentFlags(position, indirect, forceNextWord)),
+		expr(move(expr)), nextWordRequired(true) {}
 
 	string ExpressionArgument::str() const {
-		return expr->str();
+		if (flags.isIndirection()) {
+			return boost::str(boost::format("[%s]") % expr);
+		} else {
+			return boost::str(boost::format("%s") % expr);
+		}
+	}
+
+	void ExpressionArgument::resolveLabels(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler, uint16_t pc) {
+		if (!expr->isEvaluated()) {
+			expr->resolveLabels(table, errorHandler);
+
+			if (!expr->isEvaluatable()) {
+				return;
+			}
+
+			nextWordRequired = expr->evaluate()->isNextWordRequired(flags);
+
+			if (!nextWordRequired) {
+				table->decrementAfter(pc);
+			}
+		}
+	}
+
+	bool ExpressionArgument::compress(SymbolTablePtr& table, uint16_t pc) {
+		if (!expr->isEvaluated() && expr->isEvaluatable()) {
+			if (nextWordRequired && !expr->evaluate()->isNextWordRequired(flags)) {
+				nextWordRequired = false;
+				table->decrementAfter(pc);
+
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	bool ExpressionArgument::isNextWordRequired() const {
-		return expr->isNextWordRequired(CompileFlags(position, false, false));
+		return expr->isNextWordRequired(flags);
 	}
 
 	CompileResult ExpressionArgument::compile() const {
-		return expr->compile(CompileFlags(position, false, false));
+		if (!expr->isEvaluated()) {
+			return expr->evaluate()->compile(flags);
+		}
+		return expr->compile(flags);
 	}
 
 	bool ExpressionArgument::operator==(const Argument& other) const {
@@ -141,7 +153,7 @@ namespace dcpu { namespace ast {
 
 		if (!otherExpr) return false;
 
-		return position == otherExpr->position && expr == otherExpr->expr;
+		return flags == otherExpr->flags && expr == otherExpr->expr;
 	}
 
 	/*************************************************************************

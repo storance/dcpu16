@@ -5,6 +5,47 @@
 using namespace std;
 
 namespace dcpu { namespace ast {
+	/*************************************************************************
+	 *
+	 * ArgumentFlags
+	 *
+	 *************************************************************************/
+
+	ArgumentFlags::ArgumentFlags(ArgumentPosition position, bool indirection, bool forceNextWord) 
+		: position(position), indirection(indirection), forceNextWord(forceNextWord) {}
+
+	ArgumentPosition ArgumentFlags::getPosition() const {
+		return position;
+	}
+
+	bool ArgumentFlags::isArgumentA() const {
+		return position == ArgumentPosition::A;
+	}
+
+	bool ArgumentFlags::isArgumentB() const {
+		return position == ArgumentPosition::B;
+	}
+
+	bool ArgumentFlags::isIndirection() const {
+		return indirection;
+	}
+
+	bool ArgumentFlags::isForceNextWord() const {
+		return forceNextWord;
+	}
+
+	bool ArgumentFlags::operator==(const ArgumentFlags &other) const {
+		return position == other.position 
+			&& indirection == other.indirection
+			&& forceNextWord == other.forceNextWord;
+	}
+
+	/*************************************************************************
+	 *
+	 * Operators
+	 *
+	 *************************************************************************/
+
 	std::ostream& operator<< (std::ostream& stream, ArgumentPosition position) {
 		switch (position) {
 		case ArgumentPosition::A:

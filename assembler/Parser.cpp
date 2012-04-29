@@ -19,21 +19,21 @@ using namespace boost::algorithm;
 
 namespace dcpu { namespace parser {
 	Parser::Parser(Lexer &lexer)
-		: _current(lexer.tokens.begin()),
-		_end(lexer.tokens.end()),
-		_outputPosition(new uint16_t(0)),
+		: current(lexer.tokens.begin()),
+		end(lexer.tokens.end()),
+		outputPosition(new uint16_t(0)),
 		errorHandler(new ErrorHandler()),
 		symbolTable(new SymbolTable()) {}
 
 	Parser::Parser(Lexer &lexer, ErrorHandlerPtr& errorHandler, SymbolTablePtr& symbolTable, uint16Ptr &outputPosition) 
-		: _current(lexer.tokens.begin()),
-		_end(lexer.tokens.end()),
-		_outputPosition(outputPosition),
+		: current(lexer.tokens.begin()),
+		end(lexer.tokens.end()),
+		outputPosition(outputPosition),
 		errorHandler(errorHandler),
 		symbolTable(symbolTable) {}
 
 	void Parser::parse() {
-		while (_current != _end) {
+		while (current != end) {
 			auto& currentToken = nextToken();
 
 			// we've reached the end
@@ -59,14 +59,14 @@ namespace dcpu { namespace parser {
 			return false;
 		}
 
-		uint16_t oldPosition = *_outputPosition;
+		uint16_t oldPosition = *outputPosition;
 		try {
-			statement->buildSymbolTable(symbolTable, _outputPosition);
+			statement->buildSymbolTable(symbolTable, outputPosition);
 		} catch (exception &e) {
 			errorHandler->error(statement->location, e.what());
 		}
 
-		if (*_outputPosition < oldPosition) {
+		if (*outputPosition < oldPosition) {
 			errorHandler->error(statement->location, "binary output has exceeded the DCPU-16's memory "
 				"size (65,536 words).");
 		}
@@ -253,7 +253,7 @@ namespace dcpu { namespace parser {
 	}
 
 	ExpressionPtr Parser::parseExpression(bool allowRegisters, bool insideIndirection) {
-		ExpressionParser parser(_current, _end, errorHandler, allowRegisters, true, insideIndirection);
+		ExpressionParser parser(current, end, errorHandler, symbolTable, allowRegisters, true, insideIndirection);
 		auto expr = parser.parse();
 
 		if (expr->isEvaluatable() && !expr->isEvaluated()) {
@@ -271,21 +271,21 @@ namespace dcpu { namespace parser {
 	}
 
 	void Parser::advanceUntil(function<bool (const Token&)> predicate) {
-		while (_current != _end) {
-			if (predicate(**_current)) {
+		while (current != end) {
+			if (predicate(**current)) {
 				break;
 			}
 
-			_current++;
+			current++;
 		}
 	}
 
 	TokenPtr& Parser::nextToken() {
-		return next(_current, _end);
+		return next(current, end);
 	}
 
 	void Parser::moveBack() {
-		--_current;
+		--current;
 	}
 
 }}

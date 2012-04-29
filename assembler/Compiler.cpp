@@ -8,15 +8,21 @@ namespace dcpu { namespace compiler {
 		: errorHandler(errorHandler), symbolTable(symbolTable) {}
 
 	void Compiler::compile(StatementList &statements) {
+		uint16_t pc = 0;
 		for (auto& stmt : statements) {
-        	stmt->evaluateExpressions(symbolTable, errorHandler);
+        	stmt->resolveLabels(symbolTable, errorHandler, pc);
+    	}
+
+    	if (errorHandler->hasErrors()) {
+    		return;
     	}
 
     	bool anyCompressed = false;
     	do {
     		anyCompressed = false;
+    		pc = 0;
     		for (auto& stmt : statements) {
-	        	anyCompressed |= stmt->compress(symbolTable);
+	        	anyCompressed |= stmt->compress(symbolTable, pc);
 	    	}
     	} while (anyCompressed);
 

@@ -16,7 +16,7 @@ label1:
 SET [--SP], 2 ; another comment
 label2: SET X, [sp ++]
 :label3 SET Y, [ SP ]
-ADD I, o
+ADD I, ex
 ADD I, 0x4000
 :label4
 SET X, [0x4000 + I]

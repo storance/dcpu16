@@ -17,12 +17,11 @@ namespace dcpu { namespace ast {
 		lexer::Location location;
 
 		Statement(const lexer::Location&);
-		virtual ~Statement();
 
 		virtual std::string str() const=0;
 		virtual void buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const=0;
-		virtual void evaluateExpressions(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler);
-		virtual bool compress(SymbolTablePtr& table);
+		virtual void resolveLabels(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler, std::uint16_t &pc);
+		virtual bool compress(SymbolTablePtr& table, std::uint16_t &pc);
 		virtual void compile(std::vector<std::uint16_t> &output);
 
 		virtual bool operator==(const Statement&) const=0;
@@ -43,10 +42,12 @@ namespace dcpu { namespace ast {
 
 		Instruction(const lexer::Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
 
+		uint16_t calculateSize() const;
+
 		virtual std::string str() const;
 		virtual void buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const;
-		virtual void evaluateExpressions(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler);
-		virtual bool compress(SymbolTablePtr& table);
+		virtual void resolveLabels(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler, std::uint16_t &pc);
+		virtual bool compress(SymbolTablePtr& table, std::uint16_t &pc);
 		virtual void compile(std::vector<std::uint16_t> &output);
 
 		virtual bool operator==(const Statement&) const;

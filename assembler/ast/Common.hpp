@@ -84,6 +84,22 @@ namespace dcpu { namespace ast {
 		NOT,
 		BITWISE_NOT
 	};
+
+	class ArgumentFlags {
+		ArgumentPosition position;
+		bool indirection;
+		bool forceNextWord;
+	public:
+		ArgumentFlags(ArgumentPosition position, bool indirection, bool forceNextWord);
+
+		ArgumentPosition getPosition() const;
+		bool isArgumentA() const;
+		bool isArgumentB() const;
+		bool isIndirection() const;
+		bool isForceNextWord() const;
+
+		bool operator==(const ArgumentFlags&) const;
+	};
 	
 	std::ostream& operator<< (std::ostream& stream, ArgumentPosition);
 	std::ostream& operator<< (std::ostream& stream, StackOperation);

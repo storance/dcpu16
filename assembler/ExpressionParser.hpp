@@ -4,6 +4,7 @@
 
 #include "ast/Expression.hpp"
 #include "ErrorHandler.hpp"
+#include "SymbolTable.hpp"
 #include "Lexer.hpp"
 #include "Token.hpp"
 #include "Types.hpp"
@@ -37,6 +38,7 @@ namespace dcpu { namespace parser {
 
 		TokenIterator &current, end;
 		ErrorHandlerPtr errorHandler;
+		SymbolTablePtr symbolTable;
 		bool labelsAllowed, registersAllowed, indirection;
 		FoundRegister foundRegister;
 
@@ -57,7 +59,7 @@ namespace dcpu { namespace parser {
 
 		TokenPtr& nextToken();
 	public:
-		ExpressionParser(TokenIterator&, TokenIterator, ErrorHandlerPtr&, bool, bool, bool);
+		ExpressionParser(TokenIterator&, TokenIterator, ErrorHandlerPtr&, SymbolTablePtr&, bool, bool, bool);
 
 		ExpressionPtr parse();
 	};

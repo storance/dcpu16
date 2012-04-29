@@ -12,19 +12,23 @@
 using namespace std;
 using namespace dcpu;
 using namespace dcpu::ast;
+using namespace dcpu::compiler;
 using namespace dcpu::lexer;
 using namespace dcpu::parser;
 
 int main(int argc, char **argv) {
-	if (argc < 2) {
-		cout << "Usage: " << argv[0] << " </path/to/dcpu/asm>" << endl;
+	if (argc < 3) {
+		cout << "Usage: " << argv[0] << " </path/to/dcpu/asm> </path/to/output/file>" << endl;
 		return 1;
 	}
 
-	ifstream in(argv[1], ios_base::in);
+    string inputFile = argv[1];
+    string outputFile = argv[2];
+
+	ifstream in(inputFile, ios_base::in);
 
     if (!in) {
-        cerr << "Failed to open file " <<  argv[1] << endl;
+        cerr << "Failed to open file " <<  inputFile << endl;
         return 1;
     }
 
@@ -32,19 +36,25 @@ int main(int argc, char **argv) {
     in.unsetf(ios::skipws);
     copy(istream_iterator<char>(in), istream_iterator<char>(), back_inserter(storage));
 
-    Lexer lexer(storage.begin(), storage.end(), argv[1]);
+    Lexer lexer(storage.begin(), storage.end(), inputFile);
     lexer.parse();
 
     Parser parser(lexer);
     parser.parse();
+
+    Compiler compiler(parser.errorHandler, parser.symbolTable);
+    compiler.compile(parser.statements);
 
     if (parser.errorHandler->hasErrors()) {
         parser.errorHandler->summary();
         return 1;
     }
 
-    for (auto& stmt : parser.statements) {
-        cout << stmt << endl;
+    ofstream out(outputFile, ios_base::binary | ios_base::out);
+    if (!out) {
+        cerr << "Failed to open file " <<  outputFile << " for write" << endl;
+        return 1;
     }
+    compiler.write(out);
 }
 

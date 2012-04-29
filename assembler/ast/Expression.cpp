@@ -1,38 +1,15 @@
 #include "Expression.hpp"
 
 #include <stdexcept>
-
 #include <boost/format.hpp>
+
+#include "../ErrorHandler.hpp"
+#include "../SymbolTable.hpp"
 
 using namespace std;
 using namespace dcpu::lexer;
 
 namespace dcpu { namespace ast {
-	/*************************************************************************
-	 *
-	 * CompileFlags
-	 *
-	 *************************************************************************/
-
-	CompileFlags::CompileFlags(ArgumentPosition position, bool indirection, bool forceNextWord) 
-		: position(position), indirection(indirection), forceNextWord(forceNextWord) {}
-
-	bool CompileFlags::isArgumentA() const {
-		return position == ArgumentPosition::A;
-	}
-
-	bool CompileFlags::isArgumentB() const {
-		return position == ArgumentPosition::B;
-	}
-
-	bool CompileFlags::isIndirection() const {
-		return indirection;
-	}
-
-	bool CompileFlags::isForceNextWord() const {
-		return forceNextWord;
-	}
-
 	/*************************************************************************
 	 *
 	 * Expression
@@ -41,11 +18,15 @@ namespace dcpu { namespace ast {
 	Expression::Expression(const Location& location, bool literal, bool evaluatable, bool evaluated) 
 		: literal(literal), evaluatable(evaluatable), evaluated(evaluated), location(location) {}
 
-	bool Expression::isNextWordRequired(const CompileFlags& flags) const {
+	void Expression::resolveLabels(SymbolTablePtr &table, ErrorHandlerPtr &errorHandler) {
+
+	}
+
+	bool Expression::isNextWordRequired(const ArgumentFlags& flags) const {
 		return true;
 	}
 
-	CompileResult Expression::compile(const CompileFlags& flags) const {
+	CompileResult Expression::compile(const ArgumentFlags& flags) const {
 		throw logic_error("Expression must be evaluated before it can be compiled");
 	}
 
@@ -130,6 +111,11 @@ namespace dcpu { namespace ast {
 		evaluatable = this->operand->isEvaluatable();
 	}
 
+	void UnaryOperation::resolveLabels(SymbolTablePtr &table, ErrorHandlerPtr &errorHandler) {
+		operand->resolveLabels(table, errorHandler);
+		evaluatable = operand->isEvaluatable();
+	}
+
 	ExpressionPtr UnaryOperation::evaluate() const {
 		if (!evaluatable) {
 			throw logic_error("Expression is not evaluatable");
@@ -185,6 +171,13 @@ namespace dcpu { namespace ast {
 
 		literal = this->left->isLiteral() && this->right->isLiteral();
 		evaluatable = this->left->isEvaluatable() && this->right->isEvaluatable();
+	}
+
+	void BinaryOperation::resolveLabels(SymbolTablePtr &table, ErrorHandlerPtr &errorHandler) {
+		left->resolveLabels(table, errorHandler);
+		right->resolveLabels(table, errorHandler);
+
+		evaluatable = left->isEvaluatable() && right->isEvaluatable();
 	}
 
 	ExpressionPtr BinaryOperation::evaluate() const {
@@ -318,6 +311,16 @@ namespace dcpu { namespace ast {
 	LabelOperand::LabelOperand(const Location& location, const string& label)
 		: Expression(location, true, false, false), label(label), position(nullptr) {}
 
+	void LabelOperand::resolveLabels(SymbolTablePtr &table, ErrorHandlerPtr &errorHandler) {
+		position = table->lookup(label);
+		if (position == nullptr) {
+			errorHandler->error(location, boost::format("Label '%s' was not declared in this scope") % label);
+			return;
+		}
+
+		evaluatable = true;
+	}
+
 	ExpressionPtr LabelOperand::evaluate() const {
 		if (position == nullptr) {
 			throw new logic_error("Labels must be resolved before a LabelOperand can be evaluated");
@@ -378,7 +381,7 @@ namespace dcpu { namespace ast {
 		value = newValue;
 	}
 
-	bool EvaluatedLiteral::isNextWordRequired(const CompileFlags& flags) const {
+	bool EvaluatedLiteral::isNextWordRequired(const ArgumentFlags& flags) const {
 		if (flags.isForceNextWord() || flags.isIndirection() || flags.isArgumentB()) {
 			return true;
 		}
@@ -390,7 +393,7 @@ namespace dcpu { namespace ast {
 		return ExpressionPtr(new EvaluatedLiteral(location, value));
 	}
 
-	CompileResult EvaluatedLiteral::compile(const CompileFlags& flags) const {
+	CompileResult EvaluatedLiteral::compile(const ArgumentFlags& flags) const {
 		if (flags.isIndirection()) {
 			return CompileResult(0x1e, value);
 		} else {
@@ -435,7 +438,7 @@ namespace dcpu { namespace ast {
 		offset = newValue;
 	}
 
-	bool EvaluatedRegister::isNextWordRequired(const CompileFlags& flags) const {
+	bool EvaluatedRegister::isNextWordRequired(const ArgumentFlags& flags) const {
 		if (!hasOffset) {
 			return false;
 		}
@@ -447,7 +450,7 @@ namespace dcpu { namespace ast {
 		return ExpressionPtr(new EvaluatedRegister(location, _register, hasOffset, offset));
 	}
 
-	CompileResult EvaluatedRegister::compileRegister(const CompileFlags& flags, uint8_t noIndirection,
+	CompileResult EvaluatedRegister::compileRegister(const ArgumentFlags& flags, uint8_t noIndirection,
 		uint8_t indirectNoOffset, uint8_t indirectWithOffset) const {
 
 		if (!flags.isIndirection()) {
@@ -461,7 +464,7 @@ namespace dcpu { namespace ast {
 		}
 	}
 
-	CompileResult EvaluatedRegister::compile(const CompileFlags& flags) const {
+	CompileResult EvaluatedRegister::compile(const ArgumentFlags& flags) const {
 		switch (_register) {
 		case Register::A:
 			return compileRegister(flags, 0x0, 0x8, 0x10);

@@ -16,10 +16,11 @@ void runExpressionParser(const string &content, ExpressionPtr &expr, bool inside
 	Lexer lexer(content.begin(), content.end(), "<Test>");
     lexer.parse();
 
+    SymbolTablePtr symbolTable = make_shared<SymbolTable>();
 	ErrorHandlerPtr errorHandler = make_shared<ErrorHandler>();
 
 	auto begin = lexer.tokens.begin();
-	ExpressionParser parser(begin, lexer.tokens.end(), errorHandler, allowRegisters, true, insideIndirect);
+	ExpressionParser parser(begin, lexer.tokens.end(), errorHandler, symbolTable, allowRegisters, true, insideIndirect);
 	expr = move(parser.parse());
 }
 

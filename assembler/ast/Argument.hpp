@@ -10,12 +10,15 @@
 
 namespace dcpu { namespace ast {
 	class Argument {
+	protected:
+		ArgumentFlags flags;
 	public:
 		lexer::Location location;
-		ArgumentPosition position;
 
-		Argument(const lexer::Location&, ArgumentPosition);
+		Argument(const lexer::Location&, const ArgumentFlags&);
 
+		virtual void resolveLabels(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler, std::uint16_t pc);
+		virtual bool compress(SymbolTablePtr& table, std::uint16_t pc);
 		virtual bool isNextWordRequired() const=0;
 		virtual CompileResult compile() const=0;
 		virtual std::string str() const=0;
@@ -32,9 +35,8 @@ namespace dcpu { namespace ast {
 	};	
 
 	class StackArgument : public Argument {
-	public:
 		StackOperation operation;
-
+	public:
 		StackArgument(const lexer::Location&, ArgumentPosition, StackOperation);
 
 		virtual bool isNextWordRequired() const;
@@ -44,27 +46,14 @@ namespace dcpu { namespace ast {
 		virtual bool operator==(const Argument&) const;
 	};
 
-	class IndirectArgument : public Argument {
-	public:
-		ExpressionPtr expr;
-
-		IndirectArgument(ArgumentPosition, ExpressionPtr&&);
-		IndirectArgument(ArgumentPosition, ExpressionPtr&);
-
-		virtual bool isNextWordRequired() const;
-		virtual CompileResult compile() const;
-		virtual std::string str() const;
-
-		virtual bool operator==(const Argument&) const;
-	};
-
 	class ExpressionArgument : public Argument {
-	public:
 		ExpressionPtr expr;
+		bool nextWordRequired;
+	public:
+		ExpressionArgument(ArgumentPosition, ExpressionPtr&, bool, bool);
 
-		ExpressionArgument(ArgumentPosition, ExpressionPtr&&);
-		ExpressionArgument(ArgumentPosition, ExpressionPtr&);
-
+		virtual void resolveLabels(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler, std::uint16_t pc);
+		virtual bool compress(SymbolTablePtr& table, std::uint16_t pc);
 		virtual bool isNextWordRequired() const;
 		virtual CompileResult compile() const;
 		virtual std::string str() const;

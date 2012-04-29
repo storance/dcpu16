@@ -16,13 +16,11 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 	Statement::Statement(const Location& location) : location(location) {}
 
-	Statement::~Statement() {}
-
-	void Statement::evaluateExpressions(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler) {
+	void Statement::resolveLabels(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler, uint16_t &pc) {
 
 	}
 	
-	bool Statement::compress(SymbolTablePtr& table) {
+	bool Statement::compress(SymbolTablePtr& table, uint16_t &pc) {
 		return false;
 	}
 	
@@ -105,24 +103,49 @@ namespace dcpu { namespace ast {
 		}
 	}
 
-	void Instruction::buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const {
-		++*position;
+	uint16_t Instruction::calculateSize() const {
+		uint16_t size = 1;
 
 		if (b && b->isNextWordRequired()) {
-			++*position;
+			++size;
 		}
 
 		if (a && a->isNextWordRequired()) {
-			++*position;
+			++size;
 		}
+
+		return size;
 	}
 
-	void Instruction::evaluateExpressions(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler) {
+	void Instruction::buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const {
+		*position += calculateSize();
+	}
 
+	void Instruction::resolveLabels(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler, uint16_t &pc) {
+
+		if (b) {
+			b->resolveLabels(table, errorHandler, pc);
+		}
+
+		if (a) {
+			a->resolveLabels(table, errorHandler, pc);
+		}
+
+		pc += calculateSize();
 	}
 	
-	bool Instruction::compress(SymbolTablePtr& table) {
-		return false;
+	bool Instruction::compress(SymbolTablePtr& table, uint16_t &pc) {
+		bool anyCompress = false;
+		if (b) {
+			anyCompress |= b->compress(table, pc);
+		}
+
+		if (a) {
+			anyCompress |= a->compress(table, pc);
+		}
+
+		pc += calculateSize();
+		return anyCompress;
 	}
 
 	void Instruction::compile(vector<uint16_t> &output, Opcode opcode, ArgumentPtr &a, ArgumentPtr &b) {

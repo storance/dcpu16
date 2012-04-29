@@ -43,5 +43,6 @@ namespace dcpu {
 		std::string getFullLabelName(const std::string &label);
 		void add(ast::Label label, std::uint16_t position);
 		std::uint16_t *lookup(const std::string &labelName);
+		void decrementAfter(std::uint16_t position);
 	};
 }

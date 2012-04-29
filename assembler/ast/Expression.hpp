@@ -14,19 +14,6 @@
 #include "../Token.hpp"
 
 namespace dcpu { namespace ast {
-	class CompileFlags {
-		ArgumentPosition position;
-		bool indirection;
-		bool forceNextWord;
-	public:
-		CompileFlags(ArgumentPosition position, bool indirection, bool forceNextWord);
-
-		bool isArgumentA() const;
-		bool isArgumentB() const;
-		bool isIndirection() const;
-		bool isForceNextWord() const;
-	};
-
 	class Expression {
 	protected:
 		bool literal, evaluatable, evaluated;
@@ -42,8 +29,9 @@ namespace dcpu { namespace ast {
 		virtual std::int32_t getEvaluatedValue();
 		virtual void setEvaluatedValue(std::int32_t newValue);
 
-		virtual bool isNextWordRequired(const CompileFlags&) const;
-		virtual CompileResult compile(const CompileFlags&) const;
+		virtual void resolveLabels(SymbolTablePtr&, ErrorHandlerPtr &);
+		virtual bool isNextWordRequired(const ArgumentFlags&) const;
+		virtual CompileResult compile(const ArgumentFlags&) const;
 		virtual std::unique_ptr<Expression> evaluate() const=0;
 
 		virtual std::string str() const=0;
@@ -69,6 +57,7 @@ namespace dcpu { namespace ast {
 	public:
 		UnaryOperation(const lexer::Location&, UnaryOperator, ExpressionPtr&);
 
+		virtual void resolveLabels(SymbolTablePtr&, ErrorHandlerPtr &);
 		virtual ExpressionPtr evaluate() const;
 		virtual std::string str() const;
 		
@@ -83,6 +72,7 @@ namespace dcpu { namespace ast {
 	public:
 		BinaryOperation(const lexer::Location&, BinaryOperator, ExpressionPtr&, ExpressionPtr&);
 
+		virtual void resolveLabels(SymbolTablePtr&, ErrorHandlerPtr &);
 		virtual ExpressionPtr evaluate() const;
 		virtual std::string str() const;
 		
@@ -120,6 +110,7 @@ namespace dcpu { namespace ast {
 	public:
 		LabelOperand(const lexer::Location&, const std::string&);
 
+		virtual void resolveLabels(SymbolTablePtr&, ErrorHandlerPtr &);
 		virtual ExpressionPtr evaluate() const;
 		virtual std::string str() const;
 		
@@ -145,9 +136,9 @@ namespace dcpu { namespace ast {
 		virtual std::int32_t getEvaluatedValue();
 		virtual void setEvaluatedValue(std::int32_t newValue);
 
-		virtual bool isNextWordRequired(const CompileFlags&) const;
+		virtual bool isNextWordRequired(const ArgumentFlags&) const;
 		virtual ExpressionPtr evaluate() const;
-		virtual CompileResult compile(const CompileFlags&) const;
+		virtual CompileResult compile(const ArgumentFlags&) const;
 		virtual std::string str() const;
 		
 		virtual bool operator==(const Expression&) const;
@@ -164,10 +155,10 @@ namespace dcpu { namespace ast {
 		virtual std::int32_t getEvaluatedValue();
 		virtual void setEvaluatedValue(std::int32_t newValue);
 
-		virtual bool isNextWordRequired(const CompileFlags&) const;
+		virtual bool isNextWordRequired(const ArgumentFlags&) const;
 		virtual ExpressionPtr evaluate() const;
-		virtual CompileResult compile(const CompileFlags&) const;
-		CompileResult compileRegister(const CompileFlags&, uint8_t, uint8_t, uint8_t) const;
+		virtual CompileResult compile(const ArgumentFlags&) const;
+		CompileResult compileRegister(const ArgumentFlags&, uint8_t, uint8_t, uint8_t) const;
 		virtual std::string str() const;
 		
 		virtual bool operator==(const Expression&) const;

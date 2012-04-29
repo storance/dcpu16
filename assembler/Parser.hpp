@@ -12,8 +12,8 @@
 namespace dcpu { namespace parser {
 	class Parser {
 	protected:
-		TokenIterator _current, _end;
-		uint16Ptr _outputPosition;
+		TokenIterator current, end;
+		uint16Ptr outputPosition;
 
 		StatementPtr parseLabel(TokenPtr&);
 		StatementPtr parseInstruction(TokenPtr&);

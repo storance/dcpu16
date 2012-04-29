@@ -45,10 +45,11 @@ namespace dcpu { namespace parser {
 	}
 
 	ExpressionParser::ExpressionParser(TokenIterator& current, TokenIterator end, ErrorHandlerPtr& errorHandler,
-		bool registersAllowed, bool labelsAllowed, bool indirection) 
+		SymbolTablePtr &symbolTable, bool registersAllowed, bool labelsAllowed, bool indirection) 
 		: current(current),
 		  end(end),
 		  errorHandler(errorHandler),
+		  symbolTable(symbolTable),
 		  labelsAllowed(labelsAllowed),
 		  registersAllowed(registersAllowed),
 		  indirection(indirection),
@@ -237,7 +238,8 @@ namespace dcpu { namespace parser {
 			return Expression::invalid(currentToken->location);
 		}
 
-		return Expression::labelOperand(currentToken->location, currentToken->content);
+		string labelName = symbolTable->getFullLabelName(currentToken->content);
+		return Expression::labelOperand(currentToken->location, labelName);
 	}
 
 	ExpressionPtr ExpressionParser::parseLiteralExpression(TokenPtr& currentToken) {
