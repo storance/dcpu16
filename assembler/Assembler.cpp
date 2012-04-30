@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     in.unsetf(ios::skipws);
     copy(istream_iterator<char>(in), istream_iterator<char>(), back_inserter(storage));
 
-    Lexer lexer(storage.begin(), storage.end(), inputFile);
+    Lexer lexer(storage, inputFile);
     lexer.parse();
 
     Parser parser(lexer);

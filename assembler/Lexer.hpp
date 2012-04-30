@@ -12,11 +12,14 @@ namespace dcpu { namespace lexer {
 	protected:
 		typedef std::string::const_iterator Iterator;
 
-		Iterator _current, _end;
-		std::string _sourceName;
-		std::uint32_t _line, _column;
+		Iterator current, end;
+		std::string source;
+		std::uint32_t line, column;
 
 		std::string appendWhile(char, std::function<bool (char)>);
+		std::string getQuotedString(const Location &location, char endQuote, bool allowEscapes);
+		char processEscapeSequence();
+		std::uint8_t hexDigitToInt(char c);
 
 		char nextChar();
 		void moveBack();
@@ -31,11 +34,13 @@ namespace dcpu { namespace lexer {
 		static bool isAllowedIdentifierFirstChar(char);
 
 		void skipWhitespaceAndComments();
-		TokenPtr parseNumber(Location, const std::string &value);
+		TokenPtr parseNumber(const Location&, const std::string &value);
 	public:
+		ErrorHandlerPtr errorHandler;
 		TokenList tokens;
 
-		Lexer(Iterator current, Iterator end, const std::string &sourceName);
+		Lexer(const std::string &content, const std::string &source);
+		Lexer(const std::string &content, const std::string &source, ErrorHandlerPtr &errorHandler);
 
 		void parse();
 	};

@@ -28,7 +28,7 @@ TEST_OBJECTS = $(OBJECTS) \
 
 TEST_FILTER = *
 
-all: assembler
+all: test assembler
 
 assembler: $(OUTPUT_DIR)/Assembler.o $(OBJECTS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@
@@ -45,13 +45,13 @@ $(OUTPUT_DIR)/Token.o: Token.cpp Token.hpp | $(OUTPUT_DIR)
 $(OUTPUT_DIR)/Common.o: ast/Common.cpp ast/Common.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Statement.o: ast/Statement.cpp ast/Statement.hpp ast/Argument.hpp ast/Expression.hpp ast/OpcodeDefinition.hpp Token.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/Statement.o: ast/Statement.cpp ast/*.hpp *.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Argument.o: ast/Argument.cpp ast/Argument.hpp ast/Expression.hpp Token.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/Argument.o: ast/Argument.cpp ast/*.hpp *.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Expression.o: ast/Expression.cpp ast/Expression.hpp Token.hpp ast/RegisterDefinition.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/Expression.o: ast/Expression.cpp ast/*.hpp *.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/OpcodeDefinition.o: ast/OpcodeDefinition.cpp ast/OpcodeDefinition.hpp | $(OUTPUT_DIR)

@@ -10,12 +10,12 @@ using namespace dcpu;
 using namespace dcpu::lexer;
 
 void runLexer(const string &content, int expectedTokens, shared_ptr<Lexer> &lex) {
-	lex = make_shared<Lexer>(content.begin(), content.end(), "<Test>");
-    lex->parse();
+	lex = make_shared<Lexer>(content, "<Test>");
+	lex->parse();
 
-    if (expectedTokens > -1) {
-    	ASSERT_EQ(expectedTokens, lex->tokens.size());
-    }
+	if (expectedTokens > -1) {
+		ASSERT_EQ(expectedTokens, lex->tokens.size());
+	}
 }
 
 void assertInvalidInteger(TokenPtr &token, const std::string &expectedContent, uint8_t expectedBase) {
@@ -84,8 +84,8 @@ void assertEOI(TokenPtr &token) {
 }
 
 TEST(LexerTest, IdentifierStartsUnderscore) {
-    shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("_a1_?.$#@", 2, lexer));
+	shared_ptr<Lexer> lexer;
+	ASSERT_NO_FATAL_FAILURE(runLexer("_a1_?.$#@", 2, lexer));
 
 	auto it = lexer->tokens.begin();
 	{
@@ -101,9 +101,9 @@ TEST(LexerTest, IdentifierStartsUnderscore) {
 
 TEST(LexerTest, IdentifierStartsPeriod) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer(".aaa111", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer(".aaa111", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertIdentifier(*it++, ".aaa111");
@@ -117,9 +117,9 @@ TEST(LexerTest, IdentifierStartsPeriod) {
 
 TEST(LexerTest, IdentifierStartsQuestion) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("?aaa111", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("?aaa111", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertIdentifier(*it++, "?aaa111");
@@ -133,9 +133,9 @@ TEST(LexerTest, IdentifierStartsQuestion) {
 
 TEST(LexerTest, IdentifierStartsLetter) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("aaa111", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("aaa111", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertIdentifier(*it++, "aaa111");
@@ -148,9 +148,9 @@ TEST(LexerTest, IdentifierStartsLetter) {
 }
 
 TEST(LexerTest, DecimalNumber) {
-    shared_ptr<Lexer> lexer;
+	shared_ptr<Lexer> lexer;
 
-    ASSERT_NO_FATAL_FAILURE(runLexer("100", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("100", 2, lexer));
 
 	auto it = lexer->tokens.begin();
 	{
@@ -158,15 +158,15 @@ TEST(LexerTest, DecimalNumber) {
 		assertInteger(*it++, 100, false);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 }
 
 TEST(LexerTest, HexNumberLowercase) {
-    shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("0xff", 2, lexer));
+	shared_ptr<Lexer> lexer;
+	ASSERT_NO_FATAL_FAILURE(runLexer("0xff", 2, lexer));
 
 	auto it = lexer->tokens.begin();
 	{
@@ -174,7 +174,7 @@ TEST(LexerTest, HexNumberLowercase) {
 		assertInteger(*it++, 0xff, false);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
@@ -182,24 +182,24 @@ TEST(LexerTest, HexNumberLowercase) {
 
 TEST(LexerTest, HexNumberUppercase) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("0X1D", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("0X1D", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInteger(*it++, 0x1d, false);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 }
 
 TEST(LexerTest, BinaryNumberLowercase) {
-    shared_ptr<Lexer> lexer;
+	shared_ptr<Lexer> lexer;
 
-    ASSERT_NO_FATAL_FAILURE(runLexer("0b1011", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("0b1011", 2, lexer));
 
 	auto it = lexer->tokens.begin();
 	{
@@ -207,7 +207,7 @@ TEST(LexerTest, BinaryNumberLowercase) {
 		assertInteger(*it++, 0b1011, false);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
@@ -215,31 +215,31 @@ TEST(LexerTest, BinaryNumberLowercase) {
 
 TEST(LexerTest, BinaryNumberUppercase) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("0B10001011", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("0B10001011", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInteger(*it++, 0b10001011, false);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 }
 
 TEST(LexerTest, OctalNumberLowercase) {
-    shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("0o32", 2, lexer));
+	shared_ptr<Lexer> lexer;
+	ASSERT_NO_FATAL_FAILURE(runLexer("0o32", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInteger(*it++, 032, false);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
@@ -247,23 +247,23 @@ TEST(LexerTest, OctalNumberLowercase) {
 
 TEST(LexerTest, OctalNumberUppercase) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("0O27", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("0O27", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInteger(*it++, 027, false);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 }
 
 TEST(LexerTest, InvalidDecimalNumber) {
-    shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("100a3", 2, lexer));
+	shared_ptr<Lexer> lexer;
+	ASSERT_NO_FATAL_FAILURE(runLexer("100a3", 2, lexer));
 
 	auto it = lexer->tokens.begin();
 	{
@@ -271,7 +271,7 @@ TEST(LexerTest, InvalidDecimalNumber) {
 		assertInvalidInteger(*it++, "100a3", 10);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
@@ -279,15 +279,15 @@ TEST(LexerTest, InvalidDecimalNumber) {
 
 TEST(LexerTest, InvalidHexNumber) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("0X100Z3", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("0X100Z3", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInvalidInteger(*it++, "0X100Z3", 16);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
@@ -295,15 +295,15 @@ TEST(LexerTest, InvalidHexNumber) {
 
 TEST(LexerTest, OctalWithInvalidNumber) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("0o10093", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("0o10093", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInvalidInteger(*it++, "0o10093", 8);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
@@ -311,15 +311,15 @@ TEST(LexerTest, OctalWithInvalidNumber) {
 
 TEST(LexerTest, OctalWithInvalidLetter) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("0o100a3", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("0o100a3", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInvalidInteger(*it++, "0o100a3", 8);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
@@ -327,15 +327,15 @@ TEST(LexerTest, OctalWithInvalidLetter) {
 
 TEST(LexerTest, BinaryWithInvalidNumber) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("0b1113", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("0b1113", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInvalidInteger(*it++, "0b1113", 2);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
@@ -343,55 +343,55 @@ TEST(LexerTest, BinaryWithInvalidNumber) {
 
 TEST(LexerTest, BinaryWithInvalidLetter) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("0B111a", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("0B111a", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInvalidInteger(*it++, "0B111a", 2);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 }
 
 TEST(LexerTest, OverflowNumber) {
-    shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("4294967296", 2, lexer));
+	shared_ptr<Lexer> lexer;
+	ASSERT_NO_FATAL_FAILURE(runLexer("4294967296", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInteger(*it++, UINT32_MAX, true);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 }
 
 TEST(LexerTest, DecimalNumberAtUint32Max) {
-    shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("4294967295", 2, lexer));
+	shared_ptr<Lexer> lexer;
+	ASSERT_NO_FATAL_FAILURE(runLexer("4294967295", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertInteger(*it++, UINT32_MAX, false);
 	}
 
-    {
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 }
 
 TEST(LexerTest, Increment) {
-    shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("++", 2, lexer));
+	shared_ptr<Lexer> lexer;
+	ASSERT_NO_FATAL_FAILURE(runLexer("++", 2, lexer));
 
 	auto it = lexer->tokens.begin();
 	{
@@ -407,9 +407,9 @@ TEST(LexerTest, Increment) {
 
 TEST(LexerTest, Decrement) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("--", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("--", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertDecrement(*it++);
@@ -423,9 +423,9 @@ TEST(LexerTest, Decrement) {
 
 TEST(LexerTest, ShiftLeft) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("<<", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("<<", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertShiftLeft(*it++);
@@ -439,9 +439,9 @@ TEST(LexerTest, ShiftLeft) {
 
 TEST(LexerTest, ShiftRight) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer(">>", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer(">>", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertShiftRight(*it++);
@@ -457,13 +457,13 @@ TEST(LexerTest, Newline) {
 	shared_ptr<Lexer> lexer;
 	ASSERT_NO_FATAL_FAILURE(runLexer("\n", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertNewline(*it++);
 	}
-    
-    {
+	
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
@@ -471,124 +471,176 @@ TEST(LexerTest, Newline) {
 
 TEST(LexerTest, SingleCharacters) {
 	shared_ptr<Lexer> lexer;
-    ASSERT_NO_FATAL_FAILURE(runLexer("@", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("@", 2, lexer));
 
-    auto it = lexer->tokens.begin();
+	auto it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertCharacter(*it++, '@');
 	}
-    
-    {
+	
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 
-    ASSERT_NO_FATAL_FAILURE(runLexer(",", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer(",", 2, lexer));
 
-    it = lexer->tokens.begin();
+	it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertCharacter(*it++, ',');
 	}
-    
-    {
+	
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 
 	ASSERT_NO_FATAL_FAILURE(runLexer("$", 2, lexer));
 
-    it = lexer->tokens.begin();
+	it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertCharacter(*it++, '$');
 	}
-    
-    {
+	
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 
-    ASSERT_NO_FATAL_FAILURE(runLexer("[", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("[", 2, lexer));
 
-    it = lexer->tokens.begin();
+	it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertCharacter(*it++, '[');
 	}
-    
-    {
+	
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 
-    ASSERT_NO_FATAL_FAILURE(runLexer("]", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("]", 2, lexer));
 
-    it = lexer->tokens.begin();
+	it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertCharacter(*it++, ']');
 	}
-    
-    {
+	
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 
-    ASSERT_NO_FATAL_FAILURE(runLexer("(", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("(", 2, lexer));
 
-    it = lexer->tokens.begin();
+	it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertCharacter(*it++, '(');
 	}
-    
-    {
+	
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 
-    ASSERT_NO_FATAL_FAILURE(runLexer(")", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer(")", 2, lexer));
 
-    it = lexer->tokens.begin();
+	it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertCharacter(*it++, ')');
 	}
-    
-    {
+	
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 
-    ASSERT_NO_FATAL_FAILURE(runLexer("+", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("+", 2, lexer));
 
-    it = lexer->tokens.begin();
+	it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertCharacter(*it++, '+');
 	}
-    
-    {
+	
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 
-    ASSERT_NO_FATAL_FAILURE(runLexer("-", 2, lexer));
+	ASSERT_NO_FATAL_FAILURE(runLexer("-", 2, lexer));
 
-    it = lexer->tokens.begin();
+	it = lexer->tokens.begin();
 	{
 		SCOPED_TRACE("Token: 1");
 		assertCharacter(*it++, '-');
 	}
-    
-    {
+	
+	{
 		SCOPED_TRACE("Token: 2");
 		assertEOI(*it++);
 	}
 }
 
+TEST(LexerTest, CharacterLiterals) {
+	shared_ptr<Lexer> lexer;
+	ASSERT_NO_FATAL_FAILURE(runLexer("'a'", 2, lexer));
+
+	auto it = lexer->tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, 'a', false);
+	}
+	
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runLexer("'\\x4'", 2, lexer));
+
+	it = lexer->tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, 0x4, false);
+	}
+	
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runLexer("'\\X42'", 2, lexer));
+	it = lexer->tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, 0x42, false);
+	}
+	
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
+
+	ASSERT_NO_FATAL_FAILURE(runLexer("'\\n'", 2, lexer));
+	it = lexer->tokens.begin();
+	{
+		SCOPED_TRACE("Token: 1");
+		assertInteger(*it++, '\n', false);
+	}
+	
+	{
+		SCOPED_TRACE("Token: 2");
+		assertEOI(*it++);
+	}
+}
 
 TEST(LexerTest, MultipleTokens) {
 	shared_ptr<Lexer> lexer;

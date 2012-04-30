@@ -12,13 +12,13 @@ using namespace dcpu::parser;
 using namespace dcpu::lexer;
 
 void runParser(const string &content, int expectedStatements, shared_ptr<Parser> &parser) {
-	Lexer lexer(content.begin(), content.end(), "<Test>");
-    lexer.parse();
+	Lexer lexer(content, "<Test>");
+	lexer.parse();
 
 	parser = make_shared<Parser>(lexer);
 	parser->parse();
 
-    ASSERT_EQ(expectedStatements, parser->statements.size());
+	ASSERT_EQ(expectedStatements, parser->statements.size());
 }
 
 TEST(ParserTest, InstructionTest) {

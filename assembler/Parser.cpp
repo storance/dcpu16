@@ -21,9 +21,9 @@ namespace dcpu { namespace parser {
 	Parser::Parser(Lexer &lexer)
 		: current(lexer.tokens.begin()),
 		end(lexer.tokens.end()),
-		outputPosition(new uint16_t(0)),
-		errorHandler(new ErrorHandler()),
-		symbolTable(new SymbolTable()) {}
+		outputPosition(make_shared<uint16_t>(0)),
+		errorHandler(lexer.errorHandler),
+		symbolTable(make_shared<SymbolTable>()) {}
 
 	Parser::Parser(Lexer &lexer, ErrorHandlerPtr& errorHandler, SymbolTablePtr& symbolTable, uint16Ptr &outputPosition) 
 		: current(lexer.tokens.begin()),

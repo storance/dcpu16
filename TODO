@@ -12,7 +12,6 @@ Disassembler
 
 Assembler
 ============
-* inline character literal
 * dat, data
 * .dw
 * .db
