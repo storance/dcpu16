@@ -21,7 +21,7 @@ namespace dcpu { namespace lexer {
 		  column(0),
 		  errorHandler(make_shared<ErrorHandler>()) {}
 
-	Lexer::Lexer(const std::string &content, const std::string &source, ErrorHandlerPtr &errorHandler)
+	Lexer::Lexer(const std::string &content, const std::string &source, error_handler_t &errorHandler)
 		: current(content.begin()),
 		  end(content.end()),
 		  source(source),
@@ -31,44 +31,45 @@ namespace dcpu { namespace lexer {
 
 	void Lexer::parse() {
 		while (true) {
-			TokenPtr token = nextToken();
-			bool isEOI = token->isEOI();
+			auto token = nextToken();
+			bool isEOI = token.isEOI();
 
-			tokens.push_back(move(token));
+			tokens.push_back(token);
 			if (isEOI) {
 				break;
 			}
 		}
 	}
 
-	TokenPtr Lexer::nextToken() {
+	Token Lexer::nextToken() {
 		skipWhitespaceAndComments();
 
 		if (current == end) {
-			return TokenPtr(new Token(makeLocation(), TokenType::END_OF_INPUT, "end of file"));
+			auto location = makeLocation();
+			return Token(location, Token::Type::END_OF_INPUT, "end of file");
 		}
 
 		char c = nextChar();
-		Location start = makeLocation();
+		auto start = makeLocation();
 
 		if (c == '+' && consumeNextCharIf('+')) {
-			return TokenPtr(new Token(start, TokenType::INCREMENT, "++"));
+			return Token(start, Token::Type::INCREMENT, "++");
 		} else if (c == '-' && consumeNextCharIf('-')) {
-			return TokenPtr(new Token(start, TokenType::DECREMENT, "--"));
+			return Token(start, Token::Type::DECREMENT, "--");
 		} else if (c == '<' && consumeNextCharIf('<')) {
-			return TokenPtr(new Token(start, TokenType::SHIFT_LEFT, "<<"));
+			return Token(start, Token::Type::SHIFT_LEFT, "<<");
 		} else if (c == '>' && consumeNextCharIf('>')) {
-			return TokenPtr(new Token(start, TokenType::SHIFT_RIGHT, ">>"));
+			return Token(start, Token::Type::SHIFT_RIGHT, ">>");
 		} else if (c == '\'') {
 			string quotedString = getQuotedString(start, c, true);
 			if (quotedString.length() == 0) {
 				errorHandler->warning(start, "empty character literal; assuming null terminator.");
 
-				return TokenPtr(new IntegerToken(start, "'" + quotedString + "'", 0, false));
+				return Token(start, Token::Type::INTEGER, "'" + quotedString + "'", 0);
 			}
 
 			if (quotedString.length() > 1) {
-				errorHandler->error(start, "character literal is too long");
+				errorHandler->error(start, "multi-byte character literal");
 			}
 
 			uint8_t value = quotedString[0];
@@ -76,18 +77,18 @@ namespace dcpu { namespace lexer {
 				errorHandler->error(start, "invalid 7-bit ASCII character");
 			}
 
-			return TokenPtr(new IntegerToken(start, "'" + quotedString + "'", value, false));
+			return Token(start, Token::Type::INTEGER, "'" + quotedString + "'", value);
 		} else if (isAllowedIdentifierFirstChar(c)) {
-			return TokenPtr(new Token(start, TokenType::IDENTIFIER, appendWhile(c, &Lexer::isAllowedIdentifierChar)));
+			return Token(start, Token::Type::IDENTIFIER, appendWhile(c, &Lexer::isAllowedIdentifierChar));
 		} else if (isdigit(c)) {
 			return parseNumber(start, appendWhile(c, &Lexer::isAllowedIdentifierChar));
 		} else if (c == '\n') {
 			nextLine();
 
-			return TokenPtr(new Token(start, TokenType::NEWLINE, "newline"));
+			return Token(start, Token::Type::NEWLINE, "newline");
 		}
 
-		return TokenPtr(new Token(start, TokenType::CHARACTER, c));
+		return Token(start, Token::Type::CHARACTER, c);
 	}
 
 	string Lexer::appendWhile(char initial, function<bool (char)> predicate) {
@@ -108,7 +109,7 @@ namespace dcpu { namespace lexer {
 		return content;
 	}
 
-	std::string Lexer::getQuotedString(const Location &location, char endQuote, bool allowEscapes) {
+	std::string Lexer::getQuotedString(location_t &location, char endQuote, bool allowEscapes) {
 
 		string quotedString;
 
@@ -203,11 +204,11 @@ namespace dcpu { namespace lexer {
 			return (c - 'A') + 10;
 		}
 
-		throw new invalid_argument(str(boost::format("'%c' is not a valid hex digit") % c)); 
+		throw invalid_argument(str(boost::format("'%c' is not a valid hex digit") % c)); 
 	}
 
-	Location Lexer::makeLocation() {
-		return Location(source, line, column);
+	location_t Lexer::makeLocation() {
+		return make_shared<Location>(source, line, column);
 	}
 
 	char Lexer::nextChar() {
@@ -270,7 +271,7 @@ namespace dcpu { namespace lexer {
 		}
 	}
 
-	TokenPtr Lexer::parseNumber(const Location &start, const string &value) {
+	Token Lexer::parseNumber(location_t &start, const string &value) {
 		string unprefixedValue;
 
 		uint8_t base = 10;
@@ -289,25 +290,27 @@ namespace dcpu { namespace lexer {
 
 		// prefix without an actual value
 		if (unprefixedValue.length() == 0) {
-			return TokenPtr(new InvalidIntegerToken(start, value, base));
+			return Token(start, Token::Type::INVALID_INTEGER, value);
 		}
 
 		size_t pos;
 		try {
 			unsigned long parsedValue = std::stoul(unprefixedValue, &pos, base);
 			if (pos != unprefixedValue.size()) {
-				return TokenPtr(new InvalidIntegerToken(start, value, base));
+				return Token(start, Token::Type::INVALID_INTEGER, value);
 			}
 
 			if (parsedValue > UINT32_MAX) {
-				return TokenPtr(new IntegerToken(start, value, UINT32_MAX, true));
+				throw out_of_range(value);
 			}
 
-			return TokenPtr(new IntegerToken(start, value, (uint32_t)parsedValue, false));
+			return Token(start, Token::Type::INTEGER, value, (uint32_t)parsedValue);
 		} catch (invalid_argument &ia) {
-			return TokenPtr(new InvalidIntegerToken(start, value, base));
+			return Token(start, Token::Type::INVALID_INTEGER, value);
 		} catch (out_of_range &oor) {
-			return TokenPtr(new IntegerToken(start, value, UINT32_MAX, true));
+			errorHandler->warning(start, boost::format("integer '%s' overflows 32-bit intermediary storage") % value);
+
+			return Token(start, Token::Type::INTEGER, value, UINT32_MAX);
 		}
 	}
 }}

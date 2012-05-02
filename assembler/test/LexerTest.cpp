@@ -1,6 +1,7 @@
 #include "../Lexer.hpp"
 
 #include <iostream>
+#include <sstream>
 #include <gtest/gtest.h>
 
 #include <Lexer.hpp>
@@ -9,772 +10,534 @@ using namespace std;
 using namespace dcpu;
 using namespace dcpu::lexer;
 
-void runLexer(const string &content, int expectedTokens, shared_ptr<Lexer> &lex) {
-	lex = make_shared<Lexer>(content, "<Test>");
-	lex->parse();
+shared_ptr<Lexer> runLexer(const string &content, error_handler_t errorHandler = make_shared<ErrorHandler>()) {
+	shared_ptr<Lexer> lexer = make_shared<Lexer>(content, "<Test>", errorHandler);
+	lexer->parse();
 
-	if (expectedTokens > -1) {
-		ASSERT_EQ(expectedTokens, lex->tokens.size());
-	}
-}
-
-void assertInvalidInteger(TokenPtr &token, const std::string &expectedContent, uint8_t expectedBase) {
-	ASSERT_TRUE(token->isInvalidInteger());
-
-	InvalidIntegerToken* integerToken = asInvalidInteger(token);
-	EXPECT_EQ(expectedContent, integerToken->content);
-	EXPECT_EQ(expectedBase, integerToken->base);
-}
-
-void assertInteger(TokenPtr &token, uint32_t expectedValue, bool expectedOverflow) {
-	ASSERT_TRUE(token->isInteger());
-
-	IntegerToken *integerToken = asInteger(token);
-	EXPECT_EQ(expectedValue, integerToken->value); 
-	if (expectedOverflow)  {
-		EXPECT_TRUE(integerToken->overflow);
-	} else {
-		EXPECT_FALSE(integerToken->overflow);
-	}
-}
-
-void assertLocation(TokenPtr &token, uint32_t expectedLine, uint32_t expectedColumn) {
-	EXPECT_EQ("<Test>", token->location.sourceName);
-	EXPECT_EQ(expectedLine, token->location.line);
-	EXPECT_EQ(expectedColumn, token->location.column);
-}
-
-void assertIdentifier(TokenPtr &token, const string &expectedContent) {
-	ASSERT_TRUE(token->isIdentifier());
-	EXPECT_EQ(expectedContent, token->content);
-}
-
-void assertIncrement(TokenPtr &token) {
-	ASSERT_TRUE(token->isIncrement());
-	EXPECT_EQ("++", token->content);
-}
-
-void assertDecrement(TokenPtr &token) {
-	ASSERT_TRUE(token->isDecrement());
-	EXPECT_EQ("--", token->content);
-}
-
-void assertShiftLeft(TokenPtr &token) {
-	ASSERT_TRUE(token->isShiftLeft());
-	EXPECT_EQ("<<", token->content);
-}
-
-void assertShiftRight(TokenPtr &token) {
-	ASSERT_TRUE(token->isShiftRight());
-	EXPECT_EQ(">>", token->content);
-}
-
-void assertCharacter(TokenPtr &token, char c) {
-	ASSERT_TRUE(token->isCharacter(c));
-}
-
-void assertNewline(TokenPtr &token) {
-	ASSERT_TRUE(token->isNewline());
-	EXPECT_EQ("newline", token->content);
-}
-
-void assertEOI(TokenPtr &token) {
-	ASSERT_TRUE(token->isEOI());
-	EXPECT_EQ("end of file", token->content);
+	return lexer;
 }
 
 TEST(LexerTest, IdentifierStartsUnderscore) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("_a1_?.$#@", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("_a1_?.$#@");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertIdentifier(*it++, "_a1_?.$#@");
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("_a1_?.$#@", it++->content);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, IdentifierStartsPeriod) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer(".aaa111", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer(".aaa111");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertIdentifier(*it++, ".aaa111");
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ(".aaa111", it++->content);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, IdentifierStartsQuestion) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("?aaa111", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("?aaa111");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertIdentifier(*it++, "?aaa111");
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("?aaa111", it++->content);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, IdentifierStartsLetter) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("aaa111", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("aaa111");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertIdentifier(*it++, "aaa111");
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("aaa111", it++->content);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, DecimalNumber) {
-	shared_ptr<Lexer> lexer;
-
-	ASSERT_NO_FATAL_FAILURE(runLexer("100", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("100");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, 100, false);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(100, it++->value);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, HexNumberLowercase) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("0xff", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0xff");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, 0xff, false);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(0xff, it++->value);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, HexNumberUppercase) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("0X1D", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0X1D");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, 0x1d, false);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(0x1d, it++->value);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, BinaryNumberLowercase) {
-	shared_ptr<Lexer> lexer;
-
-	ASSERT_NO_FATAL_FAILURE(runLexer("0b1011", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0b1011");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, 0b1011, false);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(0b1011, it++->value);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, BinaryNumberUppercase) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("0B10001011", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0B10001011");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, 0b10001011, false);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(0b10001011, it++->value);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, OctalNumberLowercase) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("0o32", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0o32");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, 032, false);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(032, it++->value);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, OctalNumberUppercase) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("0O27", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0O27");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, 027, false);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(027, it++->value);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, InvalidDecimalNumber) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("100a3", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("100a3");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInvalidInteger(*it++, "100a3", 10);
-	}
+	EXPECT_TRUE(it->isInvalidInteger());
+	EXPECT_EQ("100a3", it++->content);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, InvalidHexNumber) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("0X100Z3", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0X100Z3");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInvalidInteger(*it++, "0X100Z3", 16);
-	}
+	EXPECT_TRUE(it->isInvalidInteger());
+	EXPECT_EQ("0X100Z3", it++->content);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, OctalWithInvalidNumber) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("0o10093", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0o10093");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInvalidInteger(*it++, "0o10093", 8);
-	}
+	EXPECT_TRUE(it->isInvalidInteger());
+	EXPECT_EQ("0o10093", it++->content);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, OctalWithInvalidLetter) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("0o100a3", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0o100a3");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInvalidInteger(*it++, "0o100a3", 8);
-	}
+	EXPECT_TRUE(it->isInvalidInteger());
+	EXPECT_EQ("0o100a3", it++->content);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, BinaryWithInvalidNumber) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("0b1113", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0b1113");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInvalidInteger(*it++, "0b1113", 2);
-	}
+	EXPECT_TRUE(it->isInvalidInteger());
+	EXPECT_EQ("0b1113", it++->content);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, BinaryWithInvalidLetter) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("0B111a", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("0B111a");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInvalidInteger(*it++, "0B111a", 2);
-	}
+	EXPECT_TRUE(it->isInvalidInteger());
+	EXPECT_EQ("0B111a", it++->content);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, OverflowNumber) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("4294967296", 2, lexer));
+	stringstream out;
+	shared_ptr<Lexer> lexer = runLexer("4294967296", make_shared<ErrorHandler>(out));
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_TRUE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, UINT32_MAX, true);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(UINT32_MAX, it++->value);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
+
+	EXPECT_EQ("<Test>:1:1: warning: integer '4294967296' overflows 32-bit intermediary storage\n", out.str());
 }
 
 TEST(LexerTest, DecimalNumberAtUint32Max) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("4294967295", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("4294967295");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, UINT32_MAX, false);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(UINT32_MAX, it++->value);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, Increment) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("++", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("++");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertIncrement(*it++);
-	}
+	EXPECT_TRUE(it++->isIncrement());
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, Decrement) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("--", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("--");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertDecrement(*it++);
-	}
-
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it++->isDecrement());
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, ShiftLeft) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("<<", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("<<");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertShiftLeft(*it++);
-	}
+	EXPECT_TRUE(it++->isShiftLeft());
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, ShiftRight) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer(">>", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer(">>");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertShiftRight(*it++);
-	}
+	EXPECT_TRUE(it++->isShiftRight());
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, Newline) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("\n", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("\n");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertNewline(*it++);
-	}
+	EXPECT_TRUE(it++->isNewline());
 	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, SingleCharacters) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("@", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("@");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertCharacter(*it++, '@');
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it++->isCharacter('@'));
+	EXPECT_TRUE(it->isEOI());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer(",", 2, lexer));
+	lexer = runLexer(",");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertCharacter(*it++, ',');
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it++->isCharacter(','));
+	EXPECT_TRUE(it->isEOI());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer("$", 2, lexer));
+	lexer = runLexer("$");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertCharacter(*it++, '$');
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it++->isCharacter('$'));
+	EXPECT_TRUE(it->isEOI());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer("[", 2, lexer));
+	lexer = runLexer("[");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertCharacter(*it++, '[');
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it++->isCharacter('['));
+	EXPECT_TRUE(it->isEOI());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer("]", 2, lexer));
+	lexer = runLexer("]");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertCharacter(*it++, ']');
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it++->isCharacter(']'));
+	EXPECT_TRUE(it->isEOI());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer("(", 2, lexer));
+	lexer = runLexer("(");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertCharacter(*it++, '(');
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it++->isCharacter('('));
+	EXPECT_TRUE(it->isEOI());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer(")", 2, lexer));
+	lexer = runLexer(")");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertCharacter(*it++, ')');
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it++->isCharacter(')'));
+	EXPECT_TRUE(it->isEOI());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer("+", 2, lexer));
+	lexer = runLexer("+");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertCharacter(*it++, '+');
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it++->isCharacter('+'));
+	EXPECT_TRUE(it->isEOI());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer("-", 2, lexer));
+	lexer = runLexer("-");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertCharacter(*it++, '-');
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it++->isCharacter('-'));
+	EXPECT_TRUE(it->isEOI());
 }
 
 TEST(LexerTest, CharacterLiterals) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("'a'", 2, lexer));
+	shared_ptr<Lexer> lexer = runLexer("'a'");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, 'a', false);
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ('a', it++->value);	
+	EXPECT_TRUE(it->isEOI());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer("'\\x4'", 2, lexer));
+	lexer = runLexer("'\\x4'");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, 0x4, false);
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(0x4, it++->value);
+	EXPECT_TRUE(it->isEOI());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer("'\\X42'", 2, lexer));
-	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, 0x42, false);
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	lexer = runLexer("'\\X42'");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
-	ASSERT_NO_FATAL_FAILURE(runLexer("'\\n'", 2, lexer));
 	it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertInteger(*it++, '\n', false);
-	}
-	
-	{
-		SCOPED_TRACE("Token: 2");
-		assertEOI(*it++);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(0x42, it++->value);
+	EXPECT_TRUE(it->isEOI());
+
+	lexer = runLexer("'\\n'");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
+
+	it = lexer->tokens.begin();
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ('\n', it++->value);
+	EXPECT_TRUE(it->isEOI());
+}
+
+location_t makeLocation(uint32_t line, uint32_t column) {
+	return make_shared<Location>("<Test>", line, column);
 }
 
 TEST(LexerTest, MultipleTokens) {
-	shared_ptr<Lexer> lexer;
-	ASSERT_NO_FATAL_FAILURE(runLexer("set A, b\n  set [J], 0x400\n;a test comment\nlabel: JSR label+4\n", 21, lexer));
+	shared_ptr<Lexer> lexer = runLexer("set A, b\n  set [J], 0x400\n;a test comment\nlabel: JSR label+4\n");
+	ASSERT_EQ(21, lexer->tokens.size());
+	EXPECT_FALSE(lexer->errorHandler->hasErrors());
+	EXPECT_FALSE(lexer->errorHandler->hasWarnings());
 
 	// Line 1
 	auto it = lexer->tokens.begin();
-	{
-		SCOPED_TRACE("Token: 1");
-		assertIdentifier(*it, "set");
-		assertLocation(*it++, 1, 1);
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("set", it->content);
+	EXPECT_EQ(makeLocation(1, 1), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 2");
-		assertIdentifier(*it, "A");
-		assertLocation(*it++, 1, 5);
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("A", it->content);
+	EXPECT_EQ(makeLocation(1, 5), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 3");
-		assertCharacter(*it, ',');
-		assertLocation(*it++, 1, 6);
-	}
+	EXPECT_TRUE(it->isCharacter(','));
+	EXPECT_EQ(makeLocation(1, 6), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 4");
-		assertIdentifier(*it, "b");
-		assertLocation(*it++, 1, 8);
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("b", it->content);
+	EXPECT_EQ(makeLocation(1, 8), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 5");
-		assertNewline(*it);
-		assertLocation(*it++, 1, 9);
-	}
+	EXPECT_TRUE(it->isNewline());
+	EXPECT_EQ(makeLocation(1, 9), it++->location);
 
 	// Line 2
-	{
-		SCOPED_TRACE("Token: 6");
-		assertIdentifier(*it, "set");
-		assertLocation(*it++, 2, 3);
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("set", it->content);
+	EXPECT_EQ(makeLocation(2, 3), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 7");
-		assertCharacter(*it, '[');
-		assertLocation(*it++, 2, 7);
-	}
+	EXPECT_TRUE(it->isCharacter('['));
+	EXPECT_EQ(makeLocation(2, 7), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 8");
-		assertIdentifier(*it, "J");
-		assertLocation(*it++, 2, 8);
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("J", it->content);
+	EXPECT_EQ(makeLocation(2, 8), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 9");
-		assertCharacter(*it, ']');
-		assertLocation(*it++, 2, 9);
-	}
+	EXPECT_TRUE(it->isCharacter(']'));
+	EXPECT_EQ(makeLocation(2, 9), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 10");
-		assertCharacter(*it, ',');
-		assertLocation(*it++, 2, 10);
-	}
+	EXPECT_TRUE(it->isCharacter(','));
+	EXPECT_EQ(makeLocation(2, 10), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 11");
-		assertInteger(*it, 0x400, false);
-		assertLocation(*it++, 2, 12);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(0x400, it->value);
+	EXPECT_EQ(makeLocation(2, 12), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 12");
-		assertNewline(*it);
-		assertLocation(*it++, 2, 17);
-	}
+	EXPECT_TRUE(it->isNewline());
+	EXPECT_EQ(makeLocation(2, 17), it++->location);
 
 	// Line 3
-	{
-		SCOPED_TRACE("Token: 13");
-		assertNewline(*it);
-		assertLocation(*it++, 3, 16);
-	}
+	EXPECT_TRUE(it->isNewline());
+	EXPECT_EQ(makeLocation(3, 16), it++->location);
 
 	// Line 4
-	{
-		SCOPED_TRACE("Token: 14");
-		assertIdentifier(*it, "label");
-		assertLocation(*it++, 4, 1);
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("label", it->content);
+	EXPECT_EQ(makeLocation(4, 1), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 15");
-		assertCharacter(*it, ':');
-		assertLocation(*it++, 4, 6);
-	}
+	EXPECT_TRUE(it->isCharacter(':'));
+	EXPECT_EQ(makeLocation(4, 6), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 16");
-		assertIdentifier(*it, "JSR");
-		assertLocation(*it++, 4, 8);
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("JSR", it->content);
+	EXPECT_EQ(makeLocation(4, 8), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 17");
-		assertIdentifier(*it, "label");
-		assertLocation(*it++, 4, 12);
-	}
+	EXPECT_TRUE(it->isIdentifier());
+	EXPECT_EQ("label", it->content);
+	EXPECT_EQ(makeLocation(4, 12), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 18");
-		assertCharacter(*it, '+');
-		assertLocation(*it++, 4, 17);
-	}
+	EXPECT_TRUE(it->isCharacter('+'));
+	EXPECT_EQ(makeLocation(4, 17), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 19");
-		assertInteger(*it, 4, false);
-		assertLocation(*it++, 4, 18);
-	}
+	EXPECT_TRUE(it->isInteger());
+	EXPECT_EQ(4, it->value);
+	EXPECT_EQ(makeLocation(4, 18), it++->location);
 
-	{
-		SCOPED_TRACE("Token: 20");
-		assertNewline(*it);
-		assertLocation(*it++, 4, 19);
-	}
+	EXPECT_TRUE(it->isNewline());
+	EXPECT_EQ(makeLocation(4, 19), it++->location);
 
 	// Line 5
-	{
-		SCOPED_TRACE("Token: 21");
-		assertEOI(*it);
-		assertLocation(*it++, 5, 0);
-	}
+	EXPECT_TRUE(it->isEOI());
+	EXPECT_EQ(makeLocation(5, 0), it->location);
 }
+

@@ -15,6 +15,7 @@ namespace dcpu {
 
 	namespace lexer {
 		class Token;
+		class Location;
 	}
 
 	namespace ast {
@@ -35,9 +36,9 @@ namespace dcpu {
 	typedef std::list<StatementPtr> StatementList;
 	typedef StatementList::iterator StatementIterator;
 
-	typedef std::unique_ptr<lexer::Token> TokenPtr;
-	typedef std::list<TokenPtr> TokenList;
+	typedef std::list<Token> TokenList;
 	typedef TokenList::iterator TokenIterator;
+	typedef std::shared_ptr<Location> LocationPtr;
 
 	typedef std::tuple<std::uint8_t, boost::optional<std::uint16_t>> CompileResult;
 }

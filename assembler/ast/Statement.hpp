@@ -5,6 +5,8 @@
 #include <vector>
 #include <cstdint>
 
+#include <boost/variant.hpp>
+
 #include "Common.hpp"
 #include "OpcodeDefinition.hpp"
 #include "Argument.hpp"
@@ -12,61 +14,38 @@
 #include "../Token.hpp"
 
 namespace dcpu { namespace ast {
-	class Statement {
-	public:
-		lexer::Location location;
-
-		Statement(const lexer::Location&);
-
-		virtual std::string str() const=0;
-		virtual void buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const=0;
-		virtual void resolveLabels(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler, std::uint16_t &pc);
-		virtual bool compress(SymbolTablePtr& table, std::uint16_t &pc);
-		virtual void compile(std::vector<std::uint16_t> &output);
-
-		virtual bool operator==(const Statement&) const=0;
-
-		static StatementPtr label(const lexer::Location&, const std::string &);
-		static StatementPtr label(const lexer::Location&, const std::string &, LabelType type);
-		static StatementPtr instruction(const lexer::Location&, Opcode, ArgumentPtr&, ArgumentPtr&);
-		static StatementPtr instruction(const lexer::Location&, Opcode, ArgumentPtr&&, ArgumentPtr&&);
-		static StatementPtr null();
-	};
-
-	class Instruction : public Statement {
-		static void compile(std::vector<std::uint16_t> &output, Opcode opcode, ArgumentPtr &a, ArgumentPtr &b);
-	public:
+	struct Instruction : public Locatable {
 		Opcode opcode;
-		ArgumentPtr a;
-		ArgumentPtr b;
+		Argument a;
+		Argument b;
 
-		Instruction(const lexer::Location&, Opcode, ArgumentPtr &a, ArgumentPtr &b);
+		Instruction(lexer::location_t& location, Opcode opcode, Argument &a, Argument &b);
 
-		uint16_t calculateSize() const;
-
-		virtual std::string str() const;
-		virtual void buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const;
-		virtual void resolveLabels(SymbolTablePtr& table, ErrorHandlerPtr &errorHandler, std::uint16_t &pc);
-		virtual bool compress(SymbolTablePtr& table, std::uint16_t &pc);
-		virtual void compile(std::vector<std::uint16_t> &output);
-
-		virtual bool operator==(const Statement&) const;
+		bool operator==(const Instruction& other) const;
 	};
 
-	class Label : public Statement {
-	public:
-		LabelType type;
+	struct Label : public Locatable {
+		enum class Type {
+			Global,
+			Local,
+			GlobalNoAttach
+		};
+
+		Type type;
 		std::string name;
 
-		Label(const lexer::Location&, const std::string&);
-		Label(const lexer::Location&, const std::string&, LabelType type);
+		Label(lexer::location_t &location, const std::string& name);
+		Label(lexer::location_t &location, const std::string& name, Type type);
 
-		virtual std::string str() const;
-		virtual void buildSymbolTable(SymbolTablePtr& table, uint16Ptr &position) const;
-
-		virtual bool operator==(const Statement&) const;
+		bool operator==(const Label&) const;
 	};
 
-	bool operator== (const StatementPtr& left, const StatementPtr& right);
-	std::ostream& operator<< (std::ostream& stream, const StatementPtr&);
+	std::ostream& operator<< (std::ostream& stream, const Label &label);
+	std::ostream& operator<< (std::ostream& stream, const Instruction &instruction);
+
+	typedef boost::variant<Instruction, Label> Statement;
+
+	uint8_t size(const Statement &statement);
+	void resolveLabels(const Statement &statement);
+	void buildSymbolTable(const Statement &statement, SymbolTablePtr &symbolTable);
 }}

@@ -1,154 +1,156 @@
 #include <gtest/gtest.h>
 
-#include <ast/Expression.hpp>
+#include <Expression.hpp>
 
+using namespace std;
+using namespace dcpu;
 using namespace dcpu::lexer;
 using namespace dcpu::ast;
 
-static Location location("<Test>", 1, 1);
+static location_t location = make_shared<Location>("<Test>", 1, 1);
 
 TEST(ExpressionEvalTest, AddTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::PLUS,
-		Expression::literalOperand(location, 4),
-		Expression::literalOperand(location, 9));
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::PLUS,
+		LiteralOperand(location, 4),
+		LiteralOperand(location, 9)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 13), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 13)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, SubtractTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::MINUS,
-		Expression::literalOperand(location, 4),
-		Expression::literalOperand(location, 9));
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::MINUS,
+		LiteralOperand(location, 4),
+		LiteralOperand(location, 9)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, -5), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, -5)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, MultiplyTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::MULTIPLY,
-		Expression::literalOperand(location, 2),
-		Expression::literalOperand(location, 4));
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::MULTIPLY,
+		LiteralOperand(location, 2),
+		LiteralOperand(location, 4)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 8), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 8)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, DivideTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::DIVIDE,
-		Expression::literalOperand(location, 8),
-		Expression::literalOperand(location, 2));
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::DIVIDE,
+		LiteralOperand(location, 8),
+		LiteralOperand(location, 2)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 4), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 4)), evaluate(expr));
 
-	auto expr2 = Expression::binaryOperation(location, BinaryOperator::DIVIDE,
-		Expression::literalOperand(location, 15),
-		Expression::literalOperand(location, 4));
+	auto expr2 = Expression(BinaryOperation(location, BinaryOperator::DIVIDE,
+		LiteralOperand(location, 15),
+		LiteralOperand(location, 4)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 3), expr2->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 3)), evaluate(expr2));
 }
 
 TEST(ExpressionEvalTest, ModuloTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::MODULO,
-		Expression::literalOperand(location, 19),
-		Expression::literalOperand(location, 5));
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::MODULO,
+		LiteralOperand(location, 19),
+		LiteralOperand(location, 5)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 4), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 4)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, ShiftLeftTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::SHIFT_LEFT,
-		Expression::literalOperand(location, 1),
-		Expression::literalOperand(location, 4));
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::SHIFT_LEFT,
+		LiteralOperand(location, 1),
+		LiteralOperand(location, 4)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 16), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 16)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, ShiftRightTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::SHIFT_RIGHT,
-		Expression::literalOperand(location, 256),
-		Expression::literalOperand(location, 2));
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::SHIFT_RIGHT,
+		LiteralOperand(location, 256),
+		LiteralOperand(location, 2)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 64), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 64)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, BitwiseAndTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::AND,
-		Expression::literalOperand(location, 0x9),
-		Expression::literalOperand(location, 0xc));
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::AND,
+		LiteralOperand(location, 0x9),
+		LiteralOperand(location, 0xc)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 0x8), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 0x8)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, BitwiseXorTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::XOR,
-		Expression::literalOperand(location, 0x9),
-		Expression::literalOperand(location, 0xc));
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::XOR,
+		LiteralOperand(location, 0x9),
+		LiteralOperand(location, 0xc)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 0x5), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 0x5)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, BitwiseOrTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::OR,
-		Expression::literalOperand(location, 0x9),
-		Expression::literalOperand(location, 0xc));
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::OR,
+		LiteralOperand(location, 0x9),
+		LiteralOperand(location, 0xc)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 0xd), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 0xd)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, UnaryMinus) {
-	auto expr = Expression::unaryOperation(location, UnaryOperator::MINUS,
-		Expression::literalOperand(location, 7));
+	auto expr = Expression(UnaryOperation(location, UnaryOperator::MINUS,
+		LiteralOperand(location, 7)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, -7), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, -7)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, UnaryPlus) {
-	auto expr = Expression::unaryOperation(location, UnaryOperator::PLUS,
-		Expression::literalOperand(location, 7));
+	auto expr = Expression(UnaryOperation(location, UnaryOperator::PLUS,
+		LiteralOperand(location, 7)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 7), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 7)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, UnaryNot) {
-	auto expr = Expression::unaryOperation(location, UnaryOperator::NOT,
-		Expression::literalOperand(location, 7));
+	auto expr = Expression(UnaryOperation(location, UnaryOperator::NOT,
+		LiteralOperand(location, 7)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 0), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 0)), evaluate(expr));
 
-	auto expr2 = Expression::unaryOperation(location, UnaryOperator::NOT,
-		Expression::literalOperand(location, 0));
+	auto expr2 = Expression(UnaryOperation(location, UnaryOperator::NOT,
+		LiteralOperand(location, 0)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, 1), expr2->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, 1)), evaluate(expr2));
 }
 
 TEST(ExpressionEvalTest, UnaryBitwiseNot) {
-	auto expr = Expression::unaryOperation(location, UnaryOperator::BITWISE_NOT,
-		Expression::literalOperand(location, 7));
+	auto expr = Expression(UnaryOperation(location, UnaryOperator::BITWISE_NOT,
+		LiteralOperand(location, 7)));
 
-	EXPECT_EQ(Expression::evaluatedLiteral(location, -8), expr->evaluate());
+	EXPECT_EQ(Expression(EvaluatedExpression(location, -8)), evaluate(expr));
 }
 
 TEST(ExpressionEvalTest, RegisterTest) {
-	auto expr = Expression::binaryOperation(location, BinaryOperator::PLUS,
-		Expression::registerOperand(location, Register::A),
-		Expression::literalOperand(location, 10));
-	EXPECT_EQ(Expression::evaluatedRegister(location, Register::A, 10), expr->evaluate());
+	auto expr = Expression(BinaryOperation(location, BinaryOperator::PLUS,
+		RegisterOperand(location, Register::A),
+		LiteralOperand(location, 10)));
+	EXPECT_EQ(Expression(EvaluatedExpression(location, Register::A, 10)), evaluate(expr));
 
-	auto expr2 = Expression::binaryOperation(location, BinaryOperator::PLUS,
-		Expression::literalOperand(location, 10),
-		Expression::registerOperand(location, Register::B));
-	EXPECT_EQ(Expression::evaluatedRegister(location, Register::B, 10), expr2->evaluate());
+	auto expr2 = Expression(BinaryOperation(location, BinaryOperator::PLUS,
+		LiteralOperand(location, 10),
+		RegisterOperand(location, Register::B)));
+	EXPECT_EQ(Expression(EvaluatedExpression(location, Register::B, 10)), evaluate(expr2));
 
-	auto expr3 = Expression::binaryOperation(location, BinaryOperator::MINUS,
-		Expression::registerOperand(location, Register::C),
-		Expression::literalOperand(location, 10));
-	EXPECT_EQ(Expression::evaluatedRegister(location, Register::C, -10), expr3->evaluate());
+	auto expr3 = Expression(BinaryOperation(location, BinaryOperator::MINUS,
+		RegisterOperand(location, Register::C),
+		LiteralOperand(location, 10)));
+	EXPECT_EQ(Expression(EvaluatedExpression(location, Register::C, -10)), evaluate(expr3));
 
-	auto expr4 = Expression::registerOperand(location, Register::X);
-	EXPECT_EQ(Expression::evaluatedRegister(location, Register::X), expr4->evaluate());
+	auto expr4 = Expression(RegisterOperand(location, Register::X));
+	EXPECT_EQ(Expression(EvaluatedExpression(location, Register::X)), evaluate(expr4));
 
-	auto expr5 = Expression::binaryOperation(location, BinaryOperator::PLUS,
-		Expression::registerOperand(location, Register::A),
-		Expression::binaryOperation(location, BinaryOperator::MULTIPLY,
-			Expression::literalOperand(location, 2),
-			Expression::literalOperand(location, 4)));
-	EXPECT_EQ(Expression::evaluatedRegister(location, Register::A, 8), expr5->evaluate());
+	auto expr5 = Expression(BinaryOperation(location, BinaryOperator::PLUS,
+		RegisterOperand(location, Register::A),
+		BinaryOperation(location, BinaryOperator::MULTIPLY,
+			LiteralOperand(location, 2),
+			LiteralOperand(location, 4))));
+	EXPECT_EQ(Expression(EvaluatedExpression(location, Register::A, 8)), evaluate(expr5));
 }

@@ -6,44 +6,45 @@
 #include <cstdint>
 #include <list>
 
-#include "Types.hpp"
-
 namespace dcpu { namespace lexer {
-
-	enum class TokenType {
-		IDENTIFIER,
-		INTEGER,
-		INVALID_INTEGER,
-		INCREMENT,
-		DECREMENT,
-		SHIFT_LEFT,
-		SHIFT_RIGHT,
-		CHARACTER,
-		NEWLINE,
-		END_OF_INPUT
-	};
-
 	struct Location {
-		std::string sourceName;
+		std::string source;
 		std::uint32_t line;
 		std::uint32_t column;
 
 		Location();
 		Location(const std::string&, std::uint32_t, std::uint32_t);
+
+		bool operator==(const Location& other) const;
 	};
 
-	std::ostream& operator<< (std::ostream& stream, const Location& location);
-	std::string str(const Location& location);
+	typedef std::shared_ptr<Location> location_t;
+	std::ostream& operator<< (std::ostream& stream, const location_t& location);
+	bool operator==(const location_t &, const location_t &);
 
 	class Token {
 	public:
-		Location location;
-		TokenType type;
-		std::string content;
+		enum class Type {
+			IDENTIFIER,
+			INTEGER,
+			INVALID_INTEGER,
+			INCREMENT,
+			DECREMENT,
+			SHIFT_LEFT,
+			SHIFT_RIGHT,
+			CHARACTER,
+			NEWLINE,
+			END_OF_INPUT
+		};
 
-		Token(const Location&, TokenType, const std::string&);
-		Token(const Location&, TokenType, char c);
-		virtual ~Token();
+		std::shared_ptr<Location> location;
+		Type type;
+		std::string content;
+		std::uint32_t value;
+
+		Token(location_t&, Type, const std::string&);
+		Token(location_t&, Type, const std::string&, std::uint32_t);
+		Token(location_t&, Type, char c);
 
 		bool isInteger() const;
 		bool isInvalidInteger() const;
@@ -52,30 +53,15 @@ namespace dcpu { namespace lexer {
 		bool isDecrement() const;
 		bool isShiftLeft() const;
 		bool isShiftRight() const;
+		bool isCharacter() const;
 		bool isCharacter(char c) const;
 		bool isNewline() const;
 		bool isEOI() const;
 		bool isStatementTerminator() const;
 	};
 
-	class IntegerToken : public Token {
-	public:
-		std::uint32_t value;
-		bool overflow;
+	typedef std::list<Token> token_list_t;
+	typedef token_list_t::iterator token_iterator_t;
 
-		IntegerToken(const Location&, const std::string&, std::uint32_t, bool overflow);
-	};
-
-	class InvalidIntegerToken : public Token {
-	public:
-		std::string value;
-		std::uint8_t base;
-
-		InvalidIntegerToken(const Location&, const std::string&, std::uint8_t);
-	};
-
-	IntegerToken* asInteger(TokenPtr& token);
-	InvalidIntegerToken* asInvalidInteger(TokenPtr& token);
-
-	TokenPtr& next(TokenList::iterator&, TokenList::iterator);
+	Token& next(token_iterator_t&, token_iterator_t);
 }}

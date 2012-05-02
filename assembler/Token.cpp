@@ -8,58 +8,71 @@ using namespace std;
 
 namespace dcpu { namespace lexer {
 
-	Location::Location(const std::string &sourceName, uint32_t line, uint32_t column)
-		: sourceName(sourceName), line(line), column(column) {}
+	Location::Location(const std::string &source, uint32_t line, uint32_t column)
+		: source(source), line(line), column(column) {}
 
-	Location::Location() : sourceName(""), line(0), column(0) {}
+	Location::Location() : source(""), line(0), column(0) {}
 
-	ostream& operator<< (ostream& stream, const Location& location) {
-		stream << str(location);
-		return stream;
+	bool Location::operator==(const Location& other) const {
+		return source == other.source && line == other.line && column == other.column;
 	}
 
-	string str(const Location& location) {
-		return (boost::format("%s:%d:%d") % location.sourceName % location.line % location.column).str();
+	ostream& operator<< (ostream& stream, const location_t& location) {
+		return stream << boost::format("%s:%d:%d") % location->source % location->line % location->column;
 	}
 
-	Token::Token(const Location &location, TokenType type, const string &content)
-	    : location(location), type(type), content(content) {}
+	bool operator==(const location_t &left, const location_t &right) {
+		if (left && right) {
+			return *left == *right;
+		} else {
+			return !left == !right;
+		}
+	}
 
-	Token::Token(const Location &location, TokenType type, char c)
-	    : location(location), type(type), content(1, c) {}
+	Token::Token(location_t &location, Type type, const string &content)
+	    : location(location), type(type), content(content), value(0) {}
 
-	Token::~Token() {}
+	Token::Token(location_t &location, Type type, const string &content, uint32_t value)
+	    : location(location), type(type), content(content), value(value) {}
+
+	Token::Token(location_t &location, Type type, char c)
+	    : location(location), type(type), content(1, c), value(0) {}
+
 
 	bool Token::isInteger() const {
-		return type == TokenType::INTEGER;
+		return type == Type::INTEGER;
 	}
 
 	bool Token::isInvalidInteger() const {
-		return type == TokenType::INVALID_INTEGER;
+		return type == Type::INVALID_INTEGER;
 	}
 
 	bool Token::isIdentifier() const {
-		return type == TokenType::IDENTIFIER;
+		return type == Type::IDENTIFIER;
 	}
 
 	bool Token::isIncrement() const {
-		return type == TokenType::INCREMENT;
+		return type == Type::INCREMENT;
 	}
 
 	bool Token::isDecrement() const {
-		return type == TokenType::DECREMENT;
+		return type == Type::DECREMENT;
 	}
 
 	bool Token::isShiftLeft() const {
-		return type == TokenType::SHIFT_LEFT;
+		return type == Type::SHIFT_LEFT;
 	}
 
 	bool Token::isShiftRight() const {
-		return type == TokenType::SHIFT_RIGHT;
+		return type == Type::SHIFT_RIGHT;
+	}
+
+	bool Token::isCharacter() const {
+		return type == Type::CHARACTER;
 	}
 
 	bool Token::isCharacter(char c) const {
-		if (type == TokenType::CHARACTER && content.length() == 1) {
+		if (type == Type::CHARACTER && content.length() == 1) {
 			return content[0] == c;
 		}
 
@@ -67,36 +80,18 @@ namespace dcpu { namespace lexer {
 	}
 
 	bool Token::isNewline() const {
-		return type == TokenType::NEWLINE;
+		return type == Type::NEWLINE;
 	}
 
 	bool Token::isEOI() const {
-		return type == TokenType::END_OF_INPUT;
+		return type == Type::END_OF_INPUT;
 	}
 
 	bool Token::isStatementTerminator() const {
 		return isEOI() || isNewline();
 	}
 
-	IntegerToken::IntegerToken(const Location &location, const std::string &content, uint32_t value, bool overflow)
-	    : Token(location, TokenType::INTEGER, content), value(value), overflow(overflow) {}
-
-	InvalidIntegerToken::InvalidIntegerToken(const Location &location, const string &content, uint8_t base)
-	    : Token(location, TokenType::INVALID_INTEGER, content), base(base) {}
-
-	IntegerToken* asInteger(TokenPtr &token) {
-		assert(token->isInteger());
-
-		return dynamic_cast<IntegerToken*>(token.get());
-	}
-
-	InvalidIntegerToken* asInvalidInteger(TokenPtr &token) {
-		assert(token->isInvalidInteger());
-
-		return dynamic_cast<InvalidIntegerToken*>(token.get());
-	}
-
-	TokenPtr& next(TokenList::iterator& current, TokenList::iterator end) {
+	Token& next(token_iterator_t& current, token_iterator_t end) {
 		if (current == end) {
 			--current;
 		}

@@ -8,28 +8,30 @@
 #include <boost/format.hpp>
 
 #include "Token.hpp"
-#include "Types.hpp"
 
 namespace dcpu {
 	class ErrorHandler {
 	private:
-		unsigned int _totalErrors;
-		unsigned int _totalWarnings;
+		unsigned int totalErrors;
+		unsigned int totalWarnings;
 
-		std::ostream &_out;
+		std::ostream &out;
 	public:
-		void error(const lexer::Location&, const std::string&);
-		void error(const lexer::Location&, const boost::basic_format<char> &);
-		void warning(const lexer::Location&, const std::string&);
-		void warning(const lexer::Location&, const boost::basic_format<char> &);
+		void error(const lexer::location_t&, const std::string&);
+		void error(const lexer::location_t&, const boost::basic_format<char> &);
+		void warning(const lexer::location_t&, const std::string&);
+		void warning(const lexer::location_t&, const boost::basic_format<char> &);
 
-		void errorUnexpectedToken(TokenPtr& token, char c);
-		void errorUnexpectedToken(TokenPtr& token, const std::string &expected);
+		void errorUnexpectedToken(const lexer::Token& token, char c);
+		void errorUnexpectedToken(const lexer::Token& token, const std::string &expected);
 
+		bool hasWarnings();
 		bool hasErrors();
 		void summary();
 
 		ErrorHandler();
 		ErrorHandler(std::ostream &);
 	};
+
+	typedef std::shared_ptr<ErrorHandler> error_handler_t;
 }

@@ -4,27 +4,34 @@ CXX_FLAGS=-g -Wall
 TEST_CXX_FLAGS=-I.
 OUTPUT_DIR=target
 
-OBJECTS = $(OUTPUT_DIR)/Parser.o \
-		  $(OUTPUT_DIR)/ExpressionParser.o \
-		  $(OUTPUT_DIR)/Lexer.o \
+OBJECTS = $(OUTPUT_DIR)/Lexer.o \
 		  $(OUTPUT_DIR)/ErrorHandler.o \
-		  $(OUTPUT_DIR)/Common.o \
-		  $(OUTPUT_DIR)/Statement.o \
-		  $(OUTPUT_DIR)/Argument.o \
-		  $(OUTPUT_DIR)/Expression.o \
 		  $(OUTPUT_DIR)/Token.o \
-		  $(OUTPUT_DIR)/RegisterDefinition.o \
-		  $(OUTPUT_DIR)/OpcodeDefinition.o \
-		  $(OUTPUT_DIR)/SymbolTable.o \
-		  $(OUTPUT_DIR)/Compiler.o
+		  $(OUTPUT_DIR)/Mnemonics.o \
+		  $(OUTPUT_DIR)/Expression.o
+
+#OBJECTS = $(OUTPUT_DIR)/Parser.o \
+#		  $(OUTPUT_DIR)/ExpressionParser.o \
+#		  $(OUTPUT_DIR)/Lexer.o \
+#		  $(OUTPUT_DIR)/ErrorHandler.o \
+#		  $(OUTPUT_DIR)/Common.o \
+#		  $(OUTPUT_DIR)/Statement.o \
+#		  $(OUTPUT_DIR)/Argument.o \
+#		  $(OUTPUT_DIR)/Expression.o \
+#		  $(OUTPUT_DIR)/Token.o \
+#		  $(OUTPUT_DIR)/RegisterDefinition.o \
+#		  $(OUTPUT_DIR)/OpcodeDefinition.o \
+#		  $(OUTPUT_DIR)/SymbolTable.o \
+#		  $(OUTPUT_DIR)/Compiler.o
 
 TEST_OBJECTS = $(OBJECTS) \
-			   $(OUTPUT_DIR)/ParserTest.o \
 			   $(OUTPUT_DIR)/LexerTest.o \
-			   $(OUTPUT_DIR)/CompileTest.o \
-			   $(OUTPUT_DIR)/ResolveLabelTest.o \
-			   $(OUTPUT_DIR)/ExprParserTest.o \
 			   $(OUTPUT_DIR)/ExprEvalTest.o
+#			   $(OUTPUT_DIR)/ParserTest.o \
+#			   $(OUTPUT_DIR)/CompileTest.o \
+#			   $(OUTPUT_DIR)/ResolveLabelTest.o \
+#			   $(OUTPUT_DIR)/ExprParserTest.o \
+
 
 TEST_FILTER = *
 
@@ -42,6 +49,9 @@ $(OUTPUT_DIR)/Compiler.o: Compiler.cpp Compiler.hpp ast/*.hpp | $(OUTPUT_DIR)
 $(OUTPUT_DIR)/Token.o: Token.cpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
+$(OUTPUT_DIR)/Mnemonics.o: Mnemonics.cpp Mnemonics.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
+
 $(OUTPUT_DIR)/Common.o: ast/Common.cpp ast/Common.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
@@ -51,13 +61,7 @@ $(OUTPUT_DIR)/Statement.o: ast/Statement.cpp ast/*.hpp *.hpp | $(OUTPUT_DIR)
 $(OUTPUT_DIR)/Argument.o: ast/Argument.cpp ast/*.hpp *.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Expression.o: ast/Expression.cpp ast/*.hpp *.hpp | $(OUTPUT_DIR)
-	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
-
-$(OUTPUT_DIR)/OpcodeDefinition.o: ast/OpcodeDefinition.cpp ast/OpcodeDefinition.hpp | $(OUTPUT_DIR)
-	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
-
-$(OUTPUT_DIR)/RegisterDefinition.o: ast/RegisterDefinition.cpp ast/RegisterDefinition.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/Expression.o: Expression.cpp *.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/SymbolTable.o: SymbolTable.cpp SymbolTable.hpp ast/Statement.hpp | $(OUTPUT_DIR)
