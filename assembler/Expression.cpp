@@ -34,6 +34,12 @@ namespace dcpu { namespace ast {
 		return _register == other._register;
 	}
 
+	InvalidExpression::InvalidExpression(location_t &location) : Locatable(location) {}
+
+	bool InvalidExpression::operator==(const InvalidExpression& other) const {
+		return true;
+	}
+
 	EvaluatedExpression::EvaluatedExpression(location_t &location, Register _register)
 		: Locatable(location), _register(_register), value() {}
 
@@ -97,6 +103,10 @@ namespace dcpu { namespace ast {
 
 		bool operator()(const UnaryOperation &expr) const {
 			return boost::apply_visitor(*this, expr.operand);
+		}
+
+		bool operator()(const InvalidExpression&) const {
+			return false;
 		}
 	};
 
@@ -220,6 +230,10 @@ namespace dcpu { namespace ast {
 
 			return EvaluatedExpression(operand.location, value);
 		}
+
+		EvaluatedExpression operator()(InvalidExpression& expr) {
+			throw invalid_argument("InvalidExpression found");
+		}
 	};
 
 	bool evaluated(const Expression &expr) {
@@ -309,5 +323,9 @@ namespace dcpu { namespace ast {
 
 	ostream& operator<< (ostream& stream, const LiteralOperand &expr) {
 		return stream << expr.value;
+	}
+
+	ostream& operator<< (ostream& stream, const InvalidExpression& expr) {
+		return stream << "<Invalid Expression>";
 	}
 }}

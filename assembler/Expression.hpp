@@ -73,10 +73,17 @@ namespace dcpu { namespace ast {
 		bool operator==(const EvaluatedExpression& other) const;
 	};
 
+	struct InvalidExpression : public Locatable {
+		InvalidExpression(lexer::location_t &location);
+
+		bool operator==(const InvalidExpression& other) const;
+	};
+
 	struct UnaryOperation;
 	struct BinaryOperation;
 
 	typedef boost::variant<
+		InvalidExpression,
 		LiteralOperand,
 		LiteralOperand,
 		RegisterOperand,
@@ -108,6 +115,7 @@ namespace dcpu { namespace ast {
 	bool evaluatable(const Expression &expr);
 	Expression evaluate(Expression &expr);
 
+	
 	std::ostream& operator<< (std::ostream& stream, UnaryOperator);
 	std::ostream& operator<< (std::ostream& stream, BinaryOperator);
 	std::ostream& operator<< (std::ostream& stream, const UnaryOperation &expr);
@@ -116,4 +124,5 @@ namespace dcpu { namespace ast {
 	std::ostream& operator<< (std::ostream& stream, const RegisterOperand &expr);
 	std::ostream& operator<< (std::ostream& stream, const LabelOperand &expr);
 	std::ostream& operator<< (std::ostream& stream, const LiteralOperand &expr);
+	std::ostream& operator<< (std::ostream& stream, const InvalidExpression &expr);
 }}
