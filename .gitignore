@@ -1,6 +1,8 @@
 *.o
 *.bin
-*.cbp
+.project
+.cproject
+
 */target/*
 core
 emulator
