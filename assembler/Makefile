@@ -4,11 +4,14 @@ CXX_FLAGS=-g -Wall
 TEST_CXX_FLAGS=-I.
 OUTPUT_DIR=target
 
-OBJECTS = $(OUTPUT_DIR)/Lexer.o \
-		  $(OUTPUT_DIR)/ErrorHandler.o \
-		  $(OUTPUT_DIR)/Token.o \
-		  $(OUTPUT_DIR)/Mnemonics.o \
-		  $(OUTPUT_DIR)/Expression.o
+OBJECTS = $(OUTPUT_DIR)/lexer.o \
+		  $(OUTPUT_DIR)/error_handler.o \
+		  $(OUTPUT_DIR)/symbol_table.o \
+		  $(OUTPUT_DIR)/token.o \
+		  $(OUTPUT_DIR)/mnemonics.o \
+		  $(OUTPUT_DIR)/expression.o \
+		  $(OUTPUT_DIR)/statement.o 
+		  
 
 #OBJECTS = $(OUTPUT_DIR)/Parser.o \
 #		  $(OUTPUT_DIR)/ExpressionParser.o \
@@ -25,8 +28,8 @@ OBJECTS = $(OUTPUT_DIR)/Lexer.o \
 #		  $(OUTPUT_DIR)/Compiler.o
 
 TEST_OBJECTS = $(OBJECTS) \
-			   $(OUTPUT_DIR)/LexerTest.o \
-			   $(OUTPUT_DIR)/ExprEvalTest.o
+			   $(OUTPUT_DIR)/lexer_test.o \
+			   $(OUTPUT_DIR)/expression_eval_test.o
 #			   $(OUTPUT_DIR)/ParserTest.o \
 #			   $(OUTPUT_DIR)/CompileTest.o \
 #			   $(OUTPUT_DIR)/ResolveLabelTest.o \
@@ -46,52 +49,46 @@ $(OUTPUT_DIR)/Assembler.o: Assembler.cpp Lexer.hpp Parser.hpp | $(OUTPUT_DIR)
 $(OUTPUT_DIR)/Compiler.o: Compiler.cpp Compiler.hpp ast/*.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Token.o: Token.cpp Token.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/token.o: token.cpp token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Mnemonics.o: Mnemonics.cpp Mnemonics.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/mnemonics.o: mnemonics.cpp mnemonics.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Common.o: ast/Common.cpp ast/Common.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/statement.o: statement.cpp statement.hpp expression.hpp token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Statement.o: ast/Statement.cpp ast/*.hpp *.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/expression.o: expression.cpp expression.hpp token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Argument.o: ast/Argument.cpp ast/*.hpp *.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/symbol_table.o: symbol_table.cpp symbol_table.hpp statement.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Expression.o: Expression.cpp *.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/error_handler.o: error_handler.cpp error_handler.hpp token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/SymbolTable.o: SymbolTable.cpp SymbolTable.hpp ast/Statement.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/lexer.o: lexer.cpp lexer.hpp token.hpp error_handler.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
-
-$(OUTPUT_DIR)/ErrorHandler.o: ErrorHandler.cpp ErrorHandler.hpp | $(OUTPUT_DIR)
-	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
-
+	
 $(OUTPUT_DIR)/ExpressionParser.o: ExpressionParser.cpp ExpressionParser.hpp ast/Expression.hpp Token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/Parser.o: Parser.cpp Parser.hpp ast/*.hpp Token.hpp Lexer.hpp ExpressionParser.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Lexer.o: Lexer.cpp Lexer.hpp Token.hpp | $(OUTPUT_DIR)
-	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
-
 $(OUTPUT_DIR):
 	mkdir $@
 
-$(OUTPUT_DIR)/LexerTest.o: test/LexerTest.cpp Lexer.hpp Token.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/lexer_test.o: test/lexer_test.cpp lexer.hpp token.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
+	
+$(OUTPUT_DIR)/expression_eval_test.o: test/expression_eval_test.cpp expression.hpp token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandler.hpp ast/*.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/ExprParserTest.o: test/ExprParserTest.cpp ExpressionParser.hpp ExpressionParser.cpp ast/*.hpp | $(OUTPUT_DIR)
-	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
-
-$(OUTPUT_DIR)/ExprEvalTest.o: test/ExprEvalTest.cpp ast/*.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/CompileTest.o: test/CompileTest.cpp ast/*.hpp | $(OUTPUT_DIR)

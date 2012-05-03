@@ -180,7 +180,8 @@ namespace dcpu { namespace parser {
 		} else if (currentToken->isInteger()) {
 			return parseLiteralExpression(currentToken);
 		} else {
-			errorHandler->errorUnexpectedToken(currentToken, "a label name, register, or literal");
+			errorHandler->error(currentToken->location, boost::format("expected a primary-expression before '%s'")
+				% currentToken.content);
 			return Expression::invalid(currentToken->location);
 		}
 	}
@@ -233,7 +234,7 @@ namespace dcpu { namespace parser {
 		}
 
 		if (!currentToken->isIdentifier()) {
-			errorHandler->errorUnexpectedToken(currentToken, "a label name");
+			errorHandler->error(currentToken->location, "expected a label name following '$'");
 
 			return Expression::invalid(currentToken->location);
 		}
