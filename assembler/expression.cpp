@@ -176,19 +176,19 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 	class expression_evaluator : public static_visitor<evaluated_expression> {
 	public:
-		evaluated_expression operator()(evaluated_expression &expr) {
+		evaluated_expression operator()(const evaluated_expression &expr) const {
 			return expr;
 		}
 
-		evaluated_expression operator()(register_operand &expr) {
+		evaluated_expression operator()(const register_operand &expr) const {
 			return evaluated_expression(expr.location, expr._register);
 		}
 
-		evaluated_expression operator()(literal_operand &expr) {
+		evaluated_expression operator()(const literal_operand &expr) const {
 			return evaluated_expression(expr.location, expr.value);
 		}
 
-		evaluated_expression operator()(symbol_operand &expr) {
+		evaluated_expression operator()(const symbol_operand &expr) const {
 			if (!expr.pc) {
 				throw invalid_argument("unresolved labels");
 			}
@@ -196,7 +196,7 @@ namespace dcpu { namespace ast {
 			return evaluated_expression(expr.location, *expr.pc);
 		}
 
-		evaluated_expression operator()(binary_operation &expr) {
+		evaluated_expression operator()(const binary_operation &expr) const {
 			auto left = apply_visitor(*this, expr.left);
 			auto right = apply_visitor(*this, expr.right);
 
@@ -267,7 +267,7 @@ namespace dcpu { namespace ast {
 			}
 		}
 
-		evaluated_expression operator()(unary_operation &expr) {
+		evaluated_expression operator()(const unary_operation &expr) const {
 			auto operand = apply_visitor(*this, expr.operand);
 
 			if (operand._register) {
@@ -295,7 +295,7 @@ namespace dcpu { namespace ast {
 			return evaluated_expression(operand.location, value);
 		}
 
-		evaluated_expression operator()(invalid_expression& expr) {
+		evaluated_expression operator()(const invalid_expression& expr) const {
 			throw invalid_argument("invalid_expression found");
 		}
 	};
@@ -323,9 +323,8 @@ namespace dcpu { namespace ast {
 	 * evaluate function
 	 *
 	 *************************************************************************/
-	expression evaluate(expression &expr) {
-		auto visitor = expression_evaluator();
-		return apply_visitor(visitor, expr);
+	expression evaluate(const expression &expr) {
+		return apply_visitor(expression_evaluator(), expr);
 	}
 
 	/*************************************************************************

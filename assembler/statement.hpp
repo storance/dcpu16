@@ -55,7 +55,7 @@ namespace dcpu { namespace ast {
 		argument a;
 		optional_argument b;
 
-		instruction(const lexer::location_ptr& location, opcodes opcode, argument &a, optional_argument &b);
+		instruction(const lexer::location_ptr& location, opcodes opcode, const argument &a, const optional_argument &b);
 
 		bool operator==(const instruction& other) const;
 	};

@@ -46,7 +46,7 @@ namespace dcpu { namespace ast {
 	 * instruction
 	 *
 	 *************************************************************************/
-	instruction::instruction(const location_ptr& location, opcodes opcode, argument &a, optional_argument &b)
+	instruction::instruction(const location_ptr& location, opcodes opcode, const argument &a, const optional_argument &b)
 		: locatable(location), opcode(opcode), a(a), b(b) {}
 
 	bool instruction::operator==(const instruction& other) const {

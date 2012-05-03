@@ -61,6 +61,4 @@ namespace dcpu {
 		void build(const ast::statement_list &statements, error_handler_ptr &error_handler);
 		void resolve(const ast::statement_list &statements, error_handler_ptr &error_handler);
 	};
-
-	typedef std::shared_ptr<symbol_table> symbol_table_ptr;
 }

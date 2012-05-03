@@ -7,6 +7,7 @@ OUTPUT_DIR=target
 OBJECTS = $(OUTPUT_DIR)/lexer.o \
 		  $(OUTPUT_DIR)/error_handler.o \
 		  $(OUTPUT_DIR)/symbol_table.o \
+		  $(OUTPUT_DIR)/compiler.o \
 		  $(OUTPUT_DIR)/token.o \
 		  $(OUTPUT_DIR)/mnemonics.o \
 		  $(OUTPUT_DIR)/expression.o \
@@ -46,7 +47,7 @@ assembler: $(OUTPUT_DIR)/Assembler.o $(OBJECTS)
 $(OUTPUT_DIR)/Assembler.o: Assembler.cpp Lexer.hpp Parser.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Compiler.o: Compiler.cpp Compiler.hpp ast/*.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/compiler.o: compiler.cpp compiler.hpp expression.hpp statement.hpp token.hpp symbol_table.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/token.o: token.cpp token.hpp | $(OUTPUT_DIR)
