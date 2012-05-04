@@ -66,10 +66,6 @@ namespace dcpu { namespace lexer {
 		return type == token_type::SHIFT_RIGHT;
 	}
 
-	bool token::is_character() const {
-		return type == token_type::CHARACTER;
-	}
-
 	bool token::is_character(char c) const {
 		if (type == token_type::CHARACTER && content.length() == 1) {
 			return content[0] == c;

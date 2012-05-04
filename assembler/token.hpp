@@ -55,7 +55,6 @@ namespace dcpu { namespace lexer {
 		bool is_decrement() const;
 		bool is_shift_left() const;
 		bool is_shift_right() const;
-		bool is_character() const;
 		bool is_character(char c) const;
 		bool is_newline() const;
 		bool is_eoi() const;

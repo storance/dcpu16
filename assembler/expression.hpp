@@ -111,9 +111,18 @@ namespace dcpu { namespace ast {
 		bool operator==(const binary_operation& other) const;
 	};
 
+	class get_location : public boost::static_visitor<lexer::location_ptr> {
+	public:
+		lexer::location_ptr operator()(const locatable &locatable) const;
+
+		template <typename T> lexer::location_ptr operator()(const T &) const;
+	};
+
 	bool evaluated(const expression &expr);
 	bool evaluatable(const expression &expr);
+	bool evaluates_to_literal(const expression &expr);
 	expression evaluate(const expression &expr);
+	lexer::location_ptr locate(const expression &expr);
 	
 	std::ostream& operator<< (std::ostream& stream, unary_operator);
 	std::ostream& operator<< (std::ostream& stream, binary_operator);

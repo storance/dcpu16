@@ -123,7 +123,7 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 	class expression_evaluated : public static_visitor<bool> {
 	public:
-		bool operator()(const evaluated_expression &evaluatedExpr) const {
+		bool operator()(const evaluated_expression &) const {
 			return true;
 		}
 
@@ -166,6 +166,42 @@ namespace dcpu { namespace ast {
 
 		bool operator()(const invalid_expression&) const {
 			return false;
+		}
+	};
+
+	/*************************************************************************
+	 *
+	 * expression_evals_to_literal
+	 *
+	 *************************************************************************/
+	class expression_evals_to_literal : public static_visitor<bool> {
+	public:
+		bool operator()(const evaluated_expression &expr) const {
+			return !expr._register;
+		}
+
+		bool operator()(const register_operand &) const {
+			return false;
+		}
+
+		bool operator()(const literal_operand &) const {
+			return true;
+		}
+
+		bool operator()(const symbol_operand &expr) const {
+			return true;
+		}
+
+		bool operator()(const binary_operation &expr) const {
+			return apply_visitor(*this, expr.left) && apply_visitor(*this, expr.right);
+		}
+
+		bool operator()(const unary_operation &expr) const {
+			return apply_visitor(*this, expr.operand);
+		}
+
+		bool operator()(const invalid_expression&) const {
+			return true;
 		}
 	};
 
@@ -302,6 +338,20 @@ namespace dcpu { namespace ast {
 
 	/*************************************************************************
 	 *
+	 * get_location
+	 *
+	 *************************************************************************/
+
+	location_ptr get_location::operator()(const locatable &locatable) const {
+		return locatable.location;
+	}
+
+	template <typename T> location_ptr get_location::operator()(const T &) const {
+		throw invalid_argument("not locatable");
+	}
+
+	/*************************************************************************
+	 *
 	 * evaluated function
 	 *
 	 *************************************************************************/
@@ -320,11 +370,30 @@ namespace dcpu { namespace ast {
 
 	/*************************************************************************
 	 *
+	 * evaluates_to_literal function
+	 *
+	 *************************************************************************/
+	bool evaluates_to_literal(const expression &expr) {
+		return apply_visitor(expression_evals_to_literal(), expr);
+	}
+
+	/*************************************************************************
+	 *
 	 * evaluate function
 	 *
 	 *************************************************************************/
 	expression evaluate(const expression &expr) {
 		return apply_visitor(expression_evaluator(), expr);
+	}
+
+	/*************************************************************************
+	 *
+	 * locate function
+	 *
+	 *************************************************************************/
+
+	location_ptr locate(const expression &expr) {
+		return apply_visitor(get_location(), expr);
 	}
 
 	/*************************************************************************
