@@ -20,7 +20,11 @@ namespace dcpu { namespace compiler {
 		compile_result();
 		compile_result(std::uint8_t value);
 		compile_result(std::uint8_t value, std::uint16_t next_word);
+
+		bool operator==(const compile_result &result) const;
 	};
+
+	std::ostream &operator<<(std::ostream &stream, const compile_result &result);
 
 	class expression_compiler : public boost::static_visitor<compile_result> {
 		const ast::expression_argument &arg;
@@ -60,4 +64,7 @@ namespace dcpu { namespace compiler {
 		void compile(ast::statement_list &statement);
 		void write(std::ostream &out, Endianness format=Endianness::BIG);
 	};
+
+	compile_result compile(const ast::argument &arg);
+	void compile(std::vector<uint16_t> &output, const ast::statement &stmt);
 }}

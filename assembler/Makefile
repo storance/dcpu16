@@ -30,10 +30,10 @@ OBJECTS = $(OUTPUT_DIR)/lexer.o \
 
 TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/lexer_test.o \
-			   $(OUTPUT_DIR)/expression_eval_test.o
+			   $(OUTPUT_DIR)/expression_eval_test.o \
+			   $(OUTPUT_DIR)/resolve_symbols_test.o \
+			   $(OUTPUT_DIR)/compiler_test.o
 #			   $(OUTPUT_DIR)/ParserTest.o \
-#			   $(OUTPUT_DIR)/CompileTest.o \
-#			   $(OUTPUT_DIR)/ResolveLabelTest.o \
 #			   $(OUTPUT_DIR)/ExprParserTest.o \
 
 
@@ -92,10 +92,10 @@ $(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandl
 $(OUTPUT_DIR)/ExprParserTest.o: test/ExprParserTest.cpp ExpressionParser.hpp ExpressionParser.cpp ast/*.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/CompileTest.o: test/CompileTest.cpp ast/*.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/compiler_test.o: test/compiler_test.cpp statement.hpp compiler.hpp token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/ResolveLabelTest.o: test/ResolveLabelTest.cpp ast/*.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/resolve_symbols_test.o: test/resolve_symbols_test.cpp symbol_table.hpp statement.hpp expression.hpp token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 unittest: $(TEST_OBJECTS)

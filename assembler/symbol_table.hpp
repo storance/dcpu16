@@ -61,4 +61,32 @@ namespace dcpu {
 		void build(const ast::statement_list &statements, error_handler_ptr &error_handler);
 		void resolve(const ast::statement_list &statements, error_handler_ptr &error_handler);
 	};
+
+	class resolve_symbols : public boost::static_visitor<> {
+		std::uint16_t pc;
+		error_handler_ptr error_handler;
+		symbol_table* table;
+	public:
+		resolve_symbols(error_handler_ptr &error_handler, symbol_table *table);
+		resolve_symbols(std::uint16_t pc, error_handler_ptr &error_handler, symbol_table *table);
+
+		void operator()(ast::symbol_operand &expr);
+		void operator()(ast::binary_operation &expr);
+		void operator()(ast::unary_operation &expr);
+		void operator()(ast::expression_argument &arg);
+		void operator()(ast::instruction &instruction);
+		template <typename T> void operator()( const T &);
+	};
+
+	class compress_expressions : public boost::static_visitor<bool> {
+		std::uint16_t pc;
+		symbol_table* table;
+	public:
+		compress_expressions(symbol_table* symbol_table);
+		compress_expressions(std::uint16_t pc, symbol_table* symbol_table);
+
+		bool operator()(ast::expression_argument &arg);
+		bool operator()(ast::instruction &instruction);
+		template <typename T>bool operator()( const T &);
+	};
 }

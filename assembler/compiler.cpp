@@ -7,11 +7,29 @@ using namespace dcpu::ast;
 using namespace boost;
 
 namespace dcpu { namespace compiler {
-	compile_result::compile_result() : value(0), next_word() {}
+	compile_result::compile_result()
+		: value(0), next_word() {}
 
-	compile_result::compile_result(std::uint8_t value) : value(value), next_word() {}
+	compile_result::compile_result(std::uint8_t value)
+			: value(value), next_word() {}
 
-	compile_result::compile_result(std::uint8_t value, std::uint16_t next_word) : value(value), next_word(next_word) {}
+	compile_result::compile_result(std::uint8_t value, std::uint16_t next_word)
+			: value(value), next_word(next_word) {}
+
+	bool compile_result::operator==(const compile_result &result) const {
+		return value == value && next_word == next_word;
+	}
+
+	std::ostream &operator<<(std::ostream &stream, const compile_result &result) {
+		stream << "[value=" << result.value << ",next_word=";
+		if (result.next_word) {
+			stream << "none";
+		} else {
+			stream << *result.next_word;
+		}
+
+		return stream << "]";
+	}
 
 	expression_compiler::expression_compiler(const expression_argument &arg) : arg(arg) {}
 
@@ -109,9 +127,9 @@ namespace dcpu { namespace compiler {
 
 		compile_result a_result, b_result;
 
-		a_result = apply_visitor(argument_compiler(), instruction.a);
+		a_result = compile(instruction.a);
 		if (instruction.b) {
-			b_result = apply_visitor(argument_compiler(), *instruction.b);
+			b_result = compile(*instruction.b);
 		}
 
 		uint16_t encoded_value = static_cast<uint16_t>(instruction.opcode)
@@ -157,5 +175,13 @@ namespace dcpu { namespace compiler {
 	            out.put(b1);
 	        }
 	    }
+	}
+
+	compile_result compile(const argument &arg) {
+		return apply_visitor(argument_compiler(), arg);
+	}
+
+	void compile(vector<uint16_t> &output, const statement &stmt) {
+		return apply_visitor(statement_compiler(output), stmt);
 	}
 }}

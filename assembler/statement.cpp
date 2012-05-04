@@ -90,7 +90,7 @@ namespace dcpu { namespace ast {
 		uint8_t operator()(const evaluated_expression &expr) const {
 			if (!arg.indirect) {
 				if (expr._register || (arg.position == argument_position::A
-					&& arg.force_next_word && *expr.value >= -1 && *expr.value <= 30)) {
+					&& !arg.force_next_word && *expr.value >= -1 && *expr.value <= 30)) {
 					return 0;
 				} else {
 					return 1;

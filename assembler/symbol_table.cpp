@@ -98,97 +98,94 @@ namespace dcpu {
 	 * resolve_symbols
 	 *
 	 *************************************************************************/
-	class resolve_symbols : public boost::static_visitor<> {
-		uint16_t pc;
-		error_handler_ptr error_handler;
-		symbol_table* table;
-	public:
-		resolve_symbols(error_handler_ptr &error_handler, symbol_table *table)
-					: pc(0), error_handler(error_handler), table(table) {}
+	resolve_symbols::resolve_symbols(error_handler_ptr &error_handler, symbol_table *table)
+				: pc(0), error_handler(error_handler), table(table) {}
 
-		void operator()(symbol_operand &expr) {
-			try {
-				expr.pc = table->lookup(expr.label, pc);
-			} catch (std::exception &e) {
-				error_handler->error(expr.location, e.what());
-			}
+	resolve_symbols::resolve_symbols(uint16_t pc, error_handler_ptr &error_handler, symbol_table *table)
+		: pc(pc), error_handler(error_handler), table(table) {}
+
+	void resolve_symbols::operator()(symbol_operand &expr) {
+		try {
+			expr.pc = table->lookup(expr.label, pc);
+		} catch (std::exception &e) {
+			error_handler->error(expr.location, e.what());
+		}
+	}
+
+	void resolve_symbols::operator()(binary_operation &expr) {
+		apply_visitor(*this, expr.left);
+		apply_visitor(*this, expr.right);
+	}
+
+	void resolve_symbols::operator()(unary_operation &expr) {
+		apply_visitor(*this, expr.operand);
+	}
+
+	void resolve_symbols::operator()(expression_argument &arg) {
+		if (evaluated(arg.expr)) {
+			return;
 		}
 
-		void operator()(binary_operation &expr) {
-			apply_visitor(*this, expr.left);
-			apply_visitor(*this, expr.right);
+		apply_visitor(*this, arg.expr);
+	}
+
+	void resolve_symbols::operator()(instruction &instruction) {
+		apply_visitor(*this, instruction.a);
+
+		if (instruction.b) {
+			apply_visitor(*this, *instruction.b);
 		}
 
-		void operator()(unary_operation &expr) {
-			apply_visitor(*this, expr.operand);
-		}
+		pc += output_size(statement(instruction));
+	}
 
-		void operator()(expression_argument &arg) {
-			if (evaluated(arg.expr)) {
-				return;
-			}
+	template <typename T>
+	void resolve_symbols::operator()( const T &) {
 
-			apply_visitor(*this, arg.expr);
-		}
-
-		void operator()(instruction &instruction) {
-			apply_visitor(*this, instruction.a);
-
-			if (instruction.b) {
-				apply_visitor(*this, *instruction.b);
-			}
-
-			pc += output_size(statement(instruction));
-		}
-
-		template <typename T>
-		void operator()( const T &) {
-
-		}
-	};
+	}
 
 	/*************************************************************************
 	 *
 	 * compress_expressions
 	 *
 	 *************************************************************************/
-	class compress_expressions : public boost::static_visitor<bool> {
-		uint16_t pc;
-		symbol_table* table;
-	public:
-		compress_expressions(symbol_table* symbol_table) : pc(0), table(table) {}
+	compress_expressions::compress_expressions(symbol_table* table) : pc(0), table(table) {}
 
-		bool operator()(expression_argument &arg) {
-			if (evaluated(arg.expr) || !evaluatable(arg.expr)) {
-				return false;
-			}
+	compress_expressions::compress_expressions(std::uint16_t pc, symbol_table* table)
+			: pc(pc), table(table) {}
 
-			uint8_t expr_size = output_size(arg, evaluate(arg.expr));
-			if (arg.next_word_required && !expr_size) {
-				arg.next_word_required = false;
-				table->compress_after(pc);
-
-				return true;
-			}
-		}
-
-		bool operator()(instruction &instruction) {
-			bool compressed = apply_visitor(*this, instruction.a);
-
-			if (instruction.b) {
-				compressed |= apply_visitor(*this, *instruction.b);
-			}
-
-			pc += output_size(statement(instruction));
-
-			return compressed;
-		}
-
-		template <typename T>
-		bool operator()( const T &) {
+	bool compress_expressions::operator()(expression_argument &arg) {
+		if (evaluated(arg.expr) || !evaluatable(arg.expr)) {
 			return false;
 		}
-	};
+
+		uint8_t expr_size = output_size(arg, evaluate(arg.expr));
+		if (arg.next_word_required && !expr_size) {
+			arg.next_word_required = false;
+			table->compress_after(pc);
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool compress_expressions::operator()(instruction &instruction) {
+		bool compressed = apply_visitor(*this, instruction.a);
+
+		if (instruction.b) {
+			compressed |= apply_visitor(*this, *instruction.b);
+		}
+
+		pc += output_size(statement(instruction));
+
+		return compressed;
+	}
+
+	template <typename T>
+	bool compress_expressions::operator()( const T &) {
+		return false;
+	}
 
 	/*************************************************************************
 	 *
