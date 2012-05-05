@@ -146,16 +146,10 @@ namespace dcpu { namespace compiler {
 		}
 	}
 
-	compiler::compiler(error_handler_ptr &error_handler) : error_handler(error_handler) {}
+	compiler::compiler(error_handler_ptr &error_handler, symbol_table &table)
+			: error_handler(error_handler), table(table) {}
 
 	void compiler::compile(statement_list &statements) {
-		table.build(statements, error_handler);
-		table.resolve(statements, error_handler);
-
-		if (error_handler->has_errors()) {
-			return;
-		}
-
 		auto stmt_compiler = statement_compiler(output);
 		for (auto& stmt : statements) {
 			apply_visitor(stmt_compiler, stmt);

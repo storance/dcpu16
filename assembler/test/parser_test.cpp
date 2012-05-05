@@ -10,26 +10,27 @@ using namespace dcpu::ast;
 using namespace dcpu::parser;
 using namespace dcpu::lexer;
 
-void run_parser(const string &content, int expected_statements, shared_ptr<parser::parser> &_parser) {
+void run_parser(const string &content, int expected_statements, statement_list &statements) {
 	lexer::lexer lex(content, "<Test>");
 	lex.parse();
 
-	_parser = make_shared<parser::parser>(lex);
-	_parser->parse();
+	statements.clear();
+	parser::parser _parser(lex, statements);
+	_parser.parse();
 
-	ASSERT_EQ(expected_statements, _parser->statements.size());
+	ASSERT_EQ(expected_statements, statements.size());
 }
 
 TEST(ParserTest, InstructionTest) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
-	std::shared_ptr<parser::parser> _parser;
+	statement_list statements;
 
 	ASSERT_NO_FATAL_FAILURE(run_parser("SET A, B\nADD A, B\nSUB A, B\nMUL A, B\nMLI A, B\nDIV A, B\nDVI A, B\nMOD A, B\n"
 		"MDI A, B\nAND A, B\nBOR A, B\nXOR A, B\nSHR A, B\nASR A, B\nSHL A, B\nSTI A, B\nSTD A, B\nIFB A, B\nIFC A, B\n"
 		"IFE A, B\nIFN A, B\nIFG A, B\nIFA A, B\nIFL A, B\nIFU A, B\nADX A, B\nSBX A, B\nJSR A\nHCF A\nINT A\nIAG A\n"
-		"IAS A\nRFI A\n IAQ A\nHWN A\nHWQ A\nHWI A\nJMP A\n", 38, _parser));
+		"IAS A\nRFI A\n IAQ A\nHWN A\nHWQ A\nHWI A\nJMP A\n", 38, statements));
 
-	auto it = _parser->statements.begin();
+	auto it = statements.begin();
 
 	EXPECT_EQ(*it++, statement(instruction(location, opcodes::SET,
 		expression_argument(location, argument_position::A, evaluated_expression(location, registers::B), false, false),
@@ -224,11 +225,11 @@ TEST(ParserTest, InstructionTest) {
 
 TEST(ParserTest, LabelTest) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
-	std::shared_ptr<parser::parser> _parser;
+	statement_list statements;
 
-	ASSERT_NO_FATAL_FAILURE(run_parser("label1:\n:..@label2\n.label3: SET A, B\n:label4 SET A, B", 6, _parser));
+	ASSERT_NO_FATAL_FAILURE(run_parser("label1:\n:..@label2\n.label3: SET A, B\n:label4 SET A, B", 6, statements));
 
-	auto it = _parser->statements.begin();
+	auto it = statements.begin();
 
 	EXPECT_EQ(*it++, statement(label(location, "label1", label_type::Global)));
 
@@ -251,12 +252,12 @@ TEST(ParserTest, LabelTest) {
 
 TEST(ParserTest, RegisterTest) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
-	std::shared_ptr<parser::parser> _parser;
+	statement_list statements;
 
 	ASSERT_NO_FATAL_FAILURE(run_parser("SET A, A\nSET B, B\nSET C, C\nSET X, X\nSET Y, Y\n"
-		"SET Z, Z\nSET I, I\nSET J, J\nSET PC, PC\nSET SP, SP\nSET EX, EX\n", 11, _parser));
+		"SET Z, Z\nSET I, I\nSET J, J\nSET PC, PC\nSET SP, SP\nSET EX, EX\n", 11, statements));
 
-	auto it = _parser->statements.begin();
+	auto it = statements.begin();
 	EXPECT_EQ(*it++, statement(instruction(location, opcodes::SET,
 		argument(expression_argument(location, argument_position::A, evaluated_expression(location, registers::A), false, false)),
 		argument(expression_argument(location, argument_position::B, evaluated_expression(location, registers::A), false, false))
@@ -315,10 +316,10 @@ TEST(ParserTest, RegisterTest) {
 
 TEST(ParserTest, SimpleExpressionTest) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
-	std::shared_ptr<parser::parser> _parser;
+	statement_list statements;
 
-	ASSERT_NO_FATAL_FAILURE(run_parser("set 4 * 2, 1 + 2", 1, _parser));
-	auto it = _parser->statements.begin();
+	ASSERT_NO_FATAL_FAILURE(run_parser("set 4 * 2, 1 + 2", 1, statements));
+	auto it = statements.begin();
 	EXPECT_EQ(*it++, statement(instruction(location, opcodes::SET,
 		argument(expression_argument(location, argument_position::A, evaluated_expression(location, 3), false, false)),
 		argument(expression_argument(location, argument_position::B, evaluated_expression(location, 8), false, false))
@@ -327,17 +328,17 @@ TEST(ParserTest, SimpleExpressionTest) {
 
 TEST(ParserTest, IndirectionTest) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
-	std::shared_ptr<parser::parser> _parser;
+	statement_list statements;
 
-	ASSERT_NO_FATAL_FAILURE(run_parser("set [A], [1 * 2]", 1, _parser));
-	auto it = _parser->statements.begin();
+	ASSERT_NO_FATAL_FAILURE(run_parser("set [A], [1 * 2]", 1, statements));
+	auto it = statements.begin();
 	EXPECT_EQ(*it++, statement(instruction(location, opcodes::SET,
 		argument(expression_argument(location, argument_position::A, evaluated_expression(location, 2), true, false)),
 		argument(expression_argument(location, argument_position::B, evaluated_expression(location, registers::A), true, false))
 	)));
 
-	ASSERT_NO_FATAL_FAILURE(run_parser("set [B - 4], [5 + J]", 1, _parser));
-	it = _parser->statements.begin();
+	ASSERT_NO_FATAL_FAILURE(run_parser("set [B - 4], [5 + J]", 1, statements));
+	it = statements.begin();
 	EXPECT_EQ(*it++, statement(instruction(location, opcodes::SET,
 		argument(expression_argument(location, argument_position::A, evaluated_expression(location, registers::J, 5), true, false)),
 		argument(expression_argument(location, argument_position::B, evaluated_expression(location, registers::B, -4), true, false))
@@ -346,10 +347,10 @@ TEST(ParserTest, IndirectionTest) {
 
 TEST(ParserTest, LabelReferencesTest) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
-	std::shared_ptr<parser::parser> _parser;
+	statement_list statements;
 
-	ASSERT_NO_FATAL_FAILURE(run_parser("label: set label, [label * 2]\n:a SET a, $a", 4, _parser));
-	auto it = _parser->statements.begin();
+	ASSERT_NO_FATAL_FAILURE(run_parser("label: set label, [label * 2]\n:a SET a, $a", 4, statements));
+	auto it = statements.begin();
 
 	EXPECT_EQ(*it++, statement(label(location, "label", label_type::Global)));
 
@@ -370,10 +371,10 @@ TEST(ParserTest, LabelReferencesTest) {
 
 TEST(ParserTest, StackArgumentsTest) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
-	std::shared_ptr<parser::parser> _parser;
+	statement_list statements;
 
-	ASSERT_NO_FATAL_FAILURE(run_parser("set A, [SP]\nset B, [SP++]\nset [--SP] , C", 3, _parser));
-	auto it = _parser->statements.begin();
+	ASSERT_NO_FATAL_FAILURE(run_parser("set A, [SP]\nset B, [SP++]\nset [--SP] , C", 3, statements));
+	auto it = statements.begin();
 	EXPECT_EQ(*it++, statement(instruction(location, opcodes::SET,
 		argument(stack_argument(location, argument_position::A, stack_operation::PEEK)),
 		argument(expression_argument(location, argument_position::B, evaluated_expression(location, registers::A), false, false))
@@ -389,9 +390,9 @@ TEST(ParserTest, StackArgumentsTest) {
 		argument(stack_argument(location, argument_position::A, stack_operation::PUSH))
 	)));
 
-	ASSERT_NO_FATAL_FAILURE(run_parser("set A, PEEK\nset B, POP\nset PUSH , C\nset PICK 5, PICK 1 + 2", 4, _parser));
+	ASSERT_NO_FATAL_FAILURE(run_parser("set A, PEEK\nset B, POP\nset PUSH , C\nset PICK 5, PICK 1 + 2", 4, statements));
 
-	it = _parser->statements.begin();
+	it = statements.begin();
 	EXPECT_EQ(*it++, statement(instruction(location, opcodes::SET,
 		argument(stack_argument(location, argument_position::A, stack_operation::PEEK)),
 		argument(expression_argument(location, argument_position::B, evaluated_expression(location, registers::A), false, false))

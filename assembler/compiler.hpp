@@ -56,10 +56,10 @@ namespace dcpu { namespace compiler {
 	class compiler {
 	private:
 		error_handler_ptr error_handler;
-		symbol_table table;
+		symbol_table &table;
 		std::vector<std::uint16_t> output;
 	public:
-		compiler(error_handler_ptr &error_handler);
+		compiler(error_handler_ptr &error_handler, symbol_table &table);
 
 		void compile(ast::statement_list &statement);
 		void write(std::ostream &out, Endianness format=Endianness::BIG);

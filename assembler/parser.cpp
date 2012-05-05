@@ -17,8 +17,8 @@ using namespace dcpu::ast;
 using namespace boost::algorithm;
 
 namespace dcpu { namespace parser {
-	parser::parser(lexer::lexer &lex)
-		: current(lex.tokens.begin()), end(lex.tokens.end()), error_handler(lex.error_handler) {}
+	parser::parser(lexer::lexer &lex, ast::statement_list &statements) : current(lex.tokens.begin()),
+			end(lex.tokens.end()), error_handler(lex.error_handler), statements(statements) {}
 
 	void parser::parse() {
 		while (current != end) {

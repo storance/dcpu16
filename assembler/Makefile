@@ -29,7 +29,7 @@ TEST_FILTER = *
 all: test assembler
 
 assembler: $(OUTPUT_DIR)/assembler.o $(OBJECTS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lboost_program_options -o $@
 
 $(OUTPUT_DIR)/assembler.o: assembler.cpp lexer.hpp parser.hpp symbol_table.hpp compiler.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<

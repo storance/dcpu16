@@ -12,6 +12,7 @@ namespace dcpu { namespace parser {
 	protected:
 		lexer::token_iterator current, end;
 		error_handler_ptr error_handler;
+		ast::statement_list &statements;
 
 		boost::optional<ast::statement> parse_label(const lexer::token&);
 		boost::optional<ast::statement> parse_instruction(const lexer::token&);
@@ -24,9 +25,7 @@ namespace dcpu { namespace parser {
 		void move_back();
 		void advance_until(std::function<bool (const lexer::token&)>);
 	public:
-		ast::statement_list statements;
-
-		parser(lexer::lexer &lexer);
+		parser(lexer::lexer &lexer, ast::statement_list &statements);
 
 		void parse();
 	};

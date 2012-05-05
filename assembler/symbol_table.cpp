@@ -1,5 +1,6 @@
 #include "symbol_table.hpp"
 
+#include <iomanip>
 #include <exception>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
@@ -308,5 +309,13 @@ namespace dcpu {
 				compressed |= apply_visitor(compressor, stmt);
 			}
 		} while (compressed);
+	}
+
+	void symbol_table::dump() {
+		cout << " Value  | Symbol Name" << endl
+			 << "---------------------" << endl;
+		for (auto &symbol : symbols) {
+			cout << " " << boost::format("%#06x") % symbol.offset << " | " << symbol.name << endl;
+		}
 	}
 }
