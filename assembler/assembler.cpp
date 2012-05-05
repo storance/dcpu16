@@ -5,9 +5,9 @@
 #include <exception>
 #include <stdexcept>
 
-#include "Parser.hpp"
-#include "SymbolTable.hpp"
-#include "Compiler.hpp"
+#include "parser.hpp"
+#include "symbol_table.hpp"
+#include "compiler.hpp"
 
 using namespace std;
 using namespace dcpu;
@@ -36,17 +36,17 @@ int main(int argc, char **argv) {
     in.unsetf(ios::skipws);
     copy(istream_iterator<char>(in), istream_iterator<char>(), back_inserter(storage));
 
-    Lexer lexer(storage, inputFile);
-    lexer.parse();
+    lexer::lexer _lexer(storage, inputFile);
+    _lexer.parse();
 
-    Parser parser(lexer);
-    parser.parse();
+    parser::parser _parser(_lexer);
+    _parser.parse();
 
-    Compiler compiler(parser.errorHandler, parser.symbolTable);
-    compiler.compile(parser.statements);
+    compiler::compiler _compiler(_lexer.error_handler);
+    _compiler.compile(_parser.statements);
 
-    if (parser.errorHandler->hasErrors()) {
-        parser.errorHandler->summary();
+    if (_lexer.error_handler->has_errors()) {
+    	_lexer.error_handler->summary();
         return 1;
     }
 
@@ -55,6 +55,6 @@ int main(int argc, char **argv) {
         cerr << "Failed to open file " <<  outputFile << " for write" << endl;
         return 1;
     }
-    compiler.write(out);
+    _compiler.write(out);
 }
 

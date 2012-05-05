@@ -28,10 +28,10 @@ TEST_FILTER = *
 
 all: test assembler
 
-assembler: $(OUTPUT_DIR)/Assembler.o $(OBJECTS)
+assembler: $(OUTPUT_DIR)/assembler.o $(OBJECTS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@
 
-$(OUTPUT_DIR)/Assembler.o: Assembler.cpp Lexer.hpp Parser.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/assembler.o: assembler.cpp lexer.hpp parser.hpp symbol_table.hpp compiler.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/compiler.o: compiler.cpp compiler.hpp expression.hpp statement.hpp token.hpp symbol_table.hpp | $(OUTPUT_DIR)
