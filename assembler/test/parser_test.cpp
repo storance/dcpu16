@@ -250,6 +250,21 @@ TEST(ParserTest, LabelTest) {
 	)));
 }
 
+TEST(ParserTest, DataTest) {
+	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
+	statement_list statements;
+
+	ASSERT_NO_FATAL_FAILURE(run_parser("dat \"hello, world!\"\n", 1, statements));
+
+	auto it = statements.begin();
+	EXPECT_EQ(*it++, statement(data(location, {'h', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', '!'})));
+
+	ASSERT_NO_FATAL_FAILURE(run_parser("DATA 0x40, 42, 0\n", 1, statements));
+
+	it = statements.begin();
+	EXPECT_EQ(*it++, statement(data(location, {0x40, 42, 0})));
+}
+
 TEST(ParserTest, RegisterTest) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
 	statement_list statements;

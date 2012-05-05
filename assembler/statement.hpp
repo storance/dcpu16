@@ -71,12 +71,41 @@ namespace dcpu { namespace ast {
 		bool operator==(const label&) const;
 	};
 
-	typedef boost::variant<instruction, label> statement;
+	struct data : public locatable {
+		std::vector<std::uint16_t> value;
+
+		data(const lexer::location_ptr &location);
+		data(const lexer::location_ptr &location, const std::vector<std::uint16_t> &value);
+
+		bool operator==(const data&) const;
+		void append(uint16_t word);
+		void append(const std::string literal);
+	};
+
+	typedef boost::variant<instruction, label, data> statement;
 	typedef std::list<statement> statement_list;
 
-	std::uint8_t output_size(const statement &statement);
-	std::uint8_t output_size(const argument &arg);
-	std::uint8_t output_size(const expression_argument &arg, const expression &expr);
+	class calculate_size_expression : public boost::static_visitor<std::uint16_t> {
+		const expression_argument &arg;
+	public:
+		calculate_size_expression(const expression_argument &arg);
+
+		std::uint16_t operator()(const evaluated_expression &expr) const;
+		template <typename T> std::uint16_t operator()( const T &expr) const;
+	};
+
+	class calculate_size : public boost::static_visitor<std::uint16_t> {
+	public:
+		std::uint16_t operator()(const stack_argument& arg) const;
+		std::uint16_t operator()(const expression_argument &arg) const;
+		std::uint16_t operator()(const data &) const;
+		std::uint16_t operator()(const label &) const;
+		std::uint16_t operator()(const instruction &instruction) const;
+	};
+
+	std::uint16_t output_size(const statement &statement);
+	std::uint16_t output_size(const argument &arg);
+	std::uint16_t output_size(const expression_argument &arg, const expression &expr);
 
 	std::ostream& operator<< (std::ostream& stream, stack_operation operation);
 	std::ostream& operator<< (std::ostream& stream, label_type labelType);
@@ -84,4 +113,5 @@ namespace dcpu { namespace ast {
 	std::ostream& operator<< (std::ostream& stream, const expression_argument &arg);
 	std::ostream& operator<< (std::ostream& stream, const label &label);
 	std::ostream& operator<< (std::ostream& stream, const instruction &instruction);
+	std::ostream& operator<< (std::ostream& stream, const data &label);
 }}

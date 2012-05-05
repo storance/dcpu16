@@ -1,5 +1,6 @@
 #include "statement.hpp"
 
+#include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 
 using namespace std;
@@ -78,33 +79,51 @@ namespace dcpu { namespace ast {
 
 	/*************************************************************************
 	 *
+	 * label
+	 *
+	 *************************************************************************/
+	data::data(const location_ptr &location) : locatable(location) {}
+
+	data::data(const location_ptr &location, const vector<uint16_t> &value)
+		: locatable(location), value(value) {}
+
+	bool data::operator==(const data& other) const {
+		return value == other.value;
+	}
+
+	void data::append(uint16_t word) {
+		value.push_back(word);
+	}
+
+	void data::append(const std::string literal) {
+		copy (literal.begin(), literal.end(), back_inserter(value));
+	}
+
+	/*************************************************************************
+	 *
 	 * calculate_size_expression
 	 *
 	 *************************************************************************/
 
-	class calculate_size_expression : public static_visitor<uint8_t> {
-		const expression_argument &arg;
-	public:
-		calculate_size_expression(const expression_argument &arg) : arg(arg) {}
+	calculate_size_expression::calculate_size_expression(const expression_argument &arg) : arg(arg) {}
 
-		uint8_t operator()(const evaluated_expression &expr) const {
-			if (!arg.indirect) {
-				if (expr._register || (arg.position == argument_position::A
-					&& !arg.force_next_word && *expr.value >= -1 && *expr.value <= 30)) {
-					return 0;
-				} else {
-					return 1;
-				}
+	uint16_t calculate_size_expression::operator()(const evaluated_expression &expr) const {
+		if (!arg.indirect) {
+			if (expr._register || (arg.position == argument_position::A
+				&& !arg.force_next_word && *expr.value >= -1 && *expr.value <= 30)) {
+				return 0;
 			} else {
-				return expr._register && !expr.value ? 0 : 1;
+				return 1;
 			}
+		} else {
+			return expr._register && !expr.value ? 0 : 1;
 		}
+	}
 
-		template <typename T>
-		uint8_t operator()( const T &expr) const {
-			return 1;
-		}
-	};
+	template <typename T>
+	uint16_t calculate_size_expression::operator()( const T &expr) const {
+		return 1;
+	}
 
 	/*************************************************************************
 	 *
@@ -112,36 +131,37 @@ namespace dcpu { namespace ast {
 	 *
 	 *************************************************************************/
 
-	class calculate_size : public static_visitor<uint8_t> {
-	public:
-		uint8_t operator()(const stack_argument& arg) const {
-			return 0;
+	uint16_t calculate_size::operator()(const stack_argument& arg) const {
+		return 0;
+	}
+
+	uint16_t calculate_size::operator()(const expression_argument &arg) const {
+		if (!evaluated(arg.expr)) {
+			return arg.next_word_required ? 1 : 0;
 		}
 
-		uint8_t operator()(const expression_argument &arg) const {
-			if (!evaluated(arg.expr)) {
-				return arg.next_word_required ? 1 : 0;
-			}
+		return output_size(arg, arg.expr);
+	}
 
-			return output_size(arg, arg.expr);
+	uint16_t calculate_size::operator()(const label &) const {
+		return 0;
+	}
+
+	uint16_t calculate_size::operator()(const instruction &instruction) const {
+		uint8_t size = 1;
+
+		size += apply_visitor(*this, instruction.a);
+
+		if (instruction.b) {
+			size += apply_visitor(*this, *instruction.b);
 		}
 
-		uint8_t operator()(const label &) const {
-			return 0;
-		}
+		return size;
+	}
 
-		uint8_t operator()(const instruction &instruction) const {
-			uint8_t size = 1;
-
-			size += apply_visitor(*this, instruction.a);
-
-			if (instruction.b) {
-				size += apply_visitor(*this, *instruction.b);
-			}
-
-			return size;
-		}
-	};
+	uint16_t calculate_size::operator()(const data &data) const {
+		return data.value.size();
+	}
 
 	/*************************************************************************
 	 *
@@ -149,15 +169,15 @@ namespace dcpu { namespace ast {
 	 *
 	 *************************************************************************/
 
-	uint8_t output_size(const statement &statement) {
+	uint16_t output_size(const statement &statement) {
 		return apply_visitor(calculate_size(), statement);
 	}
 
-	uint8_t output_size(const argument &arg) {
+	uint16_t output_size(const argument &arg) {
 		return apply_visitor(calculate_size(), arg);
 	}
 
-	uint8_t output_size(const expression_argument &arg, const expression &expr) {
+	uint16_t output_size(const expression_argument &arg, const expression &expr) {
 		return apply_visitor(calculate_size_expression(arg), expr);
 	}
 
@@ -223,5 +243,19 @@ namespace dcpu { namespace ast {
 		}
 
 		return stream << instruction.a;
+	}
+
+	ostream& operator<< (ostream& stream, const data &data) {
+		stream << "dat ";
+
+		bool first = true;
+		for (uint16_t word : data.value) {
+			if (!first) stream << ",";
+			stream << boost::format("%#04x") % word;
+
+			first = false;
+		}
+
+		return stream;
 	}
 }}

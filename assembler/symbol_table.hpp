@@ -72,6 +72,7 @@ namespace dcpu {
 
 		void operator()(const ast::label &label);
 		void operator()(const ast::instruction &instruction);
+		void operator()(const ast::data &data);
 	};
 
 	class resolve_symbols : public boost::static_visitor<> {
@@ -88,6 +89,7 @@ namespace dcpu {
 		void operator()(ast::current_position_operand &expr);
 		void operator()(ast::expression_argument &arg);
 		void operator()(ast::instruction &instruction);
+		void operator()(ast::data &data);
 		template <typename T> void operator()( const T &);
 	};
 
@@ -111,6 +113,7 @@ namespace dcpu {
 
 		bool operator()(ast::expression_argument &arg);
 		bool operator()(ast::instruction &instruction);
+		bool operator()(ast::data &data);
 		template <typename T>bool operator()( const T &);
 	};
 }

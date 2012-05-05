@@ -16,6 +16,7 @@ namespace dcpu { namespace parser {
 
 		boost::optional<ast::statement> parse_label(const lexer::token&);
 		boost::optional<ast::statement> parse_instruction(const lexer::token&);
+		boost::optional<ast::statement> parse_data(const lexer::token& );
 		ast::optional_argument parse_argument(const lexer::token&, ast::argument_position);
 		ast::optional_argument parse_indirect_stack_argument(const lexer::token&, ast::argument_position);
 		ast::optional_argument parse_mnemonic_stack_argument(const lexer::token&, ast::argument_position);

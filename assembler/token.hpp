@@ -38,16 +38,24 @@ namespace dcpu { namespace lexer {
 		QUOTED_STRING
 	};
 
+	enum class quote_type {
+		NONE,
+		SINGLE_QUOTE,
+		DOUBLE_QUOTE,
+		ANGLE_BRACKETS
+	};
+
 	class token {
 	public:
-
-
 		location_ptr location;
 		token_type type;
 		std::string content;
 		std::uint32_t value;
+		quote_type quote;
 
 		token(location_ptr&, token_type, const std::string&);
+		token(location_ptr&, token_type, const std::string&, quote_type);
+		token(location_ptr&, token_type, const std::string&, quote_type, std::uint32_t);
 		token(location_ptr&, token_type, const std::string&, std::uint32_t);
 		token(location_ptr&, token_type, char c);
 
@@ -64,6 +72,7 @@ namespace dcpu { namespace lexer {
 		bool is_newline() const;
 		bool is_eoi() const;
 		bool is_terminator() const;
+		bool is_quoted_string() const;
 	};
 
 	typedef std::list<token> token_list;

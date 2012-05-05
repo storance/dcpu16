@@ -50,6 +50,7 @@ namespace dcpu { namespace compiler {
 
 		void operator()(const ast::label &label) const;
 		void operator()(const ast::instruction &instruction) const;
+		void operator()(const ast::data &data) const;
 	};
 
 

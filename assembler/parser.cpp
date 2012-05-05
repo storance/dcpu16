@@ -38,6 +38,16 @@ namespace dcpu { namespace parser {
 			if (label) {
 				statements.push_back(*label);
 				current_token = next_token();
+
+				if (current_token.is_terminator()) {
+					continue;
+				}
+			}
+
+			auto data = parse_data(current_token);
+			if (data) {
+				statements.push_back(*data);
+				continue;
 			}
 
 			auto instruction = parse_instruction(current_token);
@@ -56,12 +66,8 @@ namespace dcpu { namespace parser {
 	}
 
 	boost::optional<statement> parser::parse_instruction(const token& current_token) {
-		if (current_token.is_terminator()) {
-			return boost::none;
-		}
-
 		if (!current_token.is_identifier()) {
-			error_handler->unexpected_token(current_token, "label or instruction");
+			error_handler->unexpected_token(current_token, "label, instruction, or assembler directive");
 
 			return boost::none;
 		}
@@ -112,6 +118,50 @@ namespace dcpu { namespace parser {
 		}
 
 		return statement(instruction(current_token.location, definition->opcode, *a, b));
+	}
+
+	boost::optional<statement> parser::parse_data(const token& current_token) {
+		if (!current_token.is_identifier()) {
+			return boost::none;
+		}
+
+		if (!iequals(current_token.content, "dat") && !iequals(current_token.content, "data")) {
+			return boost::none;
+		}
+
+		data data_stmt(current_token.location);
+
+		auto next_tkn = next_token();
+		while (!next_tkn.is_terminator()) {
+			if (next_tkn.is_quoted_string()) {
+				data_stmt.append(next_tkn.content);
+			} else if (next_tkn.is_integer()) {
+				if (next_tkn.value > UINT16_MAX) {
+					error_handler->warning(next_tkn.location, "overflow in converting to 16-bit word");
+				}
+
+				data_stmt.append(next_tkn.value);
+			} else {
+				break;
+			}
+
+			next_tkn = next_token();
+			if (!next_tkn.is_character(',')) {
+				break;
+			}
+
+			next_tkn = next_token();
+		}
+
+		if (!next_tkn.is_terminator()) {
+			error_handler->unexpected_token(next_tkn, "a character, string, or integer literal");
+		}
+
+		if (data_stmt.value.size() == 0) {
+			error_handler->warning(current_token.location, "empty data segment");
+		}
+
+		return statement(data_stmt);
 	}
 
 	optional_argument parser::parse_argument(const token& current_token, argument_position position) {

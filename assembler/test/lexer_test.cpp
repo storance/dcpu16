@@ -68,6 +68,20 @@ TEST(LexerTest, IdentifierStartsLetter) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
+TEST(LexerTest, QuotedString) {
+	shared_ptr<lexer::lexer> lexer = run_lexer("\"hello, world!\"");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->error_handler->has_errors());
+	EXPECT_FALSE(lexer->error_handler->has_warnings());
+
+	auto it = lexer->tokens.begin();
+	EXPECT_TRUE(it->is_quoted_string());
+	EXPECT_EQ(quote_type::DOUBLE_QUOTE, it->quote);
+	EXPECT_EQ("hello, world!", it++->content);
+
+	EXPECT_TRUE(it->is_eoi());
+}
+
 TEST(LexerTest, LabelColonSuffix) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("_a1_?.$#@:");
 	ASSERT_EQ(2, lexer->tokens.size());

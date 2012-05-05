@@ -59,23 +59,23 @@ namespace dcpu { namespace lexer {
 		} else if (c == '>' && consume_next_if('>')) {
 			return token(start, token_type::SHIFT_RIGHT, ">>");
 		} else if (c == '\'') {
-			string quotedString = parse_quoted_string(start, c, true);
-			if (quotedString.length() == 0) {
+			string quoted_string = parse_quoted_string(start, c, true);
+			if (quoted_string.length() == 0) {
 				error_handler->warning(start, "empty character literal; assuming null terminator");
 
-				return token(start, token_type::INTEGER, "'" + quotedString + "'", 0);
+				return token(start, token_type::INTEGER, quoted_string, quote_type::SINGLE_QUOTE, 0);
 			}
 
-			if (quotedString.length() > 1) {
+			if (quoted_string.length() > 1) {
 				error_handler->error(start, "multi-byte character literal");
 			}
 
-			uint8_t value = quotedString[0];
-			if (value & 0x80) {
-				error_handler->error(start, "invalid 7-bit ASCII character");
-			}
+			uint8_t value = quoted_string[0];
+			return token(start, token_type::INTEGER,  quoted_string, quote_type::SINGLE_QUOTE, value);
+		} else if (c == '"') {
+			string quoted_string = parse_quoted_string(start, c, true);
 
-			return token(start, token_type::INTEGER, "'" + quotedString + "'", value);
+			return token(start, token_type::QUOTED_STRING,  quoted_string, quote_type::DOUBLE_QUOTE);
 		} else if (c == ':' && is_identifier_first_char(peek_char())) {
 			return token(start, token_type::LABEL, append_while(next_char(), &lexer::is_identifier_char));
 		} else if (c == '$' && is_identifier_first_char(peek_char())) {
@@ -116,9 +116,9 @@ namespace dcpu { namespace lexer {
 		return content;
 	}
 
-	string lexer::parse_quoted_string(location_ptr &location, char endQuote, bool allowEscapes) {
+	string lexer::parse_quoted_string(location_ptr &location, char end_quote, bool allow_escapes) {
 
-		string quotedString;
+		string quoted_string;
 
 		while (current != end) {
 			char c = next_char();
@@ -126,20 +126,24 @@ namespace dcpu { namespace lexer {
 				break;
 			}
 
-			if (c == endQuote) {
-				return quotedString;
+			if (c == end_quote) {
+				return quoted_string;
 			}
 
-			if (c == '\\' && allowEscapes) {
-				quotedString += parse_escape_sequence();
+			if (c == '\\' && allow_escapes) {
+				quoted_string += parse_escape_sequence();
 			} else {
-				quotedString += c;
+				if (c & 0x80) {
+					error_handler->warning(make_location(), boost::format("invalid 7-bit ASCII character '%c'") % c);
+				}
+
+				quoted_string += c;
 			}
 		}
 
 		error_handler->error(location, format("unterminated %s literal")
-			% (endQuote == '\'' ? "character" : "string"));
-		return quotedString;
+			% (end_quote == '\'' ? "character" : "string"));
+		return quoted_string;
 	}
 
 	char lexer::parse_escape_sequence() {
@@ -192,6 +196,11 @@ namespace dcpu { namespace lexer {
 				// check if it's a two digit hex escape
 				if (current != end && isxdigit(*current)) {
 					parsed_int = (parsed_int * 16) + parse_hex_digit(next_char());
+				}
+
+				if (parsed_int & 0x80) {
+					error_handler->warning(make_location(), boost::format("invalid 7-bit ASCII character '%#02x'")
+						% parsed_int);
 				}
 
 				return parsed_int;

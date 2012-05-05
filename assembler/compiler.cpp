@@ -7,6 +7,11 @@ using namespace dcpu::ast;
 using namespace boost;
 
 namespace dcpu { namespace compiler {
+	/*************************************************************************
+	 *
+	 * compile_result
+	 *
+	 *************************************************************************/
 	compile_result::compile_result()
 		: value(0), next_word() {}
 
@@ -30,6 +35,12 @@ namespace dcpu { namespace compiler {
 
 		return stream << "]";
 	}
+
+	/*************************************************************************
+	 *
+	 * expression_compiler
+	 *
+	 *************************************************************************/
 
 	expression_compiler::expression_compiler(const expression_argument &arg) : arg(arg) {}
 
@@ -94,6 +105,12 @@ namespace dcpu { namespace compiler {
 		return apply_visitor(*this, eval_expr);
 	}
 
+	/*************************************************************************
+	 *
+	 * argument_compiler
+	 *
+	 *************************************************************************/
+
 	compile_result argument_compiler::operator()(const expression_argument &arg) const {
 		return apply_visitor(expression_compiler(arg), arg.expr);
 	}
@@ -109,6 +126,12 @@ namespace dcpu { namespace compiler {
 			throw logic_error(str(boost::format("%s") % arg.operation));
 		}
 	}
+
+	/*************************************************************************
+	 *
+	 * statement_compiler
+	 *
+	 *************************************************************************/
 
 	statement_compiler::statement_compiler(vector<uint16_t> &output) : output(output) {}
 
@@ -145,6 +168,16 @@ namespace dcpu { namespace compiler {
 			output.push_back(*b_result.next_word);
 		}
 	}
+
+	void statement_compiler::operator()(const data &data) const {
+		copy (data.value.begin(), data.value.end(), back_inserter(output));
+	}
+
+	/*************************************************************************
+	 *
+	 * compiler
+	 *
+	 *************************************************************************/
 
 	compiler::compiler(error_handler_ptr &error_handler, symbol_table &table)
 			: error_handler(error_handler), table(table) {}

@@ -30,13 +30,19 @@ namespace dcpu { namespace lexer {
 	}
 
 	token::token(location_ptr &location, token_type type, const string &content)
-	    : location(location), type(type), content(content), value(0) {}
+	    : location(location), type(type), content(content), value(0), quote(quote_type::NONE)  {}
+
+	token::token(location_ptr &location, token_type type, const string &content, quote_type quote)
+		: location(location), type(type), content(content), value(0), quote(quote) {}
+
+	token::token(location_ptr &location, token_type type, const string &content, quote_type quote, uint32_t value)
+		: location(location), type(type), content(content), value(value), quote(quote) {}
 
 	token::token(location_ptr &location, token_type type, const string &content, uint32_t value)
-	    : location(location), type(type), content(content), value(value) {}
+	    : location(location), type(type), content(content), value(value), quote(quote_type::NONE) {}
 
 	token::token(location_ptr &location, token_type type, char c)
-	    : location(location), type(type), content(1, c), value(0) {}
+	    : location(location), type(type), content(1, c), value(0), quote(quote_type::NONE)  {}
 
 	bool token::is_integer() const {
 		return type == token_type::INTEGER;
@@ -92,6 +98,10 @@ namespace dcpu { namespace lexer {
 
 	bool token::is_terminator() const {
 		return is_eoi() || is_newline();
+	}
+
+	bool token::is_quoted_string() const {
+		return type == token_type::QUOTED_STRING;
 	}
 
 	token& next(token_iterator& current, token_iterator end) {

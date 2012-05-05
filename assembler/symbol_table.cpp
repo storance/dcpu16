@@ -88,6 +88,10 @@ namespace dcpu {
 		pc += output_size(statement(instruction));
 	}
 
+	void build_symbol_table::operator()(const data &data) {
+		pc += data.value.size();
+	}
+
 	/*************************************************************************
 	 *
 	 * resolve_symbols
@@ -136,6 +140,10 @@ namespace dcpu {
 		}
 
 		pc += output_size(statement(instruction));
+	}
+
+	void resolve_symbols::operator()(data &data) {
+		pc += data.value.size();
 	}
 
 	template <typename T>
@@ -207,6 +215,12 @@ namespace dcpu {
 		pc += output_size(statement(instruction));
 
 		return compressed;
+	}
+
+	bool compress_expressions::operator()(data &data) {
+		pc += data.value.size();
+
+		return false;
 	}
 
 	template <typename T>
