@@ -24,6 +24,8 @@ namespace dcpu { namespace lexer {
 
 	enum class token_type {
 		IDENTIFIER,
+		LABEL,
+		SYMBOL,
 		INTEGER,
 		INVALID_INTEGER,
 		INCREMENT,
@@ -32,7 +34,8 @@ namespace dcpu { namespace lexer {
 		SHIFT_RIGHT,
 		CHARACTER,
 		NEWLINE,
-		END_OF_INPUT
+		END_OF_INPUT,
+		QUOTED_STRING
 	};
 
 	class token {
@@ -51,6 +54,8 @@ namespace dcpu { namespace lexer {
 		bool is_integer() const;
 		bool is_invalid_integer() const;
 		bool is_identifier() const;
+		bool is_label() const;
+		bool is_symbol() const;
 		bool is_increment() const;
 		bool is_decrement() const;
 		bool is_shift_left() const;

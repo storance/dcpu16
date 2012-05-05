@@ -154,8 +154,8 @@ namespace dcpu { namespace parser {
 			return parse_grouping(next_token());
 		} else if (current_token.is_identifier()) {
 			return parse_identifier(current_token);
-		} else if (current_token.is_character('$')) {
-			return parse_symbol(next_token());
+		} else if (current_token.is_symbol()) {
+			return parse_symbol(current_token);
 		} else if (current_token.is_integer()) {
 			return parse_literal(current_token);
 		} else {
@@ -211,12 +211,6 @@ namespace dcpu { namespace parser {
 	expression expression_parser::parse_symbol(const token& current_token) {
 		if (!allow_symbols) {
 			error_handler->error(current_token.location, boost::format(SYMBOL_NOT_ALLOWED) % current_token.content);
-
-			return invalid_expression(current_token.location);
-		}
-
-		if (!current_token.is_identifier()) {
-			error_handler->error(current_token.location, "expected a symbol following '$'");
 
 			return invalid_expression(current_token.location);
 		}

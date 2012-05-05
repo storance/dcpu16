@@ -22,6 +22,7 @@ namespace dcpu { namespace lexer {
 		std::uint8_t parse_hex_digit(char c);
 
 		char next_char();
+		char peek_char();
 		void move_back();
 		void next_line();
 		bool consume_next_if(char c);

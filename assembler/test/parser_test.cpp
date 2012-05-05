@@ -226,7 +226,7 @@ TEST(ParserTest, LabelTest) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
 	std::shared_ptr<parser::parser> _parser;
 
-	ASSERT_NO_FATAL_FAILURE(run_parser("label1 :\n:..@label2\n.label3: SET A, B\n: label4 SET A, B", 6, _parser));
+	ASSERT_NO_FATAL_FAILURE(run_parser("label1:\n:..@label2\n.label3: SET A, B\n:label4 SET A, B", 6, _parser));
 
 	auto it = _parser->statements.begin();
 

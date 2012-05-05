@@ -68,6 +68,45 @@ TEST(LexerTest, IdentifierStartsLetter) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
+TEST(LexerTest, LabelColonSuffix) {
+	shared_ptr<lexer::lexer> lexer = run_lexer("_a1_?.$#@:");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->error_handler->has_errors());
+	EXPECT_FALSE(lexer->error_handler->has_warnings());
+
+	auto it = lexer->tokens.begin();
+	EXPECT_TRUE(it->is_label());
+	EXPECT_EQ("_a1_?.$#@", it++->content);
+
+	EXPECT_TRUE(it->is_eoi());
+}
+
+TEST(LexerTest, Symbol) {
+	shared_ptr<lexer::lexer> lexer = run_lexer("$_a1_?.$#@");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->error_handler->has_errors());
+	EXPECT_FALSE(lexer->error_handler->has_warnings());
+
+	auto it = lexer->tokens.begin();
+	EXPECT_TRUE(it->is_symbol());
+	EXPECT_EQ("_a1_?.$#@", it++->content);
+
+	EXPECT_TRUE(it->is_eoi());
+}
+
+TEST(LexerTest, LabelColonPrefix) {
+	shared_ptr<lexer::lexer> lexer = run_lexer(":_a1_?.$#@");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->error_handler->has_errors());
+	EXPECT_FALSE(lexer->error_handler->has_warnings());
+
+	auto it = lexer->tokens.begin();
+	EXPECT_TRUE(it->is_label());
+	EXPECT_EQ("_a1_?.$#@", it++->content);
+
+	EXPECT_TRUE(it->is_eoi());
+}
+
 TEST(LexerTest, DecimalNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("100");
 	ASSERT_EQ(2, lexer->tokens.size());
@@ -456,7 +495,7 @@ location_ptr makeLocation(uint32_t line, uint32_t column) {
 
 TEST(LexerTest, MultipleTokens) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("set A, b\n  set [J], 0x400\n;a test comment\nlabel: JSR label+4\n");
-	ASSERT_EQ(21, lexer->tokens.size());
+	ASSERT_EQ(20, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
@@ -510,12 +549,9 @@ TEST(LexerTest, MultipleTokens) {
 	EXPECT_EQ(makeLocation(3, 16), it++->location);
 
 	// Line 4
-	EXPECT_TRUE(it->is_identifier());
+	EXPECT_TRUE(it->is_label());
 	EXPECT_EQ("label", it->content);
 	EXPECT_EQ(makeLocation(4, 1), it++->location);
-
-	EXPECT_TRUE(it->is_character(':'));
-	EXPECT_EQ(makeLocation(4, 6), it++->location);
 
 	EXPECT_TRUE(it->is_identifier());
 	EXPECT_EQ("JSR", it->content);

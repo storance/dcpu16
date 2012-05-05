@@ -61,7 +61,7 @@ namespace dcpu { namespace lexer {
 		} else if (c == '\'') {
 			string quotedString = parse_quoted_string(start, c, true);
 			if (quotedString.length() == 0) {
-				error_handler->warning(start, "empty character literal; assuming null terminator.");
+				error_handler->warning(start, "empty character literal; assuming null terminator");
 
 				return token(start, token_type::INTEGER, "'" + quotedString + "'", 0);
 			}
@@ -76,8 +76,17 @@ namespace dcpu { namespace lexer {
 			}
 
 			return token(start, token_type::INTEGER, "'" + quotedString + "'", value);
+		} else if (c == ':' && is_identifier_first_char(peek_char())) {
+			return token(start, token_type::LABEL, append_while(next_char(), &lexer::is_identifier_char));
+		} else if (c == '$' && is_identifier_first_char(peek_char())) {
+			return token(start, token_type::SYMBOL, append_while(next_char(), &lexer::is_identifier_char));
 		} else if (is_identifier_first_char(c)) {
-			return token(start, token_type::IDENTIFIER, append_while(c, &lexer::is_identifier_char));
+			string identifier = append_while(c, &lexer::is_identifier_char);
+			if (consume_next_if(':')) {
+				return token(start, token_type::LABEL, identifier);
+			} else {
+				return token(start, token_type::IDENTIFIER, identifier);
+			}
 		} else if (isdigit(c)) {
 			return parse_number(start, append_while(c, &lexer::is_identifier_char));
 		} else if (c == '\n') {
@@ -209,12 +218,17 @@ namespace dcpu { namespace lexer {
 		return make_shared<location>(source, line, column);
 	}
 
-	char lexer::next_char() {
+	char lexer::peek_char() {
 		if (current == end) {
 			return '\0';
 		}
 
-		char c = *current++;
+		return *current;
+	}
+
+	char lexer::next_char() {
+		char c = peek_char();
+		++current;
 		++column;
 
 		return c;

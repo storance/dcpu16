@@ -48,34 +48,21 @@ namespace dcpu { namespace parser {
 	}
 
 	boost::optional<statement> parser::parse_label(const token& current_token) {
-		if (current_token.is_character(':')) {
-			auto& next_tkn = next_token();
-
-			if (next_tkn.is_identifier()) {
-				return statement(label(current_token.location, next_tkn.content));
-			} else if (next_tkn.is_terminator()) {
-				error_handler->unexpected_token(next_tkn, "a label");
-			} else {
-				error_handler->unexpected_token(current_token, "a label");
-				advance_until(mem_fn(&token::is_terminator));
-			}
-		} else if (current_token.is_identifier()) {
-			auto& next_tkn = next_token();
-			if (next_tkn.is_character(':')) {
-				return statement(label(current_token.location, current_token.content));
-			} else {
-				move_back();
-			}
-		} else {
-			error_handler->unexpected_token(current_token, "a label or instruction");
-			advance_until(mem_fn(&token::is_terminator));
+		if (!current_token.is_label()) {
+			return boost::none;
 		}
 
-		return boost::none;
+		return statement(label(current_token.location, current_token.content));
 	}
 
 	boost::optional<statement> parser::parse_instruction(const token& current_token) {
 		if (current_token.is_terminator()) {
+			return boost::none;
+		}
+
+		if (!current_token.is_identifier()) {
+			error_handler->unexpected_token(current_token, "label or instruction");
+
 			return boost::none;
 		}
 

@@ -50,6 +50,14 @@ namespace dcpu { namespace lexer {
 		return type == token_type::IDENTIFIER;
 	}
 
+	bool token::is_label() const {
+		return type == token_type::LABEL;
+	}
+
+	bool token::is_symbol() const {
+		return type == token_type::SYMBOL;
+	}
+
 	bool token::is_increment() const {
 		return type == token_type::INCREMENT;
 	}
