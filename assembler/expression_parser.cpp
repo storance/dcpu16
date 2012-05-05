@@ -158,6 +158,8 @@ namespace dcpu { namespace parser {
 			return parse_symbol(current_token);
 		} else if (current_token.is_integer()) {
 			return parse_literal(current_token);
+		} else if (current_token.is_character('$')) {
+			return current_position_operand(current_token.location);
 		} else {
 			error_handler->error(current_token.location, boost::format("expected a primary-expression before '%s'")
 				% current_token.content);

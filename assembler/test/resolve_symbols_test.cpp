@@ -49,6 +49,17 @@ TEST(ResolveSymbolsTest, Expression_LabelOperand) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 31)), evaluate(expr));
 }
 
+TEST(ResolveSymbolsTest, Expression_CurrentPos) {
+	symbol_table table;
+	add_symbols(table, { {"label1", 10}, {"label2", 31} });
+
+	expression expr = expression(current_position_operand(test_location));
+	resolve(15, &table, expr);
+
+	ASSERT_TRUE(evaluatable(expr));
+	EXPECT_EQ(expression(evaluated_expression(test_location, 15)), evaluate(expr));
+}
+
 TEST(ResolveSymbolsTest, Expression_UnaryOperation) {
 	symbol_table table;
 	add_symbols(table, { {"label1", 10}, {"label2", 31} });
@@ -86,37 +97,49 @@ TEST(ResolveSymbolsTest, CompressArgATest) {
 			symbol_operand(test_location, "label1"), false, false));
 	resolve(15, &table, arg2);
 
+	argument arg3(expression_argument(test_location, argument_position::A,
+			current_position_operand(test_location), false, false));
+	resolve(20, &table, arg3);
+
 	EXPECT_EQ(1, output_size(arg1));
 	EXPECT_EQ(1, output_size(arg2));
+	EXPECT_EQ(1, output_size(arg3));
 	EXPECT_EQ(10, *table.lookup("label1", 0));
 	EXPECT_EQ(31, *table.lookup("label2", 0));
 
 	// compress round 1
 	EXPECT_FALSE(compress(8, &table, arg1));
 	EXPECT_TRUE(compress(15, &table, arg2));
+	EXPECT_TRUE(compress(19, &table, arg3));
 	EXPECT_EQ(1, output_size(arg1));
 	EXPECT_EQ(0, output_size(arg2));
+	EXPECT_EQ(0, output_size(arg3));
 	EXPECT_EQ(10, *table.lookup("label1", 0));
-	EXPECT_EQ(30, *table.lookup("label2", 0));
+	EXPECT_EQ(29, *table.lookup("label2", 0));
 
 	// compress round 2
 	EXPECT_TRUE(compress(8, &table, arg1));
 	EXPECT_FALSE(compress(15, &table, arg2));
+	EXPECT_FALSE(compress(18, &table, arg3));
 	EXPECT_EQ(0, output_size(arg1));
 	EXPECT_EQ(0, output_size(arg2));
+	EXPECT_EQ(0, output_size(arg3));
 	EXPECT_EQ(9, *table.lookup("label1", 0));
-	EXPECT_EQ(29, *table.lookup("label2", 0));
+	EXPECT_EQ(28, *table.lookup("label2", 0));
 
 	// compress round 3
 	EXPECT_FALSE(compress(8, &table, arg1));
 	EXPECT_FALSE(compress(15, &table, arg2));
+	EXPECT_FALSE(compress(18, &table, arg3));
 	EXPECT_EQ(0, output_size(arg1));
 	EXPECT_EQ(0, output_size(arg2));
+	EXPECT_EQ(0, output_size(arg3));
 	EXPECT_EQ(9, *table.lookup("label1", 0));
-	EXPECT_EQ(29, *table.lookup("label2", 0));
+	EXPECT_EQ(28, *table.lookup("label2", 0));
 
 	EXPECT_EQ(compile_result(0x3e), compile(arg1));
-	EXPECT_EQ(compile_result(0x2a), compile(arg2));
+	EXPECT_EQ(compile_result(0x29), compile(arg2));
+	EXPECT_EQ(compile_result(0x33), compile(arg3));
 }
 
 TEST(ResolveSymbolsTest, CompressArgBTest) {

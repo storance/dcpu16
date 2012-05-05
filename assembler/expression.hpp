@@ -62,6 +62,15 @@ namespace dcpu { namespace ast {
 		bool operator==(const register_operand& other) const;
 	};
 
+	struct current_position_operand : public locatable {
+		boost::optional<std::uint16_t> pc;
+
+		current_position_operand(const lexer::location_ptr &location);
+		current_position_operand(const lexer::location_ptr &location, std::uint16_t pc);
+
+		bool operator==(const current_position_operand& other) const;
+	};
+
 	struct evaluated_expression : public locatable {
 		boost::optional<registers> _register;
 		boost::optional<std::int32_t> value;
@@ -83,6 +92,7 @@ namespace dcpu { namespace ast {
 	struct binary_operation;
 
 	typedef boost::variant<
+		current_position_operand,
 		invalid_expression,
 		literal_operand,
 		symbol_operand,
@@ -134,5 +144,6 @@ namespace dcpu { namespace ast {
 	std::ostream& operator<< (std::ostream& stream, const register_operand &expr);
 	std::ostream& operator<< (std::ostream& stream, const symbol_operand &expr);
 	std::ostream& operator<< (std::ostream& stream, const literal_operand &expr);
+	std::ostream& operator<< (std::ostream& stream, const current_position_operand &expr);
 	std::ostream& operator<< (std::ostream& stream, const invalid_expression &expr);
 }}

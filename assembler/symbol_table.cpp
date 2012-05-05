@@ -72,26 +72,20 @@ namespace dcpu {
 	 * build_symbol_table
 	 *
 	 *************************************************************************/
-	class build_symbol_table : public boost::static_visitor<> {
-		uint16_t pc;
-		error_handler_ptr error_handler;
-		symbol_table* table;
-	public:
-		build_symbol_table(error_handler_ptr &error_handler, symbol_table *table)
-			: pc(0), error_handler(error_handler), table(table) {}
+	build_symbol_table::build_symbol_table(error_handler_ptr &error_handler, symbol_table *table)
+		: pc(0), error_handler(error_handler), table(table) {}
 
-		void operator()(const label &label) {
-			try {
-				table->add(label, pc);
-			} catch (std::exception &e) {
-				error_handler->error(label.location, e.what());
-			}
+	void build_symbol_table::operator()(const label &label) {
+		try {
+			table->add(label, pc);
+		} catch (std::exception &e) {
+			error_handler->error(label.location, e.what());
 		}
+	}
 
-		void operator()(const instruction &instruction) {
-			pc += output_size(statement(instruction));
-		}
-	};
+	void build_symbol_table::operator()(const instruction &instruction) {
+		pc += output_size(statement(instruction));
+	}
 
 	/*************************************************************************
 	 *
@@ -110,6 +104,10 @@ namespace dcpu {
 		} catch (std::exception &e) {
 			error_handler->error(expr.location, e.what());
 		}
+	}
+
+	void resolve_symbols::operator()(current_position_operand &expr) {
+		expr.pc = pc;
 	}
 
 	void resolve_symbols::operator()(binary_operation &expr) {
@@ -146,6 +144,32 @@ namespace dcpu {
 
 	/*************************************************************************
 	 *
+	 * update_current_position
+	 *
+	 *************************************************************************/
+
+	update_current_position::update_current_position(uint16_t pc) : pc(pc) {}
+
+	void update_current_position::operator()(current_position_operand &expr) const {
+		expr.pc = pc;
+	}
+
+	void update_current_position::operator()(binary_operation &expr) const {
+		apply_visitor(*this, expr.left);
+		apply_visitor(*this, expr.right);
+	}
+
+	void update_current_position::operator()(unary_operation &expr) const {
+		apply_visitor(*this, expr.operand);
+	}
+
+	template <typename T>
+	void update_current_position::operator()( const T &) const {
+
+	}
+
+	/*************************************************************************
+	 *
 	 * compress_expressions
 	 *
 	 *************************************************************************/
@@ -158,6 +182,8 @@ namespace dcpu {
 		if (evaluated(arg.expr) || !evaluatable(arg.expr)) {
 			return false;
 		}
+
+		apply_visitor(update_current_position(pc), arg.expr);
 
 		uint8_t expr_size = output_size(arg, evaluate(arg.expr));
 		if (arg.next_word_required && !expr_size) {

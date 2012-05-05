@@ -106,3 +106,39 @@ TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 		)
 	)));
 }
+
+TEST(ExpressionParserTest, SymbolTest) {
+	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
+
+	expression expr = run_expression_parser("$a + 3", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(location, binary_operator::PLUS,
+		symbol_operand(location, "a"),
+		literal_operand(location, 3))
+	));
+
+	expr = run_expression_parser("label + 3", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(location, binary_operator::PLUS,
+		symbol_operand(location, "label"),
+		literal_operand(location, 3))
+	));
+}
+
+TEST(ExpressionParserTest, RegisterTest) {
+	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
+
+	expression expr = run_expression_parser("a + 3", true, true);
+	EXPECT_EQ(expr, expression(binary_operation(location, binary_operator::PLUS,
+		register_operand(location, registers::A),
+		literal_operand(location, 3))
+	));
+}
+
+TEST(ExpressionParserTest, CurrnetPosTest) {
+	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
+
+	expression expr = run_expression_parser("$ + 3", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(location, binary_operator::PLUS,
+		current_position_operand(location),
+		literal_operand(location, 3))
+	));
+}

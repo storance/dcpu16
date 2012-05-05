@@ -64,6 +64,22 @@ namespace dcpu { namespace ast {
 
 	/*************************************************************************
 	 *
+	 * current_position_operand
+	 *
+	 *************************************************************************/
+
+	current_position_operand::current_position_operand(const location_ptr &location)
+			: locatable(location), pc() {}
+
+	current_position_operand::current_position_operand(const location_ptr &location, uint16_t pc)
+			: locatable(location), pc(pc) {}
+
+	bool current_position_operand::operator==(const current_position_operand& other) const {
+		return pc == other.pc;
+	}
+
+	/*************************************************************************
+	 *
 	 * invalid_expression
 	 *
 	 *************************************************************************/
@@ -152,6 +168,10 @@ namespace dcpu { namespace ast {
 			return true;
 		}
 
+		bool operator()(const current_position_operand &expr) const {
+			return (bool)expr.pc;
+		}
+
 		bool operator()(const symbol_operand &expr) const {
 			return expr.pc != nullptr;
 		}
@@ -192,6 +212,10 @@ namespace dcpu { namespace ast {
 			return true;
 		}
 
+		bool operator()(const current_position_operand &expr) const {
+			return true;
+		}
+
 		bool operator()(const binary_operation &expr) const {
 			return apply_visitor(*this, expr.left) && apply_visitor(*this, expr.right);
 		}
@@ -224,9 +248,17 @@ namespace dcpu { namespace ast {
 			return evaluated_expression(expr.location, expr.value);
 		}
 
+		evaluated_expression operator()(const current_position_operand &expr) const {
+			if (!expr.pc) {
+				throw invalid_argument("unresolved symbols");
+			}
+
+			return evaluated_expression(expr.location, *expr.pc);
+		}
+
 		evaluated_expression operator()(const symbol_operand &expr) const {
 			if (!expr.pc) {
-				throw invalid_argument("unresolved labels");
+				throw invalid_argument("unresolved symbols");
 			}
 
 			return evaluated_expression(expr.location, *expr.pc);
@@ -476,6 +508,10 @@ namespace dcpu { namespace ast {
 
 	ostream& operator<< (ostream& stream, const literal_operand &expr) {
 		return stream << expr.value;
+	}
+
+	ostream& operator<< (ostream& stream, const current_position_operand &expr) {
+		return stream << "$";
 	}
 
 	ostream& operator<< (ostream& stream, const invalid_expression& expr) {
