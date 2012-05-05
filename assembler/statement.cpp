@@ -114,7 +114,7 @@ namespace dcpu { namespace ast {
 
 	class calculate_size : public static_visitor<uint8_t> {
 	public:
-		uint8_t operator()(const stack_argument&) const {
+		uint8_t operator()(const stack_argument& arg) const {
 			return 0;
 		}
 
@@ -216,10 +216,10 @@ namespace dcpu { namespace ast {
 	}
 
 	ostream& operator<< (ostream& stream, const instruction &instruction) {
-		stream << instruction.opcode;
+		stream << instruction.opcode << " ";
 
 		if (instruction.b) {
-			stream << *instruction.b << ",";
+			stream << *instruction.b << ", ";
 		}
 
 		return stream << instruction.a;

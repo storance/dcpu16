@@ -91,6 +91,8 @@ namespace dcpu { namespace ast {
 		boost::recursive_wrapper<unary_operation>,
 		boost::recursive_wrapper<binary_operation> > expression;
 
+	typedef boost::optional<expression> optional_expression;
+
 	struct unary_operation : public locatable {
 		unary_operator _operator;
 		expression operand;

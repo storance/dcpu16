@@ -12,15 +12,16 @@ OBJECTS = $(OUTPUT_DIR)/lexer.o \
 		  $(OUTPUT_DIR)/mnemonics.o \
 		  $(OUTPUT_DIR)/expression.o \
 		  $(OUTPUT_DIR)/statement.o \
-		  $(OUTPUT_DIR)/expression_parser.o 
+		  $(OUTPUT_DIR)/expression_parser.o \
+		  $(OUTPUT_DIR)/parser.o
 
 TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/lexer_test.o \
 			   $(OUTPUT_DIR)/expression_eval_test.o \
 			   $(OUTPUT_DIR)/resolve_symbols_test.o \
 			   $(OUTPUT_DIR)/compiler_test.o \
-			   $(OUTPUT_DIR)/expression_parser_test.o 
-#			   $(OUTPUT_DIR)/ParserTest.o \
+			   $(OUTPUT_DIR)/expression_parser_test.o \
+			   $(OUTPUT_DIR)/parser_test.o
 
 
 TEST_FILTER = *
@@ -60,7 +61,7 @@ $(OUTPUT_DIR)/lexer.o: lexer.cpp lexer.hpp token.hpp error_handler.hpp | $(OUTPU
 $(OUTPUT_DIR)/expression_parser.o: expression_parser.cpp expression_parser.hpp expression.hpp token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/Parser.o: Parser.cpp Parser.hpp ast/*.hpp Token.hpp Lexer.hpp ExpressionParser.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/parser.o: parser.cpp parser.hpp statement.hpp token.hpp lexer.hpp expression_parser.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR):
@@ -72,7 +73,7 @@ $(OUTPUT_DIR)/lexer_test.o: test/lexer_test.cpp lexer.hpp token.hpp | $(OUTPUT_D
 $(OUTPUT_DIR)/expression_eval_test.o: test/expression_eval_test.cpp expression.hpp token.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/ParserTest.o: test/ParserTest.cpp Parser.hpp Parser.cpp ErrorHandler.hpp ast/*.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/parser_test.o: test/parser_test.cpp parser.hpp parser.cpp error_handler.hpp statement.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/expression_parser_test.o: test/expression_parser_test.cpp expression_parser.hpp expression.hpp lexer.hpp | $(OUTPUT_DIR)

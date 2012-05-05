@@ -9,7 +9,7 @@ using namespace dcpu::ast;
 
 static location_ptr test_location = make_shared<lexer::location>("<Test>", 1, 1);
 
-TEST(expressionEvalTest, AddTest) {
+TEST(ExpressionEvalTest, AddTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::PLUS,
 		literal_operand(test_location, 4),
 		literal_operand(test_location, 9)));
@@ -17,7 +17,7 @@ TEST(expressionEvalTest, AddTest) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 13)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, SubtractTest) {
+TEST(ExpressionEvalTest, SubtractTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::MINUS,
 		literal_operand(test_location, 4),
 		literal_operand(test_location, 9)));
@@ -25,7 +25,7 @@ TEST(expressionEvalTest, SubtractTest) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, -5)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, MultiplyTest) {
+TEST(ExpressionEvalTest, MultiplyTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::MULTIPLY,
 		literal_operand(test_location, 2),
 		literal_operand(test_location, 4)));
@@ -33,7 +33,7 @@ TEST(expressionEvalTest, MultiplyTest) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 8)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, DivideTest) {
+TEST(ExpressionEvalTest, DivideTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::DIVIDE,
 		literal_operand(test_location, 8),
 		literal_operand(test_location, 2)));
@@ -47,7 +47,7 @@ TEST(expressionEvalTest, DivideTest) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 3)), evaluate(expr2));
 }
 
-TEST(expressionEvalTest, ModuloTest) {
+TEST(ExpressionEvalTest, ModuloTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::MODULO,
 		literal_operand(test_location, 19),
 		literal_operand(test_location, 5)));
@@ -55,7 +55,7 @@ TEST(expressionEvalTest, ModuloTest) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 4)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, ShiftLeftTest) {
+TEST(ExpressionEvalTest, ShiftLeftTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::SHIFT_LEFT,
 		literal_operand(test_location, 1),
 		literal_operand(test_location, 4)));
@@ -63,7 +63,7 @@ TEST(expressionEvalTest, ShiftLeftTest) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 16)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, ShiftRightTest) {
+TEST(ExpressionEvalTest, ShiftRightTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::SHIFT_RIGHT,
 		literal_operand(test_location, 256),
 		literal_operand(test_location, 2)));
@@ -71,7 +71,7 @@ TEST(expressionEvalTest, ShiftRightTest) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 64)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, BitwiseAndTest) {
+TEST(ExpressionEvalTest, BitwiseAndTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::AND,
 		literal_operand(test_location, 0x9),
 		literal_operand(test_location, 0xc)));
@@ -79,7 +79,7 @@ TEST(expressionEvalTest, BitwiseAndTest) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 0x8)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, BitwiseXorTest) {
+TEST(ExpressionEvalTest, BitwiseXorTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::XOR,
 		literal_operand(test_location, 0x9),
 		literal_operand(test_location, 0xc)));
@@ -87,7 +87,7 @@ TEST(expressionEvalTest, BitwiseXorTest) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 0x5)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, BitwiseOrTest) {
+TEST(ExpressionEvalTest, BitwiseOrTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::OR,
 		literal_operand(test_location, 0x9),
 		literal_operand(test_location, 0xc)));
@@ -95,21 +95,21 @@ TEST(expressionEvalTest, BitwiseOrTest) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 0xd)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, UnaryMinus) {
+TEST(ExpressionEvalTest, UnaryMinus) {
 	auto expr = expression(unary_operation(test_location, unary_operator::MINUS,
 		literal_operand(test_location, 7)));
 
 	EXPECT_EQ(expression(evaluated_expression(test_location, -7)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, UnaryPlus) {
+TEST(ExpressionEvalTest, UnaryPlus) {
 	auto expr = expression(unary_operation(test_location, unary_operator::PLUS,
 		literal_operand(test_location, 7)));
 
 	EXPECT_EQ(expression(evaluated_expression(test_location, 7)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, UnaryNot) {
+TEST(ExpressionEvalTest, UnaryNot) {
 	auto expr = expression(unary_operation(test_location, unary_operator::NOT,
 		literal_operand(test_location, 7)));
 
@@ -121,14 +121,14 @@ TEST(expressionEvalTest, UnaryNot) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 1)), evaluate(expr2));
 }
 
-TEST(expressionEvalTest, UnaryBitwiseNot) {
+TEST(ExpressionEvalTest, UnaryBitwiseNot) {
 	auto expr = expression(unary_operation(test_location, unary_operator::BITWISE_NOT,
 		literal_operand(test_location, 7)));
 
 	EXPECT_EQ(expression(evaluated_expression(test_location, -8)), evaluate(expr));
 }
 
-TEST(expressionEvalTest, RegisterTest) {
+TEST(ExpressionEvalTest, RegisterTest) {
 	auto expr = expression(binary_operation(test_location, binary_operator::PLUS,
 		register_operand(test_location, registers::A),
 		literal_operand(test_location, 10)));

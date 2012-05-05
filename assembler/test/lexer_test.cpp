@@ -16,7 +16,7 @@ shared_ptr<lexer::lexer> run_lexer(const string &content, error_handler_ptr erro
 	return lexer;
 }
 
-TEST(lexerTest, IdentifierStartsUnderscore) {
+TEST(LexerTest, IdentifierStartsUnderscore) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("_a1_?.$#@");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -29,7 +29,7 @@ TEST(lexerTest, IdentifierStartsUnderscore) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, IdentifierStartsPeriod) {
+TEST(LexerTest, IdentifierStartsPeriod) {
 	shared_ptr<lexer::lexer> lexer = run_lexer(".aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -42,7 +42,7 @@ TEST(lexerTest, IdentifierStartsPeriod) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, IdentifierStartsQuestion) {
+TEST(LexerTest, IdentifierStartsQuestion) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("?aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -55,7 +55,7 @@ TEST(lexerTest, IdentifierStartsQuestion) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, IdentifierStartsLetter) {
+TEST(LexerTest, IdentifierStartsLetter) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -68,7 +68,7 @@ TEST(lexerTest, IdentifierStartsLetter) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, DecimalNumber) {
+TEST(LexerTest, DecimalNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("100");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -81,7 +81,7 @@ TEST(lexerTest, DecimalNumber) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, HexNumberLowercase) {
+TEST(LexerTest, HexNumberLowercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0xff");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -94,7 +94,7 @@ TEST(lexerTest, HexNumberLowercase) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, HexNumberUppercase) {
+TEST(LexerTest, HexNumberUppercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0X1D");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -107,7 +107,7 @@ TEST(lexerTest, HexNumberUppercase) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, BinaryNumberLowercase) {
+TEST(LexerTest, BinaryNumberLowercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0b1011");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -120,7 +120,7 @@ TEST(lexerTest, BinaryNumberLowercase) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, BinaryNumberUppercase) {
+TEST(LexerTest, BinaryNumberUppercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0B10001011");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -133,7 +133,7 @@ TEST(lexerTest, BinaryNumberUppercase) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, OctalNumberLowercase) {
+TEST(LexerTest, OctalNumberLowercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0o32");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -146,7 +146,7 @@ TEST(lexerTest, OctalNumberLowercase) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, OctalNumberUppercase) {
+TEST(LexerTest, OctalNumberUppercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0O27");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -159,7 +159,7 @@ TEST(lexerTest, OctalNumberUppercase) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, InvalidDecimalNumber) {
+TEST(LexerTest, InvalidDecimalNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("100a3");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -172,7 +172,7 @@ TEST(lexerTest, InvalidDecimalNumber) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, InvalidHexNumber) {
+TEST(LexerTest, InvalidHexNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0X100Z3");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -185,7 +185,7 @@ TEST(lexerTest, InvalidHexNumber) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, OctalWithInvalidNumber) {
+TEST(LexerTest, OctalWithInvalidNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0o10093");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -198,7 +198,7 @@ TEST(lexerTest, OctalWithInvalidNumber) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, OctalWithInvalidLetter) {
+TEST(LexerTest, OctalWithInvalidLetter) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0o100a3");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -211,7 +211,7 @@ TEST(lexerTest, OctalWithInvalidLetter) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, BinaryWithInvalidNumber) {
+TEST(LexerTest, BinaryWithInvalidNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0b1113");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -224,7 +224,7 @@ TEST(lexerTest, BinaryWithInvalidNumber) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, BinaryWithInvalidLetter) {
+TEST(LexerTest, BinaryWithInvalidLetter) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0B111a");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -237,7 +237,7 @@ TEST(lexerTest, BinaryWithInvalidLetter) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, OverflowNumber) {
+TEST(LexerTest, OverflowNumber) {
 	stringstream out;
 	shared_ptr<lexer::lexer> lexer = run_lexer("4294967296", make_shared<error_handler>(out));
 	ASSERT_EQ(2, lexer->tokens.size());
@@ -253,7 +253,7 @@ TEST(lexerTest, OverflowNumber) {
 	EXPECT_EQ("<Test>:1:1: warning: integer '4294967296' overflows 32-bit intermediary storage\n", out.str());
 }
 
-TEST(lexerTest, DecimalNumberAtUint32Max) {
+TEST(LexerTest, DecimalNumberAtUint32Max) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("4294967295");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -266,7 +266,7 @@ TEST(lexerTest, DecimalNumberAtUint32Max) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, Increment) {
+TEST(LexerTest, Increment) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("++");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -278,7 +278,7 @@ TEST(lexerTest, Increment) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, Decrement) {
+TEST(LexerTest, Decrement) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("--");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -289,7 +289,7 @@ TEST(lexerTest, Decrement) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, ShiftLeft) {
+TEST(LexerTest, ShiftLeft) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("<<");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -301,7 +301,7 @@ TEST(lexerTest, ShiftLeft) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, ShiftRight) {
+TEST(LexerTest, ShiftRight) {
 	shared_ptr<lexer::lexer> lexer = run_lexer(">>");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -313,7 +313,7 @@ TEST(lexerTest, ShiftRight) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, Newline) {
+TEST(LexerTest, Newline) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("\n");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -325,7 +325,7 @@ TEST(lexerTest, Newline) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, SingleCharacters) {
+TEST(LexerTest, SingleCharacters) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("@");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -408,7 +408,7 @@ TEST(lexerTest, SingleCharacters) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(lexerTest, CharacterLiterals) {
+TEST(LexerTest, CharacterLiterals) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("'a'");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
@@ -454,7 +454,7 @@ location_ptr makeLocation(uint32_t line, uint32_t column) {
 	return make_shared<location>("<Test>", line, column);
 }
 
-TEST(lexerTest, MultipleTokens) {
+TEST(LexerTest, MultipleTokens) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("set A, b\n  set [J], 0x400\n;a test comment\nlabel: JSR label+4\n");
 	ASSERT_EQ(21, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());

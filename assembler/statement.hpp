@@ -17,7 +17,7 @@ namespace dcpu { namespace ast {
 		PUSH, POP, PEEK
 	};
 
-	enum class label_type {
+	enum class label_type : std::uint8_t {
 		Global, Local, GlobalNoAttach
 	};
 
@@ -29,6 +29,7 @@ namespace dcpu { namespace ast {
 
 	struct stack_argument : public base_argument {
 		stack_operation operation;
+		optional_expression pick_expr;
 
 		stack_argument(const lexer::location_ptr &location, argument_position position, stack_operation operation);
 
