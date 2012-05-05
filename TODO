@@ -12,9 +12,8 @@ Disassembler
 
 Assembler
 ============
-* dat, data
 * .dw
-* .db
+* .dp
 * .ascii
 * .asciip
 * .asciic

@@ -22,3 +22,5 @@ ADD I, 0x4000
 SET X, [0x4000 + I]
 SET Z, [I + 0x5000]
 sub pc, 1
+:data
+	dat "hello, world!",0
