@@ -46,7 +46,7 @@ namespace dcpu { namespace parser {
 		ast::expression parse_binary_operation(const lexer::token&, expr_parser_t, std::initializer_list<operator_definition>);
 		ast::expression parse_primary(const lexer::token&);
 		ast::expression parse_grouping(const lexer::token&);
-		ast::expression parse_identifier(const lexer::token&);
+		ast::expression parse_register(const lexer::token&);
 		ast::expression parse_symbol(const lexer::token&);
 		ast::expression parse_literal(const lexer::token&);
 		ast::expression parse_unary(const lexer::token&);

@@ -186,20 +186,6 @@ namespace dcpu { namespace ast {
 	 * Stream operators
 	 *
 	 *************************************************************************/
-
-	ostream& operator<< (ostream& stream, stack_operation operation) {
-		switch (operation) {
-		case stack_operation::PUSH:
-			return stream << "PUSH";
-		case stack_operation::POP:
-			return stream << "POP";
-		case stack_operation::PEEK:
-			return stream << "PEEK";
-		default:
-			return stream << "<Unknown stack_operation " << static_cast<int>(operation) << ">";
-		}
-	}
-
 	ostream& operator<< (ostream& stream, label_type labelType) {
 		switch (labelType) {
 		case label_type::Global:

@@ -16,54 +16,67 @@ shared_ptr<lexer::lexer> run_lexer(const string &content, error_handler_ptr erro
 	return lexer;
 }
 
-TEST(LexerTest, IdentifierStartsUnderscore) {
+TEST(LexerTest, SymbolStartsUnderscore) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("_a1_?.$#@");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_identifier());
+	EXPECT_TRUE(it->is_symbol());
 	EXPECT_EQ("_a1_?.$#@", it++->content);
 
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(LexerTest, IdentifierStartsPeriod) {
+TEST(LexerTest, SymbolStartsPeriod) {
 	shared_ptr<lexer::lexer> lexer = run_lexer(".aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_identifier());
+	EXPECT_TRUE(it->is_symbol());
 	EXPECT_EQ(".aaa111", it++->content);
 
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(LexerTest, IdentifierStartsQuestion) {
+TEST(LexerTest, SymbolStartsQuestion) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("?aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_identifier());
+	EXPECT_TRUE(it->is_symbol());
 	EXPECT_EQ("?aaa111", it++->content);
 
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(LexerTest, IdentifierStartsLetter) {
+TEST(LexerTest, SymbolStartsLetter) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->error_handler->has_errors());
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_identifier());
+	EXPECT_TRUE(it->is_symbol());
 	EXPECT_EQ("aaa111", it++->content);
+
+	EXPECT_TRUE(it->is_eoi());
+}
+
+TEST(LexerTest, ExplicitSymbol) {
+	shared_ptr<lexer::lexer> lexer = run_lexer("$pc");
+	ASSERT_EQ(2, lexer->tokens.size());
+	EXPECT_FALSE(lexer->error_handler->has_errors());
+	EXPECT_FALSE(lexer->error_handler->has_warnings());
+
+	auto it = lexer->tokens.begin();
+	EXPECT_TRUE(it->is_symbol());
+	EXPECT_EQ("pc", it++->content);
 
 	EXPECT_TRUE(it->is_eoi());
 }
@@ -75,8 +88,8 @@ TEST(LexerTest, QuotedString) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_quoted_string());
-	EXPECT_EQ(quote_type::DOUBLE_QUOTE, it->quote);
+	ASSERT_TRUE(it->is_quoted_string());
+	EXPECT_EQ(quote_type::DOUBLE_QUOTE, it->get_quote_type());
 	EXPECT_EQ("hello, world!", it++->content);
 
 	EXPECT_TRUE(it->is_eoi());
@@ -95,19 +108,6 @@ TEST(LexerTest, LabelColonSuffix) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(LexerTest, Symbol) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("$_a1_?.$#@");
-	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
-
-	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_symbol());
-	EXPECT_EQ("_a1_?.$#@", it++->content);
-
-	EXPECT_TRUE(it->is_eoi());
-}
-
 TEST(LexerTest, LabelColonPrefix) {
 	shared_ptr<lexer::lexer> lexer = run_lexer(":_a1_?.$#@");
 	ASSERT_EQ(2, lexer->tokens.size());
@@ -121,6 +121,100 @@ TEST(LexerTest, LabelColonPrefix) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
+TEST(LexerTest, RegisterTest) {
+	shared_ptr<lexer::lexer> lexer = run_lexer("A B C X Y Z I J PC SP EX");
+	ASSERT_EQ(12, lexer->tokens.size());
+	EXPECT_FALSE(lexer->error_handler->has_errors());
+	EXPECT_FALSE(lexer->error_handler->has_warnings());
+
+	auto it = lexer->tokens.begin();
+	EXPECT_TRUE(it++->is_register(registers::A));
+	EXPECT_TRUE(it++->is_register(registers::B));
+	EXPECT_TRUE(it++->is_register(registers::C));
+	EXPECT_TRUE(it++->is_register(registers::X));
+	EXPECT_TRUE(it++->is_register(registers::Y));
+	EXPECT_TRUE(it++->is_register(registers::Z));
+	EXPECT_TRUE(it++->is_register(registers::I));
+	EXPECT_TRUE(it++->is_register(registers::J));
+	EXPECT_TRUE(it++->is_register(registers::PC));
+	EXPECT_TRUE(it++->is_register(registers::SP));
+	EXPECT_TRUE(it++->is_register(registers::EX));
+
+	EXPECT_TRUE(it->is_eoi());
+}
+
+TEST(LexerTest, DirectiveTest) {
+	shared_ptr<lexer::lexer> lexer = run_lexer(".DW .DAT DAT .DB .DP .INCLUDE .INCBIN .FILL .ALIGN .EQU .ORG");
+	ASSERT_EQ(12, lexer->tokens.size());
+	EXPECT_FALSE(lexer->error_handler->has_errors());
+	EXPECT_FALSE(lexer->error_handler->has_warnings());
+
+	auto it = lexer->tokens.begin();
+	EXPECT_TRUE(it++->is_directive(directives::DW));
+	EXPECT_TRUE(it++->is_directive(directives::DW));
+	EXPECT_TRUE(it++->is_directive(directives::DW));
+	EXPECT_TRUE(it++->is_directive(directives::DB));
+	EXPECT_TRUE(it++->is_directive(directives::DB));
+	EXPECT_TRUE(it++->is_directive(directives::INCLUDE));
+	EXPECT_TRUE(it++->is_directive(directives::INCBIN));
+	EXPECT_TRUE(it++->is_directive(directives::FILL));
+	EXPECT_TRUE(it++->is_directive(directives::ALIGN));
+	EXPECT_TRUE(it++->is_directive(directives::EQU));
+	EXPECT_TRUE(it++->is_directive(directives::ORG));
+
+	EXPECT_TRUE(it->is_eoi());
+}
+
+TEST(LexerTest, InstructionTest) {
+	shared_ptr<lexer::lexer> lexer = run_lexer("SET ADD SUB MUL MLI DIV DVI MOD MDI AND BOR XOR SHR ASR SHL IFB IFC "
+			"IFE IFN IFG IFA IFL IFU ADX SBX STI STD JSR HCF INT IAG IAS RFI IAQ HWN HWQ HWI JMP");
+	ASSERT_EQ(39, lexer->tokens.size());
+	EXPECT_FALSE(lexer->error_handler->has_errors());
+	EXPECT_FALSE(lexer->error_handler->has_warnings());
+
+	auto it = lexer->tokens.begin();
+	EXPECT_TRUE(it++->is_instruction(opcodes::SET));
+	EXPECT_TRUE(it++->is_instruction(opcodes::ADD));
+	EXPECT_TRUE(it++->is_instruction(opcodes::SUB));
+	EXPECT_TRUE(it++->is_instruction(opcodes::MUL));
+	EXPECT_TRUE(it++->is_instruction(opcodes::MLI));
+	EXPECT_TRUE(it++->is_instruction(opcodes::DIV));
+	EXPECT_TRUE(it++->is_instruction(opcodes::DVI));
+	EXPECT_TRUE(it++->is_instruction(opcodes::MOD));
+	EXPECT_TRUE(it++->is_instruction(opcodes::MDI));
+	EXPECT_TRUE(it++->is_instruction(opcodes::AND));
+	EXPECT_TRUE(it++->is_instruction(opcodes::BOR));
+	EXPECT_TRUE(it++->is_instruction(opcodes::XOR));
+	EXPECT_TRUE(it++->is_instruction(opcodes::SHR));
+	EXPECT_TRUE(it++->is_instruction(opcodes::ASR));
+	EXPECT_TRUE(it++->is_instruction(opcodes::SHL));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IFB));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IFC));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IFE));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IFN));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IFG));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IFA));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IFL));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IFU));
+	EXPECT_TRUE(it++->is_instruction(opcodes::ADX));
+	EXPECT_TRUE(it++->is_instruction(opcodes::SBX));
+	EXPECT_TRUE(it++->is_instruction(opcodes::STI));
+	EXPECT_TRUE(it++->is_instruction(opcodes::STD));
+	EXPECT_TRUE(it++->is_instruction(opcodes::JSR));
+	EXPECT_TRUE(it++->is_instruction(opcodes::HCF));
+	EXPECT_TRUE(it++->is_instruction(opcodes::INT));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IAG));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IAS));
+	EXPECT_TRUE(it++->is_instruction(opcodes::RFI));
+	EXPECT_TRUE(it++->is_instruction(opcodes::IAQ));
+	EXPECT_TRUE(it++->is_instruction(opcodes::HWN));
+	EXPECT_TRUE(it++->is_instruction(opcodes::HWQ));
+	EXPECT_TRUE(it++->is_instruction(opcodes::HWI));
+	EXPECT_TRUE(it++->is_instruction(opcodes::JMP));
+
+	EXPECT_TRUE(it->is_eoi());
+}
+
 TEST(LexerTest, DecimalNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("100");
 	ASSERT_EQ(2, lexer->tokens.size());
@@ -128,8 +222,8 @@ TEST(LexerTest, DecimalNumber) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(100, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(100, it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 }
@@ -141,8 +235,8 @@ TEST(LexerTest, HexNumberLowercase) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(0xff, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(0xff, it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 }
@@ -154,8 +248,8 @@ TEST(LexerTest, HexNumberUppercase) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(0x1d, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(0x1d, it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 }
@@ -167,8 +261,8 @@ TEST(LexerTest, BinaryNumberLowercase) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(0b1011, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(0b1011, it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 }
@@ -180,8 +274,8 @@ TEST(LexerTest, BinaryNumberUppercase) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(0b10001011, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(0b10001011, it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 }
@@ -193,8 +287,8 @@ TEST(LexerTest, OctalNumberLowercase) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(032, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(032, it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 }
@@ -206,8 +300,8 @@ TEST(LexerTest, OctalNumberUppercase) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(027, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(027, it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 }
@@ -298,8 +392,8 @@ TEST(LexerTest, OverflowNumber) {
 	EXPECT_TRUE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(UINT32_MAX, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(UINT32_MAX, it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 
@@ -313,8 +407,8 @@ TEST(LexerTest, DecimalNumberAtUint32Max) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(UINT32_MAX, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(UINT32_MAX, it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 }
@@ -468,8 +562,8 @@ TEST(LexerTest, CharacterLiterals) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ('a', it++->value);	
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ('a', it++->get_integer());
 	EXPECT_TRUE(it->is_eoi());
 
 	lexer = run_lexer("'\\x4'");
@@ -478,8 +572,8 @@ TEST(LexerTest, CharacterLiterals) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(0x4, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(0x4, it++->get_integer());
 	EXPECT_TRUE(it->is_eoi());
 
 	lexer = run_lexer("'\\X42'");
@@ -488,8 +582,8 @@ TEST(LexerTest, CharacterLiterals) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(0x42, it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(0x42, it++->get_integer());
 	EXPECT_TRUE(it->is_eoi());
 
 	lexer = run_lexer("'\\n'");
@@ -498,8 +592,8 @@ TEST(LexerTest, CharacterLiterals) {
 	EXPECT_FALSE(lexer->error_handler->has_warnings());
 
 	it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ('\n', it++->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ('\n', it++->get_integer());
 	EXPECT_TRUE(it->is_eoi());
 }
 
@@ -515,33 +609,29 @@ TEST(LexerTest, MultipleTokens) {
 
 	// Line 1
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it->is_identifier());
-	EXPECT_EQ("set", it->content);
+	EXPECT_TRUE(it->is_instruction(opcodes::SET));
 	EXPECT_EQ(makeLocation(1, 1), it++->location);
 
-	EXPECT_TRUE(it->is_identifier());
-	EXPECT_EQ("A", it->content);
+	EXPECT_TRUE(it->is_register(registers::A));
 	EXPECT_EQ(makeLocation(1, 5), it++->location);
 
 	EXPECT_TRUE(it->is_character(','));
 	EXPECT_EQ(makeLocation(1, 6), it++->location);
 
-	EXPECT_TRUE(it->is_identifier());
-	EXPECT_EQ("b", it->content);
+	EXPECT_TRUE(it->is_register(registers::B));
 	EXPECT_EQ(makeLocation(1, 8), it++->location);
 
 	EXPECT_TRUE(it->is_newline());
 	EXPECT_EQ(makeLocation(1, 9), it++->location);
 
 	// Line 2
-	EXPECT_TRUE(it->is_identifier());
-	EXPECT_EQ("set", it->content);
+	EXPECT_TRUE(it->is_instruction(opcodes::SET));
 	EXPECT_EQ(makeLocation(2, 3), it++->location);
 
 	EXPECT_TRUE(it->is_character('['));
 	EXPECT_EQ(makeLocation(2, 7), it++->location);
 
-	EXPECT_TRUE(it->is_identifier());
+	EXPECT_TRUE(it->is_register(registers::J));
 	EXPECT_EQ("J", it->content);
 	EXPECT_EQ(makeLocation(2, 8), it++->location);
 
@@ -551,8 +641,8 @@ TEST(LexerTest, MultipleTokens) {
 	EXPECT_TRUE(it->is_character(','));
 	EXPECT_EQ(makeLocation(2, 10), it++->location);
 
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(0x400, it->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(0x400, it->get_integer());
 	EXPECT_EQ(makeLocation(2, 12), it++->location);
 
 	EXPECT_TRUE(it->is_newline());
@@ -567,19 +657,18 @@ TEST(LexerTest, MultipleTokens) {
 	EXPECT_EQ("label", it->content);
 	EXPECT_EQ(makeLocation(4, 1), it++->location);
 
-	EXPECT_TRUE(it->is_identifier());
-	EXPECT_EQ("JSR", it->content);
+	EXPECT_TRUE(it->is_instruction(opcodes::JSR));
 	EXPECT_EQ(makeLocation(4, 8), it++->location);
 
-	EXPECT_TRUE(it->is_identifier());
+	EXPECT_TRUE(it->is_symbol());
 	EXPECT_EQ("label", it->content);
 	EXPECT_EQ(makeLocation(4, 12), it++->location);
 
 	EXPECT_TRUE(it->is_character('+'));
 	EXPECT_EQ(makeLocation(4, 17), it++->location);
 
-	EXPECT_TRUE(it->is_integer());
-	EXPECT_EQ(4, it->value);
+	ASSERT_TRUE(it->is_integer());
+	EXPECT_EQ(4, it->get_integer());
 	EXPECT_EQ(makeLocation(4, 18), it++->location);
 
 	EXPECT_TRUE(it->is_newline());

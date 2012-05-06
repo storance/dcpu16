@@ -8,8 +8,6 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "mnemonics.hpp"
-
 using namespace std;
 using namespace placeholders;
 using namespace dcpu::lexer;
@@ -44,15 +42,16 @@ namespace dcpu { namespace parser {
 				}
 			}
 
-			auto data = parse_data(current_token);
-			if (data) {
-				statements.push_back(*data);
+			auto directive = parse_directive(current_token);
+			if (directive) {
+				statements.push_back(*directive);
 				continue;
 			}
 
 			auto instruction = parse_instruction(current_token);
 			if (instruction) {
 				statements.push_back(*instruction);
+				continue;
 			}
 		}
 	}
@@ -66,30 +65,22 @@ namespace dcpu { namespace parser {
 	}
 
 	boost::optional<statement> parser::parse_instruction(const token& current_token) {
-		if (!current_token.is_identifier()) {
-			error_handler->unexpected_token(current_token, "label, instruction, or assembler directive");
-
+		if (!current_token.is_instruction()) {
+			error_handler->unexpected_token(current_token, "a label, instruction, or directive");
 			return boost::none;
 		}
 
-		const opcode_definition* definition = opcode_definition::lookup(current_token.content);
-
-		if (!definition) {
-			error_handler->error(current_token.location, boost::format("unrecognized instruction '%s'")
-					% current_token.content);
-			advance_until(mem_fn(&token::is_terminator));
-			return boost::none;
-		}
+		auto definition = current_token.get_instruction();
 
 		optional_argument a, b;
-		if (definition->args == 1) {
+		if (definition.args == 1) {
 			a = parse_argument(next_token(), argument_position::A);
 
 			if (!a) {
 				advance_until(mem_fn(&token::is_terminator));
 				return boost::none;
 			}
-		} else if (definition->args == 2) {
+		} else if (definition.args == 2) {
 			b = parse_argument(next_token(), argument_position::B);
 
 			if (!b) {
@@ -117,18 +108,28 @@ namespace dcpu { namespace parser {
 			advance_until(mem_fn(&token::is_terminator));
 		}
 
-		return statement(instruction(current_token.location, definition->opcode, *a, b));
+		return statement(instruction(current_token.location, definition.opcode, *a, b));
 	}
 
-	boost::optional<statement> parser::parse_data(const token& current_token) {
-		if (!current_token.is_identifier()) {
+	boost::optional<statement> parser::parse_directive(const token& current_token) {
+		if (!current_token.is_directive()) {
 			return boost::none;
 		}
 
-		if (!iequals(current_token.content, "dat") && !iequals(current_token.content, "data")) {
-			return boost::none;
+		auto directive = current_token.get_directive();
+		switch (directive) {
+		case directives::DW:
+			return statement(parse_data(current_token, false));
+		default:
+			error_handler->warning(current_token.location, boost::format("directive '%s' is not yet supported")
+					% directive);
+			break;
 		}
 
+		return boost::none;
+	}
+
+	ast::data parser::parse_data(const token& current_token, bool packed) {
 		data data_stmt(current_token.location);
 
 		auto next_tkn = next_token();
@@ -136,11 +137,12 @@ namespace dcpu { namespace parser {
 			if (next_tkn.is_quoted_string()) {
 				data_stmt.append(next_tkn.content);
 			} else if (next_tkn.is_integer()) {
-				if (next_tkn.value > UINT16_MAX) {
+				uint32_t value = next_tkn.get_integer();
+				if (value > UINT16_MAX) {
 					error_handler->warning(next_tkn.location, "overflow in converting to 16-bit word");
 				}
 
-				data_stmt.append(next_tkn.value);
+				data_stmt.append(value);
 			} else {
 				break;
 			}
@@ -161,7 +163,7 @@ namespace dcpu { namespace parser {
 			error_handler->warning(current_token.location, "empty data segment");
 		}
 
-		return statement(data_stmt);
+		return data_stmt;
 	}
 
 	optional_argument parser::parse_argument(const token& current_token, argument_position position) {
@@ -171,92 +173,71 @@ namespace dcpu { namespace parser {
 		}
 
 		if (current_token.is_character('[')) {
-			auto argument = parse_indirect_stack_argument(next_token(), position);
-			if (!argument) {
-				move_back();
-				argument = ast::argument(expression_argument(current_token.location, position,
-						parse_expression(next_token(), true, true), true, false));
-			}
-
-			auto &next_tkn = next_token();
-			if (!next_tkn.is_character(']')) {
-				move_back();
-				error_handler->unexpected_token(next_tkn, ']');
-				return boost::none;
-			}
-
-			return argument;
-		} else if (current_token.is_identifier()) {
-			auto stackArgument = parse_mnemonic_stack_argument(current_token, position);
-			if (stackArgument) {
-				return stackArgument;
-			}
+			return parse_indirect_argument(next_token(), position);
+		} else if (current_token.is_stack_operation()) {
+			return  parse_stack_argument(current_token, position);
 		}
 
-		return ast::argument(expression_argument(current_token.location, position,
+		return argument(expression_argument(current_token.location, position,
 				parse_expression(current_token, true, false), false, false));
 	}
 
-	optional_argument parser::parse_indirect_stack_argument(const token& current_token, argument_position position) {
-		if (current_token.is_identifier() && iequals(current_token.content, "SP")) {
+	optional_argument parser::parse_indirect_argument(const token& current_token, argument_position position) {
+		auto &next_tkn = next_token();
 
-			auto& next_tkn = next_token();
-			if (next_tkn.is_character(']')) {
-				move_back();
-				return argument(stack_argument(current_token.location, position, stack_operation::PEEK));
-			} else if (next_tkn.is_increment()) {
-				if (position != argument_position::A) {
-					error_handler->error(current_token.location, "[SP++] is not allowed as argument b.");
-				}
-
-				return argument(stack_argument(current_token.location, position, stack_operation::POP));
+		optional_argument arg;
+		if (current_token.is_register(registers::SP) && next_tkn.is_increment()) {
+			if (position == argument_position::B) {
+				error_handler->error(current_token.location, "[SP++] / POP is not allowed as argument b");
 			}
 
-			move_back();
-		} else if (current_token.is_decrement()) {
-			auto& next_tkn = next_token();
-			if (next_tkn.is_identifier() && iequals(next_tkn.content, "SP")) {
-				if (position != argument_position::B) {
-					error_handler->error(current_token.location, "[--SP] is not allowed as argument a.");
-				}
-
-				return argument(stack_argument(current_token.location, position, stack_operation::PUSH));
+			arg = argument(stack_argument(current_token.location, position, stack_operation::POP));
+		} else if (current_token.is_decrement() && next_tkn.is_register(registers::SP)) {
+			if (position == argument_position::A) {
+				error_handler->error(current_token.location, "[--SP] / PUSH is not allowed as argument a");
 			}
 
+			arg = argument(stack_argument(current_token.location, position, stack_operation::PUSH));
+		} else {
 			move_back();
+
+			arg = argument(expression_argument(current_token.location, position,
+					parse_expression(current_token, true, true), true, false));
 		}
 
-		return boost::none;
+		auto &end_token = next_token();
+		if (!end_token.is_character(']')) {
+			move_back();
+			error_handler->unexpected_token(end_token, ']');
+			return boost::none;
+		}
+
+		return arg;
 	}
 
-	optional_argument parser::parse_mnemonic_stack_argument(const token& current_token, argument_position position) {
-		if (iequals(current_token.content, "PUSH")) {
-			if (position != argument_position::B) {
-				error_handler->error(current_token.location, "PUSH is not allowed as argument a.");
-			}
+	optional_argument parser::parse_stack_argument(const token& current_token, argument_position position) {
+		stack_operation operation = current_token.get_stack_operation();
 
-			return argument(stack_argument(current_token.location, position, stack_operation::PUSH));
-		} else if (iequals(current_token.content, "POP")) {
-			if (position != argument_position::A) {
-				error_handler->error(current_token.location, "POP is not allowed as argument a.");
-			}
-
-			return argument(stack_argument(current_token.location, position, stack_operation::POP));
-		} else if (iequals(current_token.content, "PEEK")) {
-			return argument(stack_argument(current_token.location, position, stack_operation::PEEK));
-		} else if (iequals(current_token.content, "PICK")) {
+		if (operation == stack_operation::PICK) {
 			auto pick_expr = binary_operation(current_token.location, binary_operator::PLUS,
 					register_operand(current_token.location, registers::SP),
 					parse_expression(next_token(), false, false));
 
 			if (evaluatable(pick_expr)) {
-				return argument(expression_argument(current_token.location, position, evaluate(pick_expr), true, false));
+				return argument(expression_argument(current_token.location, position, evaluate(pick_expr),
+						true, false));
 			} else {
 				return argument(expression_argument(current_token.location, position, pick_expr, true, false));
 			}
 		}
 
-		return boost::none;
+		if (operation == stack_operation::PUSH && position == argument_position::A) {
+			error_handler->error(current_token.location, "[--SP] / PUSH is not allowed as argument a");
+		} else if (operation == stack_operation::POP && position == argument_position::B) {
+			error_handler->error(current_token.location, "[SP++] / POP is not allowed as argument b");
+		}
+
+		return argument(stack_argument(current_token.location, position, operation));
 	}
 
 	expression parser::parse_expression(const token& current_token, bool allow_registers, bool indirection) {

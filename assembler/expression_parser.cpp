@@ -152,8 +152,8 @@ namespace dcpu { namespace parser {
 	expression expression_parser::parse_primary(const token& current_token) {
 		if (current_token.is_character('(')) {
 			return parse_grouping(next_token());
-		} else if (current_token.is_identifier()) {
-			return parse_identifier(current_token);
+		} else if (current_token.is_register()) {
+			return parse_register(current_token);
 		} else if (current_token.is_symbol()) {
 			return parse_symbol(current_token);
 		} else if (current_token.is_integer()) {
@@ -179,14 +179,11 @@ namespace dcpu { namespace parser {
 		return expr;
 	}
 
-	expression expression_parser::parse_identifier(const token& current_token) {
-		auto definition = register_definition::lookup(current_token.content);
-		if (!definition) {
-			return parse_symbol(current_token);
-		}
+	expression expression_parser::parse_register(const token& current_token) {
+		auto definition = current_token.get_register();
 
 		if (!allow_registers) {
-			error_handler->error(current_token.location, boost::format(REGISTER_NOT_ALLOWED) % definition->_register);
+			error_handler->error(current_token.location, boost::format(REGISTER_NOT_ALLOWED) % definition._register);
 
 			return invalid_expression(current_token.location);
 		}
@@ -197,17 +194,17 @@ namespace dcpu { namespace parser {
 
 			return invalid_expression(current_token.location);
 		} else {
-			first_register = register_location(current_token.location, definition->_register);
+			first_register = register_location(current_token.location, definition._register);
 		}
 
-		if (indirection && !definition->indirectable) {
+		if (indirection && !definition.indirectable) {
 			error_handler->error(current_token.location, boost::format(REGISTER_NOT_INDIRECTABLE)
-					% definition->_register);
+					% definition._register);
 
 			return invalid_expression(current_token.location);
 		}
 
-		return register_operand(current_token.location, definition->_register);
+		return register_operand(current_token.location, definition._register);
 	}
 
 	expression expression_parser::parse_symbol(const token& current_token) {
@@ -221,7 +218,7 @@ namespace dcpu { namespace parser {
 	}
 
 	expression expression_parser::parse_literal(const token& current_token) {
-		return literal_operand(current_token.location, current_token.value);
+		return literal_operand(current_token.location, current_token.get_integer());
 	}
 
 	token& expression_parser::next_token() {

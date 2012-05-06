@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <climits>
 #include <stdexcept>
-
 #include <boost/algorithm/string.hpp>
 
 using namespace std;
@@ -63,7 +62,7 @@ namespace dcpu { namespace lexer {
 			if (quoted_string.length() == 0) {
 				error_handler->warning(start, "empty character literal; assuming null terminator");
 
-				return token(start, token_type::INTEGER, quoted_string, quote_type::SINGLE_QUOTE, 0);
+				return token(start, token_type::INTEGER, quoted_string, 0);
 			}
 
 			if (quoted_string.length() > 1) {
@@ -71,7 +70,7 @@ namespace dcpu { namespace lexer {
 			}
 
 			uint8_t value = quoted_string[0];
-			return token(start, token_type::INTEGER,  quoted_string, quote_type::SINGLE_QUOTE, value);
+			return token(start, token_type::INTEGER, quoted_string, value);
 		} else if (c == '"') {
 			string quoted_string = parse_quoted_string(start, c, true);
 
@@ -85,7 +84,7 @@ namespace dcpu { namespace lexer {
 			if (consume_next_if(':')) {
 				return token(start, token_type::LABEL, identifier);
 			} else {
-				return token(start, token_type::IDENTIFIER, identifier);
+				return parse_identifier(start, identifier);
 			}
 		} else if (isdigit(c)) {
 			return parse_number(start, append_while(c, &lexer::is_identifier_char));
@@ -96,6 +95,30 @@ namespace dcpu { namespace lexer {
 		}
 
 		return token(start, token_type::CHARACTER, c);
+	}
+
+	token lexer::parse_identifier(location_ptr &start, const string &identifier) {
+		auto _register = register_definition::lookup(identifier);
+		if (_register) {
+			return token(start, token_type::REGISTER, identifier, *_register);
+		}
+
+		auto instruction = instruction_definition::lookup(identifier);
+		if (instruction) {
+			return token(start, token_type::INSTRUCTION, identifier, *instruction);
+		}
+
+		auto directive = lookup_directive(identifier);
+		if (directive) {
+			return token(start, token_type::DIRECTIVE, identifier, *directive);
+		}
+
+		auto stack_op = lookup_stack_operation(identifier);
+		if (stack_op) {
+			return token(start, token_type::STACK_OPERATION, identifier, *stack_op);
+		}
+
+		return token(start, token_type::SYMBOL, identifier);
 	}
 
 	string lexer::append_while(char initial, std::function<bool (char)> predicate) {
@@ -316,16 +339,16 @@ namespace dcpu { namespace lexer {
 
 		size_t pos;
 		try {
-			unsigned long parsedValue = stoul(unprefixedValue, &pos, base);
+			unsigned long parsed_value = stoul(unprefixedValue, &pos, base);
 			if (pos != unprefixedValue.size()) {
 				return token(start, token_type::INVALID_INTEGER, value);
 			}
 
-			if (parsedValue > UINT32_MAX) {
+			if (parsed_value > UINT32_MAX) {
 				throw out_of_range(value);
 			}
 
-			return token(start, token_type::INTEGER, value, (uint32_t)parsedValue);
+			return token(start, token_type::INTEGER, value, (uint32_t)parsed_value);
 		} catch (invalid_argument &ia) {
 			return token(start, token_type::INVALID_INTEGER, value);
 		} catch (out_of_range &oor) {

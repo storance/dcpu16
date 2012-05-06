@@ -9,61 +9,61 @@ using namespace boost::algorithm;
 namespace dcpu {
 	/*************************************************************************
 	 *
-	 * opcode_definition
+	 * instruction_definition
 	 *
 	 *************************************************************************/
 
-	map<string, opcode_definition> opcode_definition::definitions = {
-		{"set", opcode_definition(opcodes::SET, 2)},
-		{"add", opcode_definition(opcodes::ADD, 2)},
-		{"sub", opcode_definition(opcodes::SUB, 2)},
-		{"mul", opcode_definition(opcodes::MUL, 2)},
-		{"mli", opcode_definition(opcodes::MLI, 2)},
-		{"div", opcode_definition(opcodes::DIV, 2)},
-		{"dvi", opcode_definition(opcodes::DVI, 2)},
-		{"mod", opcode_definition(opcodes::MOD, 2)},
-		{"mdi", opcode_definition(opcodes::MDI, 2)},
-		{"and", opcode_definition(opcodes::AND, 2)},
-		{"bor", opcode_definition(opcodes::BOR, 2)},
-		{"xor", opcode_definition(opcodes::XOR, 2)},
-		{"shr", opcode_definition(opcodes::SHR, 2)},
-		{"asr", opcode_definition(opcodes::ASR, 2)},
-		{"shl", opcode_definition(opcodes::SHL, 2)},
-		{"ifb", opcode_definition(opcodes::IFB, 2)},
-		{"ifc", opcode_definition(opcodes::IFC, 2)},
-		{"ife", opcode_definition(opcodes::IFE, 2)},
-		{"ifn", opcode_definition(opcodes::IFN, 2)},
-		{"ifg", opcode_definition(opcodes::IFG, 2)},
-		{"ifa", opcode_definition(opcodes::IFA, 2)},
-		{"ifl", opcode_definition(opcodes::IFL, 2)},
-		{"ifu", opcode_definition(opcodes::IFU, 2)},
-		{"adx", opcode_definition(opcodes::ADX, 2)},
-		{"sbx", opcode_definition(opcodes::SBX, 2)},
-		{"sti", opcode_definition(opcodes::STI, 2)},
-		{"std", opcode_definition(opcodes::STD, 2)},
-		{"jsr", opcode_definition(opcodes::JSR, 1)},
-		{"hcf", opcode_definition(opcodes::HCF, 1)},
-		{"int", opcode_definition(opcodes::INT, 1)},
-		{"iag", opcode_definition(opcodes::IAG, 1)},
-		{"ias", opcode_definition(opcodes::IAS, 1)},
-		{"rfi", opcode_definition(opcodes::RFI, 1)},
-		{"iaq", opcode_definition(opcodes::IAQ, 1)},
-		{"hwn", opcode_definition(opcodes::HWN, 1)},
-		{"hwq", opcode_definition(opcodes::HWQ, 1)},
-		{"hwi", opcode_definition(opcodes::HWI, 1)},
-		{"jmp", opcode_definition(opcodes::JMP, 1)}
+	map<string, instruction_definition> instruction_definition::definitions = {
+		{"set", instruction_definition(opcodes::SET, 2)},
+		{"add", instruction_definition(opcodes::ADD, 2)},
+		{"sub", instruction_definition(opcodes::SUB, 2)},
+		{"mul", instruction_definition(opcodes::MUL, 2)},
+		{"mli", instruction_definition(opcodes::MLI, 2)},
+		{"div", instruction_definition(opcodes::DIV, 2)},
+		{"dvi", instruction_definition(opcodes::DVI, 2)},
+		{"mod", instruction_definition(opcodes::MOD, 2)},
+		{"mdi", instruction_definition(opcodes::MDI, 2)},
+		{"and", instruction_definition(opcodes::AND, 2)},
+		{"bor", instruction_definition(opcodes::BOR, 2)},
+		{"xor", instruction_definition(opcodes::XOR, 2)},
+		{"shr", instruction_definition(opcodes::SHR, 2)},
+		{"asr", instruction_definition(opcodes::ASR, 2)},
+		{"shl", instruction_definition(opcodes::SHL, 2)},
+		{"ifb", instruction_definition(opcodes::IFB, 2)},
+		{"ifc", instruction_definition(opcodes::IFC, 2)},
+		{"ife", instruction_definition(opcodes::IFE, 2)},
+		{"ifn", instruction_definition(opcodes::IFN, 2)},
+		{"ifg", instruction_definition(opcodes::IFG, 2)},
+		{"ifa", instruction_definition(opcodes::IFA, 2)},
+		{"ifl", instruction_definition(opcodes::IFL, 2)},
+		{"ifu", instruction_definition(opcodes::IFU, 2)},
+		{"adx", instruction_definition(opcodes::ADX, 2)},
+		{"sbx", instruction_definition(opcodes::SBX, 2)},
+		{"sti", instruction_definition(opcodes::STI, 2)},
+		{"std", instruction_definition(opcodes::STD, 2)},
+		{"jsr", instruction_definition(opcodes::JSR, 1)},
+		{"hcf", instruction_definition(opcodes::HCF, 1)},
+		{"int", instruction_definition(opcodes::INT, 1)},
+		{"iag", instruction_definition(opcodes::IAG, 1)},
+		{"ias", instruction_definition(opcodes::IAS, 1)},
+		{"rfi", instruction_definition(opcodes::RFI, 1)},
+		{"iaq", instruction_definition(opcodes::IAQ, 1)},
+		{"hwn", instruction_definition(opcodes::HWN, 1)},
+		{"hwq", instruction_definition(opcodes::HWQ, 1)},
+		{"hwi", instruction_definition(opcodes::HWI, 1)},
+		{"jmp", instruction_definition(opcodes::JMP, 1)}
 	};
 
-	opcode_definition::opcode_definition(opcodes opcode, uint8_t args)
+	instruction_definition::instruction_definition(opcodes opcode, uint8_t args)
 			: opcode(opcode), args(args) {}
 
-	const opcode_definition* opcode_definition::lookup(const string &mnemonic) {
+	boost::optional<instruction_definition> instruction_definition::lookup(const string &mnemonic) {
 		auto it = definitions.find(to_lower_copy(mnemonic));
 		if (it == definitions.end()) {
-			return nullptr;
+			return boost::none;
 		}
 
-		return &it->second;
+		return it->second;
 	}
 
 	/*************************************************************************
@@ -89,13 +89,61 @@ namespace dcpu {
 	register_definition::register_definition(registers reg, bool indirectable)
 		: _register(reg), indirectable(indirectable) {}
 
-	const register_definition* register_definition::lookup(const string &mnemonic) {
+	boost::optional<register_definition> register_definition::lookup(const string &mnemonic) {
 		auto it = definitions.find(to_lower_copy(mnemonic));
 		if (it == definitions.end()) {
-			return nullptr;
+			return boost::none;
 		}
 
-		return &it->second;
+		return it->second;
+	}
+
+	/*************************************************************************
+	 *
+	 * directives
+	 *
+	 *************************************************************************/
+
+	boost::optional<directives> lookup_directive(const std::string &mnemonic) {
+		if (iequals(mnemonic, ".org")) {
+			return directives::ORG;
+		} else if (iequals(mnemonic, ".align")) {
+			return directives::ALIGN;
+		} else if (iequals(mnemonic, ".equ")) {
+			return directives::EQU;
+		} else if (iequals(mnemonic, ".include")) {
+			return directives::INCLUDE;
+		} else if (iequals(mnemonic, ".incbin")) {
+			return directives::INCBIN;
+		} else if (iequals(mnemonic, ".dw") || iequals(mnemonic, ".dat") || iequals(mnemonic, "dat")) {
+			return directives::DW;
+		} else if (iequals(mnemonic, ".db") || iequals(mnemonic, ".dp")) {
+			return directives::DB;
+		} else if (iequals(mnemonic, ".fill")) {
+			return directives::FILL;
+		}
+
+		return boost::none;
+	}
+
+	/*************************************************************************
+	 *
+	 * stack_operation
+	 *
+	 *************************************************************************/
+
+	boost::optional<stack_operation> lookup_stack_operation(const std::string &mnemonic) {
+		if (iequals(mnemonic, "push")) {
+			return stack_operation::PUSH;
+		} else if (iequals(mnemonic, "pop")) {
+			return stack_operation::POP;
+		} else if (iequals(mnemonic, "peek")) {
+			return stack_operation::PEEK;
+		} else if (iequals(mnemonic, "pick")) {
+			return stack_operation::PICK;
+		}
+
+		return boost::none;
 	}
 
 	/*************************************************************************
@@ -213,6 +261,44 @@ namespace dcpu {
 			return stream << "EX";
 		default:
 			return stream << "<Unknown register " << static_cast<int>(_register) << ">";
+		}
+	}
+
+	ostream& operator<< (ostream& stream, directives directive) {
+		switch (directive) {
+		case directives::INCLUDE:
+			return stream << ".INCLUDE";
+		case directives::INCBIN:
+			return stream << ".INCBIN";
+		case directives::FILL:
+			return stream << ".FILL";
+		case directives::DW:
+			return stream << ".DW";
+		case directives::DB:
+			return stream << ".DB";
+		case directives::ALIGN:
+			return stream << ".ALIGN";
+		case directives::EQU:
+			return stream << ".EQU";
+		case directives::ORG:
+			return stream << ".ORG";
+		default:
+			return stream << "<Unknown directive " << static_cast<int>(directive) << ">";
+		}
+	}
+
+	ostream& operator<< (ostream& stream, stack_operation operation) {
+		switch (operation) {
+		case stack_operation::PUSH:
+			return stream << "PUSH";
+		case stack_operation::POP:
+			return stream << "POP";
+		case stack_operation::PEEK:
+			return stream << "PEEK";
+		case stack_operation::PICK:
+			return stream << "PICK";
+		default:
+			return stream << "<Unknown stack_operation " << static_cast<int>(operation) << ">";
 		}
 	}
 }

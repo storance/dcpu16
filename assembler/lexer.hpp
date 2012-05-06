@@ -35,7 +35,8 @@ namespace dcpu { namespace lexer {
 		static bool is_identifier_first_char(char);
 
 		void skip();
-		token parse_number(location_ptr&, const std::string &value);
+		token parse_number(location_ptr&, const std::string&);
+		token parse_identifier(location_ptr&, const std::string&);
 	public:
 		error_handler_ptr error_handler;
 		token_list tokens;

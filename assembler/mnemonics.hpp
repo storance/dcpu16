@@ -3,6 +3,7 @@
 #include <string>
 #include <cstdint>
 #include <map>
+#include <boost/optional.hpp>
 
 namespace dcpu {
 	enum class registers : std::uint8_t {
@@ -53,15 +54,30 @@ namespace dcpu {
 		JMP=0x400,
 	};
 
-	class opcode_definition {
-		static std::map<std::string, opcode_definition> definitions;
+	enum class directives : std::uint8_t {
+		INCLUDE,
+		INCBIN,
+		ALIGN,
+		DW,
+		DB,
+		EQU,
+		ORG,
+		FILL
+	};
 
-		opcode_definition(opcodes opcode, std::uint8_t args);
+	enum class stack_operation : std::uint8_t {
+		PUSH, POP, PEEK, PICK
+	};
+
+	class instruction_definition {
+		static std::map<std::string, instruction_definition> definitions;
+
+		instruction_definition(opcodes opcode, std::uint8_t args);
 	public:
 		opcodes opcode;
 		std::uint8_t args;
 
-		static const opcode_definition* lookup(const std::string &mnemonic);
+		static boost::optional<instruction_definition> lookup(const std::string &mnemonic);
 	};
 
 	class register_definition {
@@ -72,9 +88,14 @@ namespace dcpu {
 		registers _register;
 		bool indirectable;
 
-		static const register_definition* lookup(const std::string &mnemonic);
+		static boost::optional<register_definition> lookup(const std::string &mnemonic);
 	};
+
+	boost::optional<directives> lookup_directive(const std::string &mnemonic);
+	boost::optional<stack_operation> lookup_stack_operation(const std::string &mnemonic);
 
 	std::ostream& operator<< (std::ostream& stream, opcodes);
 	std::ostream& operator<< (std::ostream& stream, registers);
+	std::ostream& operator<< (std::ostream& stream, directives);
+	std::ostream& operator<< (std::ostream& stream, stack_operation operation);
 }

@@ -30,19 +30,13 @@ namespace dcpu { namespace lexer {
 	}
 
 	token::token(location_ptr &location, token_type type, const string &content)
-	    : location(location), type(type), content(content), value(0), quote(quote_type::NONE)  {}
+			: location(location), type(type), content(content), data(nullptr) {}
 
-	token::token(location_ptr &location, token_type type, const string &content, quote_type quote)
-		: location(location), type(type), content(content), value(0), quote(quote) {}
-
-	token::token(location_ptr &location, token_type type, const string &content, quote_type quote, uint32_t value)
-		: location(location), type(type), content(content), value(value), quote(quote) {}
-
-	token::token(location_ptr &location, token_type type, const string &content, uint32_t value)
-	    : location(location), type(type), content(content), value(value), quote(quote_type::NONE) {}
+	token::token(location_ptr &location, token_type type, const string &content, token_data data)
+			: location(location), type(type), content(content), data(data) {}
 
 	token::token(location_ptr &location, token_type type, char c)
-	    : location(location), type(type), content(1, c), value(0), quote(quote_type::NONE)  {}
+	    : location(location), type(type), content(1, c), data(nullptr) {}
 
 	bool token::is_integer() const {
 		return type == token_type::INTEGER;
@@ -50,10 +44,6 @@ namespace dcpu { namespace lexer {
 
 	bool token::is_invalid_integer() const {
 		return type == token_type::INVALID_INTEGER;
-	}
-
-	bool token::is_identifier() const {
-		return type == token_type::IDENTIFIER;
 	}
 
 	bool token::is_label() const {
@@ -102,6 +92,78 @@ namespace dcpu { namespace lexer {
 
 	bool token::is_quoted_string() const {
 		return type == token_type::QUOTED_STRING;
+	}
+
+	bool token::is_directive() const {
+		return type == token_type::DIRECTIVE;
+	}
+
+	bool token::is_directive(directives directive) const {
+		if (is_directive()) {
+			return get_directive() == directive;
+		}
+
+		return false;
+	}
+
+	bool token::is_stack_operation() const {
+			return type == token_type::STACK_OPERATION;
+		}
+
+	bool token::is_stack_operation(stack_operation operation) const {
+		if (is_stack_operation()) {
+			return get_stack_operation() == operation;
+		}
+
+		return false;
+	}
+
+	bool token::is_instruction() const {
+		return type == token_type::INSTRUCTION;
+	}
+
+	bool token::is_instruction(opcodes opcode) const {
+		if (is_instruction()) {
+			return get_instruction().opcode == opcode;
+		}
+
+		return false;
+	}
+
+	bool token::is_register() const {
+		return type == token_type::REGISTER;
+	}
+
+	bool token::is_register(registers _register) const {
+		if (is_register()) {
+			return get_register()._register == _register;
+		}
+
+		return false;
+	}
+
+	uint32_t token::get_integer() const {
+		return boost::get<uint32_t>(data);
+	}
+
+	instruction_definition token::get_instruction() const {
+		return boost::get<instruction_definition>(data);
+	}
+
+	register_definition token::get_register() const {
+		return boost::get<register_definition>(data);
+	}
+
+	directives token::get_directive() const {
+		return boost::get<directives>(data);
+	}
+
+	quote_type token::get_quote_type() const {
+		return boost::get<quote_type>(data);
+	}
+
+	stack_operation token::get_stack_operation() const {
+		return boost::get<stack_operation>(data);
 	}
 
 	token& next(token_iterator& current, token_iterator end) {

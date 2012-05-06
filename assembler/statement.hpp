@@ -13,10 +13,6 @@ namespace dcpu { namespace ast {
 		A, B
 	};
 
-	enum class stack_operation : std::uint8_t {
-		PUSH, POP, PEEK
-	};
-
 	enum class label_type : std::uint8_t {
 		Global, Local, GlobalNoAttach
 	};
@@ -107,7 +103,6 @@ namespace dcpu { namespace ast {
 	std::uint16_t output_size(const argument &arg);
 	std::uint16_t output_size(const expression_argument &arg, const expression &expr);
 
-	std::ostream& operator<< (std::ostream& stream, stack_operation operation);
 	std::ostream& operator<< (std::ostream& stream, label_type labelType);
 	std::ostream& operator<< (std::ostream& stream, const stack_argument &arg);
 	std::ostream& operator<< (std::ostream& stream, const expression_argument &arg);
