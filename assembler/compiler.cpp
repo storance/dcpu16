@@ -135,7 +135,7 @@ namespace dcpu { namespace compiler {
 
 	statement_compiler::statement_compiler(vector<uint16_t> &output) : output(output) {}
 
-	void statement_compiler::operator()(const label &label) const {
+	template <typename T> void statement_compiler::operator()(const T&) const {
 
 	}
 
@@ -169,7 +169,7 @@ namespace dcpu { namespace compiler {
 		}
 	}
 
-	void statement_compiler::operator()(const data &data) const {
+	void statement_compiler::operator()(const data_directive &data) const {
 		copy (data.value.begin(), data.value.end(), back_inserter(output));
 	}
 

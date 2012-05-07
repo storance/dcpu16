@@ -119,7 +119,11 @@ namespace dcpu { namespace parser {
 		auto directive = current_token.get_directive();
 		switch (directive) {
 		case directives::DW:
-			return statement(parse_data(current_token, false));
+			return statement(parse_data_word(current_token));
+		case directives::DB:
+			return statement(parse_data_byte(current_token));
+		case directives::ORG:
+			return statement(parse_org(current_token));
 		default:
 			error_handler->warning(current_token.location, boost::format("directive '%s' is not yet supported")
 					% directive);
@@ -129,41 +133,87 @@ namespace dcpu { namespace parser {
 		return boost::none;
 	}
 
-	ast::data parser::parse_data(const token& current_token, bool packed) {
-		data data_stmt(current_token.location);
+	data_directive parser::parse_data_word(const token& current_token) {
+		data_directive data(current_token.location);
+		parse_data(next_token(), data.value, false);
 
-		auto next_tkn = next_token();
-		while (!next_tkn.is_terminator()) {
-			if (next_tkn.is_quoted_string()) {
-				data_stmt.append(next_tkn.content);
-			} else if (next_tkn.is_integer()) {
-				uint32_t value = next_tkn.get_integer();
-				if (value > UINT16_MAX) {
-					error_handler->warning(next_tkn.location, "overflow in converting to 16-bit word");
+		return data;
+	}
+
+	data_directive parser::parse_data_byte(const token& current_token) {
+		data_directive data(current_token.location);
+
+		vector<uint16_t> words;
+		parse_data(next_token(), words, true);
+
+		for (auto it = words.begin(); it != words.end(); it++) {
+			uint16_t result = ((uint8_t)*it) << 8;
+
+			if (++it == words.end()) {
+				data.value.push_back(result);
+				break;
+			} else {
+				result |= (uint8_t)*it;
+				data.value.push_back(result);
+			}
+		}
+
+		return data;
+	}
+
+	void parser::parse_data(const token& token, vector<uint16_t> &output, bool packed) {
+
+		auto current_token = token;
+		while (!current_token.is_terminator()) {
+			if (current_token.is_quoted_string()) {
+				copy (current_token.content.begin(), current_token.content.end(), back_inserter(output));
+			} else if (current_token.is_integer()) {
+				uint32_t value = current_token.get_integer();
+				if (!packed && value > UINT16_MAX) {
+					error_handler->warning(current_token.location, "overflow in converting to 16-bit integer");
+				} else if (packed && value > UINT8_MAX) {
+					error_handler->warning(current_token.location, "overflow in converting to 8-bit integer");
 				}
 
-				data_stmt.append(value);
+				output.push_back(value);
 			} else {
 				break;
 			}
 
-			next_tkn = next_token();
-			if (!next_tkn.is_character(',')) {
+			current_token = next_token();
+			if (!current_token.is_character(',')) {
 				break;
 			}
 
-			next_tkn = next_token();
+			current_token = next_token();
 		}
 
-		if (!next_tkn.is_terminator()) {
-			error_handler->unexpected_token(next_tkn, "a character, string, or integer literal");
+		if (!current_token.is_terminator()) {
+			error_handler->unexpected_token(current_token, "a character, string, or integer literal");
 		}
 
-		if (data_stmt.value.size() == 0) {
+		if (output.size() == 0) {
 			error_handler->warning(current_token.location, "empty data segment");
 		}
+	}
 
-		return data_stmt;
+	org_directive parser::parse_org(const token& current_token) {
+		if (!statements.empty()) {
+			error_handler->error(current_token.location, ".ORG must be the first statement");
+		}
+
+		auto next_tkn = next_token();
+		if (!next_tkn.is_integer()) {
+			error_handler->unexpected_token(next_tkn, "an integer constant");
+			return org_directive(current_token.location, 0);
+		}
+
+		uint32_t value = next_tkn.get_integer();
+		if (value > UINT16_MAX) {
+			error_handler->warning(current_token.location, "overflow in converting to 16-bit integer");
+		}
+
+		return org_directive(current_token.location, value);
 	}
 
 	optional_argument parser::parse_argument(const token& current_token, argument_position position) {

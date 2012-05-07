@@ -127,7 +127,9 @@ namespace dcpu { namespace ast {
 	public:
 		lexer::location_ptr operator()(const locatable &locatable) const;
 
-		template <typename T> lexer::location_ptr operator()(const T &) const;
+		template <typename T> lexer::location_ptr operator()(const T &locatable) const {
+			return locatable.location;
+		}
 	};
 
 	bool evaluated(const expression &expr);

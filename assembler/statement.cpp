@@ -34,9 +34,9 @@ namespace dcpu { namespace ast {
 	 * expression_argument
 	 *
 	 *************************************************************************/
-	expression_argument::expression_argument(const location_ptr &location, argument_position position, const expression &expr,
-			bool indirect, bool force_next_word) : base_argument(location, position), indirect(indirect),
-			force_next_word(force_next_word), next_word_required(true), expr(expr) {}
+	expression_argument::expression_argument(const location_ptr &location, argument_position position,
+			const expression &expr, bool indirect, bool force_next_word) : base_argument(location, position),
+			indirect(indirect), force_next_word(force_next_word), next_word_required(true), expr(expr) {}
 
 	bool expression_argument::operator==(const expression_argument& other) const {
 		return expr == other.expr && indirect == other.indirect && force_next_word == other.force_next_word;
@@ -79,24 +79,28 @@ namespace dcpu { namespace ast {
 
 	/*************************************************************************
 	 *
-	 * label
+	 * data_directive
 	 *
 	 *************************************************************************/
-	data::data(const location_ptr &location) : locatable(location) {}
+	data_directive::data_directive(const location_ptr &location) : locatable(location) {}
 
-	data::data(const location_ptr &location, const vector<uint16_t> &value)
+	data_directive::data_directive(const location_ptr &location, const vector<uint16_t> &value)
 		: locatable(location), value(value) {}
 
-	bool data::operator==(const data& other) const {
+	bool data_directive::operator==(const data_directive& other) const {
 		return value == other.value;
 	}
 
-	void data::append(uint16_t word) {
-		value.push_back(word);
-	}
+	/*************************************************************************
+	 *
+	 * org_directive
+	 *
+	 *************************************************************************/
+	org_directive::org_directive(const location_ptr &location, uint16_t offset)
+		: locatable(location), offset(offset) {}
 
-	void data::append(const std::string literal) {
-		copy (literal.begin(), literal.end(), back_inserter(value));
+	bool org_directive::operator==(const org_directive &other) const {
+		return offset == other.offset;
 	}
 
 	/*************************************************************************
@@ -143,7 +147,8 @@ namespace dcpu { namespace ast {
 		return output_size(arg, arg.expr);
 	}
 
-	uint16_t calculate_size::operator()(const label &) const {
+	template <typename T>
+	uint16_t calculate_size::operator()( const T &expr) const {
 		return 0;
 	}
 
@@ -159,8 +164,12 @@ namespace dcpu { namespace ast {
 		return size;
 	}
 
-	uint16_t calculate_size::operator()(const data &data) const {
+	uint16_t calculate_size::operator()(const data_directive &data) const {
 		return data.value.size();
+	}
+
+	uint16_t calculate_size::operator()(const org_directive &org) const {
+		return org.offset;
 	}
 
 	/*************************************************************************
@@ -179,6 +188,14 @@ namespace dcpu { namespace ast {
 
 	uint16_t output_size(const expression_argument &arg, const expression &expr) {
 		return apply_visitor(calculate_size_expression(arg), expr);
+	}
+
+	location_ptr locate(const argument &arg) {
+		return apply_visitor(get_location(), arg);
+	}
+
+	location_ptr locate(const statement &stmt) {
+		return apply_visitor(get_location(), stmt);
 	}
 
 	/*************************************************************************
@@ -231,8 +248,8 @@ namespace dcpu { namespace ast {
 		return stream << instruction.a;
 	}
 
-	ostream& operator<< (ostream& stream, const data &data) {
-		stream << "dat ";
+	ostream& operator<< (ostream& stream, const data_directive &data) {
+		stream << ".DW ";
 
 		bool first = true;
 		for (uint16_t word : data.value) {
@@ -243,5 +260,9 @@ namespace dcpu { namespace ast {
 		}
 
 		return stream;
+	}
+
+	ostream& operator<< (ostream& stream, const org_directive &org) {
+		return stream << ".ORG " << boost::format("%#04x") % org.offset;
 	}
 }}

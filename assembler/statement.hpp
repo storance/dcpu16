@@ -67,18 +67,23 @@ namespace dcpu { namespace ast {
 		bool operator==(const label&) const;
 	};
 
-	struct data : public locatable {
+	struct data_directive : public locatable {
 		std::vector<std::uint16_t> value;
 
-		data(const lexer::location_ptr &location);
-		data(const lexer::location_ptr &location, const std::vector<std::uint16_t> &value);
+		data_directive(const lexer::location_ptr &location);
+		data_directive(const lexer::location_ptr &location, const std::vector<std::uint16_t> &value);
 
-		bool operator==(const data&) const;
-		void append(uint16_t word);
-		void append(const std::string literal);
+		bool operator==(const data_directive&) const;
 	};
 
-	typedef boost::variant<instruction, label, data> statement;
+	struct org_directive : public locatable {
+		std::uint16_t offset;
+
+		org_directive(const lexer::location_ptr &location, std::uint16_t offset);
+		bool operator==(const org_directive&) const;
+	};
+
+	typedef boost::variant<instruction, label, data_directive, org_directive> statement;
 	typedef std::list<statement> statement_list;
 
 	class calculate_size_expression : public boost::static_visitor<std::uint16_t> {
@@ -94,19 +99,23 @@ namespace dcpu { namespace ast {
 	public:
 		std::uint16_t operator()(const stack_argument& arg) const;
 		std::uint16_t operator()(const expression_argument &arg) const;
-		std::uint16_t operator()(const data &) const;
-		std::uint16_t operator()(const label &) const;
+		std::uint16_t operator()(const data_directive &) const;
+		std::uint16_t operator()(const org_directive &) const;
 		std::uint16_t operator()(const instruction &instruction) const;
+		template <typename T> std::uint16_t operator()( const T &expr) const;
 	};
 
 	std::uint16_t output_size(const statement &statement);
 	std::uint16_t output_size(const argument &arg);
 	std::uint16_t output_size(const expression_argument &arg, const expression &expr);
+	lexer::location_ptr locate(const argument &arg);
+	lexer::location_ptr locate(const statement &stmt);
 
 	std::ostream& operator<< (std::ostream& stream, label_type labelType);
 	std::ostream& operator<< (std::ostream& stream, const stack_argument &arg);
 	std::ostream& operator<< (std::ostream& stream, const expression_argument &arg);
 	std::ostream& operator<< (std::ostream& stream, const label &label);
 	std::ostream& operator<< (std::ostream& stream, const instruction &instruction);
-	std::ostream& operator<< (std::ostream& stream, const data &label);
+	std::ostream& operator<< (std::ostream& stream, const data_directive &data);
+	std::ostream& operator<< (std::ostream& stream, const org_directive &org);
 }}

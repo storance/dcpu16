@@ -21,7 +21,7 @@ void run_parser(const string &content, int expected_statements, statement_list &
 	ASSERT_EQ(expected_statements, statements.size());
 }
 
-TEST(ParserTest, InstructionTest) {
+TEST(Parser, Instruction) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
 	statement_list statements;
 
@@ -80,7 +80,7 @@ TEST(ParserTest, InstructionTest) {
 	EXPECT_EQ(*it++, statement(instruction(location, opcodes::JMP, arg_a, no_arg)));
 }
 
-TEST(ParserTest, LabelTest) {
+TEST(Parser, Label) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
 	statement_list statements;
 
@@ -111,22 +111,47 @@ TEST(ParserTest, LabelTest) {
 	)));
 }
 
-TEST(ParserTest, DataTest) {
+TEST(Parser, Data) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
 	statement_list statements;
 
 	ASSERT_NO_FATAL_FAILURE(run_parser("dat \"hello, world!\"\n", 1, statements));
 
 	auto it = statements.begin();
-	EXPECT_EQ(*it++, statement(data(location, {'h', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', '!'})));
+	EXPECT_EQ(*it++, statement(data_directive(location, {'h', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', '!'})));
 
 	ASSERT_NO_FATAL_FAILURE(run_parser(".dw 0x40, 42, 0\n", 1, statements));
 
 	it = statements.begin();
-	EXPECT_EQ(*it++, statement(data(location, {0x40, 42, 0})));
+	EXPECT_EQ(*it++, statement(data_directive(location, {0x40, 42, 0})));
 }
 
-TEST(ParserTest, RegisterTest) {
+TEST(Parser, OrgData) {
+	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
+	statement_list statements;
+
+	ASSERT_NO_FATAL_FAILURE(run_parser(".org 0x1000\n", 1, statements));
+
+	auto it = statements.begin();
+	EXPECT_EQ(*it++, statement(org_directive(location, 0x1000)));
+}
+
+TEST(Parser, PackedData) {
+	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
+	statement_list statements;
+
+	ASSERT_NO_FATAL_FAILURE(run_parser(".db 0xde, 0xad, 0xbe, 0xef\n", 1, statements));
+
+	auto it = statements.begin();
+	EXPECT_EQ(*it++, statement(data_directive(location, {0xdead, 0xbeef})));
+
+	ASSERT_NO_FATAL_FAILURE(run_parser(".dp 0x40, 42, 8\n", 1, statements));
+
+	it = statements.begin();
+	EXPECT_EQ(*it++, statement(data_directive(location, {0x402a, 0x0800})));
+}
+
+TEST(Parser, Register) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
 	statement_list statements;
 
@@ -212,7 +237,7 @@ TEST(ParserTest, RegisterTest) {
 	)));
 }
 
-TEST(ParserTest, SimpleExpressionTest) {
+TEST(Parser, SimpleExpression) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
 	statement_list statements;
 
@@ -224,7 +249,7 @@ TEST(ParserTest, SimpleExpressionTest) {
 	)));
 }
 
-TEST(ParserTest, IndirectionTest) {
+TEST(Parser, Indirection) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
 	statement_list statements;
 
@@ -246,7 +271,7 @@ TEST(ParserTest, IndirectionTest) {
 	)));
 }
 
-TEST(ParserTest, LabelReferencesTest) {
+TEST(Parser, LabelReferences) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
 	statement_list statements;
 
@@ -273,7 +298,7 @@ TEST(ParserTest, LabelReferencesTest) {
 	)));
 }
 
-TEST(ParserTest, StackArgumentsTest) {
+TEST(Parser, StackArguments) {
 	location_ptr location = make_shared<lexer::location>("<Test>", 1, 1);
 	statement_list statements;
 

@@ -48,9 +48,9 @@ namespace dcpu { namespace compiler {
 	public:
 		statement_compiler(std::vector<uint16_t> &output);
 
-		void operator()(const ast::label &label) const;
 		void operator()(const ast::instruction &instruction) const;
-		void operator()(const ast::data &data) const;
+		void operator()(const ast::data_directive &data) const;
+		template <typename T> void operator()(const T&) const;
 	};
 
 

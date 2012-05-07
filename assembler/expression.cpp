@@ -378,10 +378,6 @@ namespace dcpu { namespace ast {
 		return locatable.location;
 	}
 
-	template <typename T> location_ptr get_location::operator()(const T &) const {
-		throw invalid_argument("not locatable");
-	}
-
 	/*************************************************************************
 	 *
 	 * evaluated function

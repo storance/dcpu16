@@ -63,22 +63,26 @@ namespace dcpu {
 		void dump();
 	};
 
-	class build_symbol_table : public boost::static_visitor<> {
-		uint16_t pc;
-		error_handler_ptr error_handler;
+	class base_symbol_visitor {
+	public:
+		std::uint16_t pc;
 		symbol_table* table;
+
+		base_symbol_visitor(symbol_table *table);
+		base_symbol_visitor(std::uint16_t pc, symbol_table *table);
+	};
+
+	class build_symbol_table : public boost::static_visitor<>, public base_symbol_visitor {
+		error_handler_ptr error_handler;
 	public:
 		build_symbol_table(error_handler_ptr &error_handler, symbol_table *table);
 
 		void operator()(const ast::label &label);
-		void operator()(const ast::instruction &instruction);
-		void operator()(const ast::data &data);
+		template <typename T> void operator()( const T &);
 	};
 
-	class resolve_symbols : public boost::static_visitor<> {
-		std::uint16_t pc;
+	class resolve_symbols : public boost::static_visitor<>, public base_symbol_visitor {
 		error_handler_ptr error_handler;
-		symbol_table* table;
 	public:
 		resolve_symbols(error_handler_ptr &error_handler, symbol_table *table);
 		resolve_symbols(std::uint16_t pc, error_handler_ptr &error_handler, symbol_table *table);
@@ -89,7 +93,6 @@ namespace dcpu {
 		void operator()(ast::current_position_operand &expr);
 		void operator()(ast::expression_argument &arg);
 		void operator()(ast::instruction &instruction);
-		void operator()(ast::data &data);
 		template <typename T> void operator()( const T &);
 	};
 
@@ -104,16 +107,13 @@ namespace dcpu {
 		template <typename T> void operator()( const T &) const;
 	};
 
-	class compress_expressions : public boost::static_visitor<bool> {
-		std::uint16_t pc;
-		symbol_table* table;
+	class compress_expressions : public boost::static_visitor<bool>, public base_symbol_visitor  {
 	public:
 		compress_expressions(symbol_table* symbol_table);
 		compress_expressions(std::uint16_t pc, symbol_table* symbol_table);
 
 		bool operator()(ast::expression_argument &arg);
 		bool operator()(ast::instruction &instruction);
-		bool operator()(ast::data &data);
 		template <typename T>bool operator()( const T &);
 	};
 }
