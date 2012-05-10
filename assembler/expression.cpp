@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <boost/format.hpp>
 
+#include "symbol_table.hpp"
+
 using namespace std;
 using namespace dcpu::lexer;
 using namespace boost;
@@ -32,22 +34,12 @@ namespace dcpu { namespace ast {
 	 * symbol_operand
 	 *
 	 *************************************************************************/
-	symbol_operand::symbol_operand(const location_ptr &location, const string &label)
-		: locatable(location), label(label), pc(nullptr) {}
+	symbol_operand::symbol_operand(const location_ptr &location, const string &name)
+		: locatable(location), name(name), resolved_symbol(nullptr) {}
 
-	symbol_operand::symbol_operand(const location_ptr &location, const string &label, uint16_t &pc)
-		: locatable(location), label(label), pc(&pc) {}
 
 	bool symbol_operand::operator==(const symbol_operand& other) const {
-		if (label != other.label) {
-			return false;
-		}
-
-		if (pc && other.pc) {
-			return *pc == *other.pc;
-		} else {
-			return pc == other.pc;
-		}
+		return name == other.name && resolved_symbol == other.resolved_symbol;
 	}
 
 	/*************************************************************************
@@ -69,13 +61,10 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 
 	current_position_operand::current_position_operand(const location_ptr &location)
-			: locatable(location), pc() {}
-
-	current_position_operand::current_position_operand(const location_ptr &location, uint16_t pc)
-			: locatable(location), pc(pc) {}
+			: locatable(location), resolved_symbol(nullptr) {}
 
 	bool current_position_operand::operator==(const current_position_operand& other) const {
-		return pc == other.pc;
+		return resolved_symbol == other.resolved_symbol;
 	}
 
 	/*************************************************************************
@@ -169,11 +158,11 @@ namespace dcpu { namespace ast {
 		}
 
 		bool operator()(const current_position_operand &expr) const {
-			return (bool)expr.pc;
+			return expr.resolved_symbol != nullptr && expr.resolved_symbol->is_evaluatable();
 		}
 
 		bool operator()(const symbol_operand &expr) const {
-			return expr.pc != nullptr;
+			return expr.resolved_symbol != nullptr && expr.resolved_symbol->is_evaluatable();
 		}
 
 		bool operator()(const binary_operation &expr) const {
@@ -234,148 +223,135 @@ namespace dcpu { namespace ast {
 	 * expression_evaluator
 	 *
 	 *************************************************************************/
-	class expression_evaluator : public static_visitor<evaluated_expression> {
-	public:
-		evaluated_expression operator()(const evaluated_expression &expr) const {
-			return expr;
+	evaluated_expression expression_evaluator::operator()(const evaluated_expression &expr) const {
+		return expr;
+	}
+
+	evaluated_expression expression_evaluator::operator()(const register_operand &expr) const {
+		return evaluated_expression(expr.location, expr._register);
+	}
+
+	evaluated_expression expression_evaluator::operator()(const literal_operand &expr) const {
+		return evaluated_expression(expr.location, expr.value);
+	}
+
+	evaluated_expression expression_evaluator::operator()(const current_position_operand &expr) const {
+		if (!expr.resolved_symbol) {
+			throw invalid_argument("unresolved symbols");
 		}
 
-		evaluated_expression operator()(const register_operand &expr) const {
-			return evaluated_expression(expr.location, expr._register);
+		return expr.resolved_symbol->evaluate(expr.location);
+	}
+
+	evaluated_expression expression_evaluator::operator()(const symbol_operand &expr) const {
+		if (!expr.resolved_symbol) {
+			throw invalid_argument("unresolved symbols");
 		}
 
-		evaluated_expression operator()(const literal_operand &expr) const {
-			return evaluated_expression(expr.location, expr.value);
+		return expr.resolved_symbol->evaluate(expr.location);
+	}
+
+	evaluated_expression expression_evaluator::operator()(const binary_operation &expr) const {
+		auto left = apply_visitor(*this, expr.left);
+		auto right = apply_visitor(*this, expr.right);
+
+		if (left._register && right._register) {
+			throw invalid_argument("multiple register expression");
 		}
 
-		evaluated_expression operator()(const current_position_operand &expr) const {
-			if (!expr.pc) {
-				throw invalid_argument("unresolved symbols");
-			}
+		int32_t value;
 
-			return evaluated_expression(expr.location, *expr.pc);
+		if (expr._operator != binary_operator::PLUS && expr._operator != binary_operator::MINUS && left._register) {
+			throw invalid_argument(str(format("the left operand of '%s' is not a literal")
+				% expr._operator));
 		}
 
-		evaluated_expression operator()(const symbol_operand &expr) const {
-			if (!expr.pc) {
-				throw invalid_argument("unresolved symbols");
-			}
-
-			return evaluated_expression(expr.location, *expr.pc);
+		if (expr._operator != binary_operator::PLUS && right._register) {
+			throw invalid_argument(str(format("the right operand of '%s' is not a literal")
+				% expr._operator));
 		}
 
-		evaluated_expression operator()(const binary_operation &expr) const {
-			auto left = apply_visitor(*this, expr.left);
-			auto right = apply_visitor(*this, expr.right);
-
-			if (left._register && right._register) {
-				throw invalid_argument("multiple register expression");
-			}
-
-			int32_t value;
-
-			if (expr._operator != binary_operator::PLUS && expr._operator != binary_operator::MINUS && left._register) {
-				throw invalid_argument(str(format("the left operand of '%s' is not a literal")
-					% expr._operator));
-			}
-
-			if (expr._operator != binary_operator::PLUS && right._register) {
-				throw invalid_argument(str(format("the right operand of '%s' is not a literal")
-					% expr._operator));
-			}
-
-			int32_t leftValue = 0, rightValue = 0;
-			if (left.value) {
-				leftValue = *left.value;
-			}
-
-			if (right.value) {
-				rightValue = *right.value;
-			}
-
-			switch (expr._operator) {
-			case binary_operator::PLUS:
-				value = leftValue + rightValue;
-				break;
-			case binary_operator::MINUS:
-				value = leftValue - rightValue;
-				break;
-			case binary_operator::MULTIPLY:
-				value = leftValue * rightValue;
-				break;
-			case binary_operator::DIVIDE:
-				value = leftValue / rightValue;
-				break;
-			case binary_operator::MODULO:
-				value = leftValue % rightValue;
-				break;
-			case binary_operator::SHIFT_LEFT:
-				value = leftValue << rightValue;
-				break;
-			case binary_operator::SHIFT_RIGHT:
-				value = leftValue >> rightValue;
-				break;
-			case binary_operator::AND:
-				value = leftValue & rightValue;
-				break;
-			case binary_operator::OR:
-				value = leftValue | rightValue;
-				break;
-			case binary_operator::XOR:
-				value = leftValue ^ rightValue;
-				break;
-			}
-
-			if (left._register) {
-				return evaluated_expression(left.location, *left._register, value);
-			} else if (right._register) {
-				return evaluated_expression(left.location, *right._register, value);
-			} else {
-				return evaluated_expression(left.location, value);
-			}
+		int32_t leftValue = 0, rightValue = 0;
+		if (left.value) {
+			leftValue = *left.value;
 		}
 
-		evaluated_expression operator()(const unary_operation &expr) const {
-			auto operand = apply_visitor(*this, expr.operand);
-
-			if (operand._register) {
-				throw invalid_argument(str(format("the operand of unary '%s' is not a literal")
-					% expr._operator));
-			}
-
-			int32_t value = operand.value ? *operand.value : 0;
-
-			switch (expr._operator) {
-			case unary_operator::PLUS:
-				value = +value;
-				break;
-			case unary_operator::MINUS:
-				value = -value;
-				break;
-			case unary_operator::NOT:
-				value = !value;
-				break;
-			case unary_operator::BITWISE_NOT:
-				value = ~value;
-				break;
-			}
-
-			return evaluated_expression(operand.location, value);
+		if (right.value) {
+			rightValue = *right.value;
 		}
 
-		evaluated_expression operator()(const invalid_expression& expr) const {
-			throw invalid_argument("invalid_expression found");
+		switch (expr._operator) {
+		case binary_operator::PLUS:
+			value = leftValue + rightValue;
+			break;
+		case binary_operator::MINUS:
+			value = leftValue - rightValue;
+			break;
+		case binary_operator::MULTIPLY:
+			value = leftValue * rightValue;
+			break;
+		case binary_operator::DIVIDE:
+			value = leftValue / rightValue;
+			break;
+		case binary_operator::MODULO:
+			value = leftValue % rightValue;
+			break;
+		case binary_operator::SHIFT_LEFT:
+			value = leftValue << rightValue;
+			break;
+		case binary_operator::SHIFT_RIGHT:
+			value = leftValue >> rightValue;
+			break;
+		case binary_operator::AND:
+			value = leftValue & rightValue;
+			break;
+		case binary_operator::OR:
+			value = leftValue | rightValue;
+			break;
+		case binary_operator::XOR:
+			value = leftValue ^ rightValue;
+			break;
 		}
-	};
 
-	/*************************************************************************
-	 *
-	 * get_location
-	 *
-	 *************************************************************************/
+		if (left._register) {
+			return evaluated_expression(left.location, *left._register, value);
+		} else if (right._register) {
+			return evaluated_expression(left.location, *right._register, value);
+		} else {
+			return evaluated_expression(left.location, value);
+		}
+	}
 
-	location_ptr get_location::operator()(const locatable &locatable) const {
-		return locatable.location;
+	evaluated_expression expression_evaluator::operator()(const unary_operation &expr) const {
+		auto operand = apply_visitor(*this, expr.operand);
+
+		if (operand._register) {
+			throw invalid_argument(str(format("the operand of unary '%s' is not a literal")
+				% expr._operator));
+		}
+
+		int32_t value = operand.value ? *operand.value : 0;
+
+		switch (expr._operator) {
+		case unary_operator::PLUS:
+			value = +value;
+			break;
+		case unary_operator::MINUS:
+			value = -value;
+			break;
+		case unary_operator::NOT:
+			value = !value;
+			break;
+		case unary_operator::BITWISE_NOT:
+			value = ~value;
+			break;
+		}
+
+		return evaluated_expression(operand.location, value);
+	}
+
+	evaluated_expression expression_evaluator::operator()(const invalid_expression& expr) const {
+		throw invalid_argument("invalid_expression found");
 	}
 
 	/*************************************************************************
@@ -412,16 +388,6 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 	expression evaluate(const expression &expr) {
 		return apply_visitor(expression_evaluator(), expr);
-	}
-
-	/*************************************************************************
-	 *
-	 * locate function
-	 *
-	 *************************************************************************/
-
-	location_ptr locate(const expression &expr) {
-		return apply_visitor(get_location(), expr);
 	}
 
 	/*************************************************************************
@@ -499,7 +465,7 @@ namespace dcpu { namespace ast {
 	}
 
 	ostream& operator<< (ostream& stream, const symbol_operand &expr) {
-		return stream << expr.label;
+		return stream << expr.name;
 	}
 
 	ostream& operator<< (ostream& stream, const literal_operand &expr) {

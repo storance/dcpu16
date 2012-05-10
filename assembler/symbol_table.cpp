@@ -64,8 +64,41 @@ namespace dcpu {
 	 * symbol
 	 *
 	 *************************************************************************/
-	symbol::symbol(const location_ptr &location, const string name, bool global, uint16_t offset)
-		: locatable(location), name(name), offset(offset), global(global) {}
+
+	symbol::symbol(const location_ptr &location, symbol_type type, const string name, std::uint16_t offset)
+		: locatable(location), type(type), name(name), data(offset) {}
+
+	void symbol::make_equ(expression &expr) {
+		type = symbol_type::EQU;
+		data = &expr;
+	}
+
+	bool symbol::has_offset() {
+		return data.which() == 0;
+	}
+
+	uint16_t& symbol::offset() {
+		return boost::get<uint16_t>(data);
+	}
+
+	bool symbol::is_evaluatable() {
+		if (data.which() == 0) {
+			return true;
+		} else {
+			return evaluatable(*boost::get<expression*>(data));
+		}
+	}
+
+	evaluated_expression symbol::evaluate(const location_ptr &location) {
+		if (data.which() == 0) {
+			return evaluated_expression(location, offset());
+		} else {
+			auto eval_expr = apply_visitor(expression_evaluator(), *boost::get<expression*>(data));
+			eval_expr.location = location;
+
+			return eval_expr;
+		}
+	}
 
 	/*************************************************************************
 	 *
@@ -87,15 +120,42 @@ namespace dcpu {
 
 	void build_symbol_table::operator()(const label &label) {
 		try {
-			table->add(label, pc);
+			table->add_label(label, pc);
 		} catch (std::exception &e) {
 			error_handler->error(label.location, e.what());
 		}
 	}
 
-	template <typename T> void build_symbol_table::operator()( const T &) {
-
+	void build_symbol_table::operator()(const current_position_operand &expr) {
+		table->add_location(expr.location, pc);
 	}
+
+	void build_symbol_table::operator()(const binary_operation &expr) {
+		apply_visitor(*this, expr.left);
+		apply_visitor(*this, expr.right);
+	}
+
+	void build_symbol_table::operator()(const unary_operation &expr) {
+		apply_visitor(*this, expr.operand);
+	}
+
+	void build_symbol_table::operator()(const expression_argument &arg) {
+		if (evaluated(arg.expr)) {
+			return;
+		}
+
+		apply_visitor(*this, arg.expr);
+	}
+
+	void build_symbol_table::operator()(const instruction &instruction) {
+		apply_visitor(*this, instruction.a);
+
+		if (instruction.b) {
+			apply_visitor(*this, *instruction.b);
+		}
+	}
+
+	template <typename T> void build_symbol_table::operator()(const T &) {}
 
 	/*************************************************************************
 	 *
@@ -110,14 +170,20 @@ namespace dcpu {
 
 	void resolve_symbols::operator()(symbol_operand &expr) {
 		try {
-			expr.pc = table->lookup(expr.label, pc);
+			expr.resolved_symbol = table->lookup(expr.name, pc);
 		} catch (std::exception &e) {
 			error_handler->error(expr.location, e.what());
 		}
 	}
 
 	void resolve_symbols::operator()(current_position_operand &expr) {
-		expr.pc = pc;
+		try {
+			expr.resolved_symbol = table->lookup(expr.location, pc);
+		} catch (std::exception &e) {
+			// we should never get here
+			throw runtime_error(str(boost::format("internal compiler error: failed to resolve $ at %s") %
+					expr.location));
+		}
 	}
 
 	void resolve_symbols::operator()(binary_operation &expr) {
@@ -146,35 +212,7 @@ namespace dcpu {
 	}
 
 	template <typename T>
-	void resolve_symbols::operator()( const T &) {
-
-	}
-
-	/*************************************************************************
-	 *
-	 * update_current_position
-	 *
-	 *************************************************************************/
-
-	update_current_position::update_current_position(uint16_t pc) : pc(pc) {}
-
-	void update_current_position::operator()(current_position_operand &expr) const {
-		expr.pc = pc;
-	}
-
-	void update_current_position::operator()(binary_operation &expr) const {
-		apply_visitor(*this, expr.left);
-		apply_visitor(*this, expr.right);
-	}
-
-	void update_current_position::operator()(unary_operation &expr) const {
-		apply_visitor(*this, expr.operand);
-	}
-
-	template <typename T>
-	void update_current_position::operator()( const T &) const {
-
-	}
+	void resolve_symbols::operator()( T &) {}
 
 	/*************************************************************************
 	 *
@@ -191,12 +229,10 @@ namespace dcpu {
 			return false;
 		}
 
-		apply_visitor(update_current_position(pc), arg.expr);
-
 		uint8_t expr_size = output_size(arg, evaluate(arg.expr));
 		if (arg.next_word_required && !expr_size) {
 			arg.next_word_required = false;
-			table->compress_after(pc);
+			table->compress_after(pc+1);
 
 			return true;
 		}
@@ -205,17 +241,12 @@ namespace dcpu {
 	}
 
 	bool compress_expressions::operator()(instruction &instruction) {
-		bool compressed = apply_visitor(*this, instruction.a);
-
-		if (instruction.b) {
-			compressed |= apply_visitor(*this, *instruction.b);
-		}
-
-		return compressed;
+		// argument b can never be compressed, so don't both with it
+		return apply_visitor(*this, instruction.a);
 	}
 
 	template <typename T>
-	bool compress_expressions::operator()( const T &) {
+	bool compress_expressions::operator()( T &) {
 		return false;
 	}
 
@@ -224,20 +255,9 @@ namespace dcpu {
 	 * symbol_table
 	 *
 	 *************************************************************************/
-
-	symbol *symbol_table::last_global() {
-		for (auto it = symbols.rbegin(); it != symbols.rend(); it++) {
-			if (it->global) {
-				return &*it;
-			}
-		}
-
-		return nullptr;
-	}
-
 	symbol *symbol_table::last_global_before(uint16_t offset) {
 		for (auto it = symbols.rbegin(); it != symbols.rend(); it++) {
-			if (it->global && it->offset < offset) {
+			if (it->type == symbol_type::GLOBAL_LABEL && it->offset() < offset) {
 				return &*it;
 			}
 		}
@@ -245,16 +265,12 @@ namespace dcpu {
 		return nullptr;
 	}
 
-	void symbol_table::add(const label &label, uint16_t offset) {
-		string name = label.name;
+	void symbol_table::add_label(const label &label, uint16_t offset) {
+		string name = resolve_full_name(label.name, offset);
 
-		if (label.type == label_type::Local) {
-			symbol *_symbol = last_global();
-			if (!_symbol) {
-				throw no_global_label_error(label.name);
-			}
-
-			name = _symbol->name + name;
+		symbol_type type = symbol_type::GLOBAL_LABEL;
+		if (label.type == label_type::LOCAL) {
+			type = symbol_type::LOCAL_LABEL;
 		}
 
 		auto existing_symbol = lookup_table.find(name);
@@ -262,21 +278,40 @@ namespace dcpu {
 			throw duplicate_symbol_error(name, existing_symbol->second.location);
 		}
 
-		symbol entry(label.location, name, label.type == label_type::Global, offset);
-		symbols.push_back(entry);
-		lookup_table.insert(pair<string, symbol&>(name, symbols.back()));
+		add_symbol(symbol(label.location, type, name, offset));
 	}
 
-	uint16_t *symbol_table::lookup(const string &name, uint16_t offset) {
+	void symbol_table::add_location(const location_ptr &location, uint16_t offset) {
+		add_symbol(symbol(location, symbol_type::CURRENT_LOCATION, name_for_location(location), offset));
+	}
+
+	string symbol_table::name_for_location(const lexer::location_ptr &location) {
+		return str(boost::format("#%s") % location);
+	}
+
+	void symbol_table::add_symbol(const symbol &_symbol) {
+		symbols.push_back(_symbol);
+		lookup_table.insert(pair<string, symbol&>(_symbol.name, symbols.back()));
+	}
+
+	void symbol_table::equ(expression &expr) {
+		symbols.back().make_equ(expr);
+	}
+
+	symbol *symbol_table::lookup(const string &name, uint16_t offset) {
 		auto _symbol = lookup_table.find(resolve_full_name(name, offset));
 		if (_symbol == lookup_table.end()) {
 			throw undefined_symbol_error(name);
 		}
-		return &_symbol->second.offset;
+		return &_symbol->second;
+	}
+
+	symbol *symbol_table::lookup(const lexer::location_ptr &location, std::uint16_t offset) {
+		return lookup(name_for_location(location), offset);
 	}
 
 	string symbol_table::resolve_full_name(const string &name, uint16_t offset) {
-		if (!starts_with(name, "..@") && starts_with(name, ".")) {
+		if (starts_with(name, ".")) {
 			symbol *global = last_global_before(offset);
 
 			if (global != nullptr) {
@@ -288,8 +323,14 @@ namespace dcpu {
 	}
 
 	void symbol_table::compress_after(uint16_t offset) {
-		for (auto it = symbols.rbegin(); it != symbols.rend() && it->offset > offset; it++) {
-			--it->offset;
+		for (auto it = symbols.rbegin(); it != symbols.rend(); it++) {
+			if (it->has_offset()) {
+				if (it->offset() < offset) {
+					break;
+				}
+
+				--it->offset();
+			}
 		}
 	}
 
@@ -303,12 +344,12 @@ namespace dcpu {
 			builder.pc += output_size(stmt);
 
 			if (builder.pc < last_pc) {
-				error_handler->error(locate(stmt), "generated output exceeds DCPU-16 memory size");
+				error_handler->error(get_location(stmt), "generated output exceeds DCPU-16 memory size");
 			}
 		}
 	}
 
-	void symbol_table::resolve(const ast::statement_list &statements, error_handler_ptr &error_handler) {
+	void symbol_table::resolve(ast::statement_list &statements, error_handler_ptr &error_handler) {
 		auto resolver = resolve_symbols(error_handler, this);
 		for (auto &stmt : statements) {
 			apply_visitor(resolver, stmt);
@@ -330,7 +371,19 @@ namespace dcpu {
 		cout << " Value  | Symbol Name" << endl
 			 << "---------------------" << endl;
 		for (auto &symbol : symbols) {
-			cout << " " << boost::format("%#06x") % symbol.offset << " | " << symbol.name << endl;
+			// these are not really symbols, so don't display them
+			if (symbol.type == symbol_type::CURRENT_LOCATION) {
+				continue;
+			}
+
+			cout << " ";
+			if (symbol.type == symbol_type::EQU) {
+				cout << symbol.evaluate(symbol.location);
+			} else {
+				cout << boost::format("%#06x") % symbol.offset();
+			}
+
+			cout << " | " << symbol.name << endl;
 		}
 	}
 }

@@ -37,29 +37,49 @@ namespace dcpu {
 		virtual const char *what() const throw();
 	};
 
-	struct symbol : public ast::locatable {
-		std::string name;
-		std::uint16_t offset;
-		bool global;
+	enum class symbol_type {
+		GLOBAL_LABEL,
+		LOCAL_LABEL,
+		CURRENT_LOCATION,
+		EQU
+	};
 
-		symbol(const lexer::location_ptr &location, const std::string name, bool global, std::uint16_t offset);
+	typedef boost::variant<std::uint16_t, ast::expression*> symbol_data;
+
+	struct symbol : public ast::locatable {
+		symbol_type type;
+		std::string name;
+		symbol_data data;
+
+		symbol(const lexer::location_ptr &location, symbol_type type, const std::string name, std::uint16_t offset);
+
+		void make_equ(ast::expression &expr);
+
+		bool has_offset();
+		std::uint16_t& offset();
+		bool is_evaluatable();
+		ast::evaluated_expression evaluate(const lexer::location_ptr &location);
 	};
 
 	class symbol_table {
 		std::list<symbol> symbols;
 		std::map<std::string, symbol&> lookup_table;
 
-		symbol *last_global();
 		symbol *last_global_before(std::uint16_t offset);
 
 		std::string resolve_full_name(const std::string &name, std::uint16_t offset);
+		std::string name_for_location(const lexer::location_ptr &location);
+		void add_symbol(const symbol &_symbol);
 	public:
-		void add(const ast::label &label, std::uint16_t offset);
-		std::uint16_t *lookup(const std::string &name, std::uint16_t offset);
+		void add_label(const ast::label &label, std::uint16_t offset);
+		void add_location(const lexer::location_ptr &location, std::uint16_t offset);
+		void equ(ast::expression &expr);
+		symbol *lookup(const std::string &name, std::uint16_t offset);
+		symbol *lookup(const lexer::location_ptr &location, std::uint16_t offset);
 		void compress_after(std::uint16_t offset);
 
 		void build(const ast::statement_list &statements, error_handler_ptr &error_handler);
-		void resolve(const ast::statement_list &statements, error_handler_ptr &error_handler);
+		void resolve(ast::statement_list &statements, error_handler_ptr &error_handler);
 		void dump();
 	};
 
@@ -78,7 +98,12 @@ namespace dcpu {
 		build_symbol_table(error_handler_ptr &error_handler, symbol_table *table);
 
 		void operator()(const ast::label &label);
-		template <typename T> void operator()( const T &);
+		void operator()(const ast::binary_operation &expr);
+		void operator()(const ast::unary_operation &expr);
+		void operator()(const ast::current_position_operand &expr);
+		void operator()(const ast::expression_argument &arg);
+		void operator()(const ast::instruction &instruction);
+		template <typename T> void operator()(const T &);
 	};
 
 	class resolve_symbols : public boost::static_visitor<>, public base_symbol_visitor {
@@ -93,18 +118,7 @@ namespace dcpu {
 		void operator()(ast::current_position_operand &expr);
 		void operator()(ast::expression_argument &arg);
 		void operator()(ast::instruction &instruction);
-		template <typename T> void operator()( const T &);
-	};
-
-	class update_current_position : public boost::static_visitor<> {
-		std::uint16_t pc;
-	public:
-		update_current_position(std::uint16_t pc);
-
-		void operator()(ast::current_position_operand &expr) const;
-		void operator()(ast::binary_operation &expr) const;
-		void operator()(ast::unary_operation &expr) const;
-		template <typename T> void operator()( const T &) const;
+		template <typename T> void operator()( T &);
 	};
 
 	class compress_expressions : public boost::static_visitor<bool>, public base_symbol_visitor  {
@@ -114,6 +128,6 @@ namespace dcpu {
 
 		bool operator()(ast::expression_argument &arg);
 		bool operator()(ast::instruction &instruction);
-		template <typename T>bool operator()( const T &);
+		template <typename T>bool operator()( T &);
 	};
 }

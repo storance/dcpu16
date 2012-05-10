@@ -116,13 +116,13 @@ namespace dcpu { namespace parser {
 		bool right_literal = definition->right_literal || !indirection;
 
 		if (left_literal && !evaluates_to_literal(left)) {
-			error_handler->error(locate(left), boost::format(LEFT_OPERAND_NOT_LITERAL) % definition->_operator);
-			left = invalid_expression(locate(left));
+			error_handler->error(get_location(left), boost::format(LEFT_OPERAND_NOT_LITERAL) % definition->_operator);
+			left = invalid_expression(get_location(left));
 		}
 
 		if (right_literal && !evaluates_to_literal(right)) {
-			error_handler->error(locate(right), boost::format(RIGHT_OPERAND_NOT_LITERAL) % definition->_operator);
-			right = invalid_expression(locate(right));
+			error_handler->error(get_location(right), boost::format(RIGHT_OPERAND_NOT_LITERAL) % definition->_operator);
+			right = invalid_expression(get_location(right));
 		}
 	}
 

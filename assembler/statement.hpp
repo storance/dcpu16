@@ -14,7 +14,7 @@ namespace dcpu { namespace ast {
 	};
 
 	enum class label_type : std::uint8_t {
-		Global, Local, GlobalNoAttach
+		GLOBAL, LOCAL
 	};
 
 	struct base_argument : public locatable {
@@ -108,8 +108,6 @@ namespace dcpu { namespace ast {
 	std::uint16_t output_size(const statement &statement);
 	std::uint16_t output_size(const argument &arg);
 	std::uint16_t output_size(const expression_argument &arg, const expression &expr);
-	lexer::location_ptr locate(const argument &arg);
-	lexer::location_ptr locate(const statement &stmt);
 
 	std::ostream& operator<< (std::ostream& stream, label_type labelType);
 	std::ostream& operator<< (std::ostream& stream, const stack_argument &arg);

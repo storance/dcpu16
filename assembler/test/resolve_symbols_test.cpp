@@ -34,11 +34,11 @@ void resolve(uint16_t pc, symbol_table *table, argument &arg) {
 
 void add_symbols(symbol_table &table, map<string, uint16_t> labels) {
 	for (auto& entry : labels) {
-		table.add(label(test_location, entry.first), entry.second);
+		table.add_label(label(test_location, entry.first), entry.second);
 	}
 }
 
-TEST(ResolveSymbolsTest, Expression_LabelOperand) {
+TEST(ResolveSymbols, Expression_LabelOperand) {
 	symbol_table table;
 	add_symbols(table, { {"label1", 10}, {"label2", 31} });
 
@@ -49,9 +49,9 @@ TEST(ResolveSymbolsTest, Expression_LabelOperand) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 31)), evaluate(expr));
 }
 
-TEST(ResolveSymbolsTest, Expression_CurrentPos) {
+TEST(ResolveSymbols, Expression_CurrentPos) {
 	symbol_table table;
-	add_symbols(table, { {"label1", 10}, {"label2", 31} });
+	table.add_location(test_location, 15);
 
 	expression expr = expression(current_position_operand(test_location));
 	resolve(15, &table, expr);
@@ -60,7 +60,7 @@ TEST(ResolveSymbolsTest, Expression_CurrentPos) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 15)), evaluate(expr));
 }
 
-TEST(ResolveSymbolsTest, Expression_UnaryOperation) {
+TEST(ResolveSymbols, Expression_UnaryOperation) {
 	symbol_table table;
 	add_symbols(table, { {"label1", 10}, {"label2", 31} });
 
@@ -72,7 +72,7 @@ TEST(ResolveSymbolsTest, Expression_UnaryOperation) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, -31)), evaluate(expr));
 }
 
-TEST(ResolveSymbolsTest, Expression_BinaryOperation) {
+TEST(ResolveSymbols, Expression_BinaryOperation) {
 	symbol_table table;
 	add_symbols(table, { {"label1", 10}, {"label2", 31} });
 
@@ -85,117 +85,90 @@ TEST(ResolveSymbolsTest, Expression_BinaryOperation) {
 	EXPECT_EQ(expression(evaluated_expression(test_location, 21)), evaluate(expr));
 }
 
-TEST(ResolveSymbolsTest, CompressArgATest) {
-	symbol_table table;
-	add_symbols(table, { {"label1", 10}, {"label2", 31} });
-
-	argument arg1(expression_argument(test_location, argument_position::A,
-			symbol_operand(test_location, "label2"), false, false));
-	resolve(8, &table, arg1);
-
-	argument arg2(expression_argument(test_location, argument_position::A,
-			symbol_operand(test_location, "label1"), false, false));
-	resolve(15, &table, arg2);
-
-	argument arg3(expression_argument(test_location, argument_position::A,
-			current_position_operand(test_location), false, false));
-	resolve(20, &table, arg3);
-
-	EXPECT_EQ(1, output_size(arg1));
-	EXPECT_EQ(1, output_size(arg2));
-	EXPECT_EQ(1, output_size(arg3));
-	EXPECT_EQ(10, *table.lookup("label1", 0));
-	EXPECT_EQ(31, *table.lookup("label2", 0));
-
-	// compress round 1
-	EXPECT_FALSE(compress(8, &table, arg1));
-	EXPECT_TRUE(compress(15, &table, arg2));
-	EXPECT_TRUE(compress(19, &table, arg3));
-	EXPECT_EQ(1, output_size(arg1));
-	EXPECT_EQ(0, output_size(arg2));
-	EXPECT_EQ(0, output_size(arg3));
-	EXPECT_EQ(10, *table.lookup("label1", 0));
-	EXPECT_EQ(29, *table.lookup("label2", 0));
-
-	// compress round 2
-	EXPECT_TRUE(compress(8, &table, arg1));
-	EXPECT_FALSE(compress(15, &table, arg2));
-	EXPECT_FALSE(compress(18, &table, arg3));
-	EXPECT_EQ(0, output_size(arg1));
-	EXPECT_EQ(0, output_size(arg2));
-	EXPECT_EQ(0, output_size(arg3));
-	EXPECT_EQ(9, *table.lookup("label1", 0));
-	EXPECT_EQ(28, *table.lookup("label2", 0));
-
-	// compress round 3
-	EXPECT_FALSE(compress(8, &table, arg1));
-	EXPECT_FALSE(compress(15, &table, arg2));
-	EXPECT_FALSE(compress(18, &table, arg3));
-	EXPECT_EQ(0, output_size(arg1));
-	EXPECT_EQ(0, output_size(arg2));
-	EXPECT_EQ(0, output_size(arg3));
-	EXPECT_EQ(9, *table.lookup("label1", 0));
-	EXPECT_EQ(28, *table.lookup("label2", 0));
-
-	EXPECT_EQ(compile_result(0x3e), compile(arg1));
-	EXPECT_EQ(compile_result(0x29), compile(arg2));
-	EXPECT_EQ(compile_result(0x33), compile(arg3));
+static expression create_register_expression(int line, registers _register=registers::A) {
+	return evaluated_expression(make_shared<location>("<Test>", line, 7), _register);
 }
 
-TEST(ResolveSymbolsTest, CompressArgBTest) {
-	symbol_table table;
-	add_symbols(table, { {"label1", 10}, {"label2", 31} });
-
-	argument arg1(expression_argument(test_location, argument_position::B,
-			symbol_operand(test_location, "label2"), false, false));
-	resolve(8, &table, arg1);
-
-	argument arg2(expression_argument(test_location, argument_position::B,
-			symbol_operand(test_location, "label1"), false, false));
-	resolve(15, &table, arg2);
-
-	EXPECT_EQ(1, output_size(arg1));
-	EXPECT_EQ(1, output_size(arg2));
-	EXPECT_EQ(10, *table.lookup("label1", 0));
-	EXPECT_EQ(31, *table.lookup("label2", 0));
-
-	// compress round 1
-	EXPECT_FALSE(compress(8, &table, arg1));
-	EXPECT_FALSE(compress(15, &table, arg2));
-	EXPECT_EQ(1, output_size(arg1));
-	EXPECT_EQ(1, output_size(arg2));
-	EXPECT_EQ(10, *table.lookup("label1", 0));
-	EXPECT_EQ(31, *table.lookup("label2", 0));
-
-	EXPECT_EQ(compile_result(0x1f, 31), compile(arg1));
-	EXPECT_EQ(compile_result(0x1f, 10), compile(arg2));
+static expression create_symbol_expression(int line, const string &symbol) {
+	return symbol_operand(make_shared<location>("<Test>", line, 8), symbol);
 }
 
-TEST(ResolveSymbolsTest, CompressArgAIndirectTest) {
+static expression create_current_pos_expression(int line) {
+	return current_position_operand(make_shared<location>("<Test>", line, 9));
+}
+
+static argument create_expression_argument(int line, argument_position position, const expression &expr) {
+	int column = position == argument_position::A ? 8 : 5;
+
+	return expression_argument(make_shared<location>("<Test>", line, column), position, expr, false, false);
+}
+
+static argument create_indirect_argument(int line, argument_position position, const expression &expr) {
+	int column = position == argument_position::A ? 8 : 5;
+
+	return expression_argument(make_shared<location>("<Test>", line, column), position, expr, true, false);
+}
+
+static statement create_instruction(int line, const argument &a, const argument &b) {
+	return instruction(make_shared<location>("<Test>", line, 1), opcodes::SET, a, b);
+}
+
+static statement create_label(int line, const string &name) {
+	return label(make_shared<location>("<Test>", line, 1), name);
+}
+
+static statement create_no_op(int line) {
+	return create_instruction(line,
+			create_expression_argument(line, argument_position::A, create_register_expression(line)),
+			create_expression_argument(line, argument_position::B, create_register_expression(line)));
+}
+
+TEST(SymbolTable, BuildResolve) {
+	statement_list statements;
+	for (int i = 1; i <= 8; i++) {
+		statements.push_back(create_no_op(i));
+	}
+	statements.push_back(create_instruction(10,
+			create_expression_argument(10, argument_position::A, create_symbol_expression(10, "label2")),
+			create_expression_argument(10, argument_position::B, create_register_expression(10))));
+	// pc=10
+	statements.push_back(create_label(11, "label1"));
+	statements.push_back(create_instruction(12,
+			create_indirect_argument(12, argument_position::A, create_symbol_expression(12, "label2")),
+			create_expression_argument(12, argument_position::B, create_register_expression(12))));
+	// pc=12
+	statements.push_back(create_instruction(13,
+				create_expression_argument(13, argument_position::A, create_current_pos_expression(13)),
+				create_expression_argument(13, argument_position::B, create_register_expression(13))));
+	// pc=14
+	statements.push_back(create_instruction(14,
+				create_expression_argument(14, argument_position::A, create_symbol_expression(15, "label1")),
+				create_expression_argument(14, argument_position::B, create_register_expression(15))));
+	// pc=16
+	statements.push_back(create_label(11, "label3"));
+	statements.push_back(create_instruction(15,
+				create_expression_argument(15, argument_position::A, create_register_expression(15)),
+				create_expression_argument(15, argument_position::B, create_symbol_expression(15, "label1"))));
+	//pc = 18
+	for (int i = 0; i <= 12; i++) {
+		statements.push_back(create_no_op(16 + i));
+	}
+	// pc=31
+	statements.push_back(create_label(32, "label2"));
+	statements.push_back(create_no_op(33));
+
 	symbol_table table;
-	add_symbols(table, { {"label1", 10}, {"label2", 31} });
+	table.build(statements, test_error_handler);
 
-	argument arg1(expression_argument(test_location, argument_position::A,
-			symbol_operand(test_location, "label2"), true, false));
-	resolve(8, &table, arg1);
+	EXPECT_EQ(10, table.lookup("label1", 0)->offset());
+	EXPECT_EQ(31, table.lookup("label2", 0)->offset());
+	EXPECT_EQ(16, table.lookup("label3", 0)->offset());
+	EXPECT_EQ(12, table.lookup(make_shared<location>("<Test>", 13, 9), 0)->offset());
 
-	argument arg2(expression_argument(test_location, argument_position::A,
-			symbol_operand(test_location, "label1"), true, false));
-	resolve(15, &table, arg2);
+	table.resolve(statements, test_error_handler);
 
-	EXPECT_EQ(1, output_size(arg1));
-	EXPECT_EQ(1, output_size(arg2));
-	EXPECT_EQ(10, *table.lookup("label1", 0));
-	EXPECT_EQ(31, *table.lookup("label2", 0));
-
-	// compress round 1
-	EXPECT_FALSE(compress(8, &table, arg1));
-	EXPECT_FALSE(compress(15, &table, arg2));
-	EXPECT_EQ(1, output_size(arg1));
-	EXPECT_EQ(1, output_size(arg2));
-	EXPECT_EQ(10, *table.lookup("label1", 0));
-	EXPECT_EQ(31, *table.lookup("label2", 0));
-
-	EXPECT_EQ(compile_result(0x1e, 31), compile(arg1));
-	EXPECT_EQ(compile_result(0x1e, 10), compile(arg2));
+	EXPECT_EQ(9, table.lookup("label1", 0)->offset());
+	EXPECT_EQ(28, table.lookup("label2", 0)->offset());
+	EXPECT_EQ(13, table.lookup("label3", 0)->offset());
+	EXPECT_EQ(11, table.lookup(make_shared<location>("<Test>", 13, 9), 0)->offset());
 }

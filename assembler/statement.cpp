@@ -61,12 +61,10 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 	label::label(const location_ptr &location, const string& name)
 		: locatable(location), name(name) {
-		if (starts_with(name, "..@")) {
-			type = label_type::GlobalNoAttach;
-		} else if (starts_with(name, ".")) {
-			type = label_type::Local;
+		if (name.length() > 0 && name[0] == '.') {
+			type = label_type::LOCAL;
 		} else {
-			type = label_type::Global;
+			type = label_type::GLOBAL;
 		}
 	}
 	
@@ -190,14 +188,6 @@ namespace dcpu { namespace ast {
 		return apply_visitor(calculate_size_expression(arg), expr);
 	}
 
-	location_ptr locate(const argument &arg) {
-		return apply_visitor(get_location(), arg);
-	}
-
-	location_ptr locate(const statement &stmt) {
-		return apply_visitor(get_location(), stmt);
-	}
-
 	/*************************************************************************
 	 *
 	 * Stream operators
@@ -205,12 +195,10 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 	ostream& operator<< (ostream& stream, label_type labelType) {
 		switch (labelType) {
-		case label_type::Global:
-			return stream << "Global";
-		case label_type::Local:
-			return stream << "Local";
-		case label_type::GlobalNoAttach:
-			return stream << "GlobalNoAttach";
+		case label_type::GLOBAL:
+			return stream << "GLOBAL";
+		case label_type::LOCAL:
+			return stream << "LOCAL";
 		default:
 			return stream << "<Unknown label_type " << static_cast<int>(labelType) << ">";
 		}

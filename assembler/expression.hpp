@@ -9,6 +9,9 @@
 #include "token.hpp"
 #include "mnemonics.hpp"
 
+// forward declaration of symbol
+namespace dcpu { struct symbol; }
+
 namespace dcpu { namespace ast {
 	enum class binary_operator : std::uint8_t {
 		PLUS,
@@ -45,11 +48,10 @@ namespace dcpu { namespace ast {
 	};
 
 	struct symbol_operand : public locatable {
-		std::string label;
-		std::uint16_t *pc;
+		std::string name;
+		symbol *resolved_symbol;
 
-		symbol_operand(const lexer::location_ptr &location, const std::string &label);
-		symbol_operand(const lexer::location_ptr &location, const std::string &label, std::uint16_t &pc);
+		symbol_operand(const lexer::location_ptr &location, const std::string &name);
 
 		bool operator==(const symbol_operand& other) const;
 	};
@@ -63,10 +65,9 @@ namespace dcpu { namespace ast {
 	};
 
 	struct current_position_operand : public locatable {
-		boost::optional<std::uint16_t> pc;
+		symbol *resolved_symbol;
 
 		current_position_operand(const lexer::location_ptr &location);
-		current_position_operand(const lexer::location_ptr &location, std::uint16_t pc);
 
 		bool operator==(const current_position_operand& other) const;
 	};
@@ -123,21 +124,34 @@ namespace dcpu { namespace ast {
 		bool operator==(const binary_operation& other) const;
 	};
 
-	class get_location : public boost::static_visitor<lexer::location_ptr> {
+	class expression_evaluator : public boost::static_visitor<evaluated_expression> {
 	public:
-		lexer::location_ptr operator()(const locatable &locatable) const;
+		evaluated_expression operator()(const evaluated_expression &expr) const;
+		evaluated_expression operator()(const register_operand &expr) const;
+		evaluated_expression operator()(const literal_operand &expr) const;
+		evaluated_expression operator()(const current_position_operand &expr) const;
+		evaluated_expression operator()(const symbol_operand &expr) const;
+		evaluated_expression operator()(const binary_operation &expr) const;
+		evaluated_expression operator()(const unary_operation &expr) const;
+		evaluated_expression operator()(const invalid_expression& expr) const;
+	};
 
+	class location_getter : public boost::static_visitor<lexer::location_ptr> {
+	public:
 		template <typename T> lexer::location_ptr operator()(const T &locatable) const {
 			return locatable.location;
 		}
 	};
 
+	template <typename T> lexer::location_ptr get_location(const T &arg) {
+		return apply_visitor(location_getter(), arg);
+	}
+
 	bool evaluated(const expression &expr);
 	bool evaluatable(const expression &expr);
 	bool evaluates_to_literal(const expression &expr);
 	expression evaluate(const expression &expr);
-	lexer::location_ptr locate(const expression &expr);
-	
+
 	std::ostream& operator<< (std::ostream& stream, unary_operator);
 	std::ostream& operator<< (std::ostream& stream, binary_operator);
 	std::ostream& operator<< (std::ostream& stream, const unary_operation &expr);
