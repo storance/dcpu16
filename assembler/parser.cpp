@@ -116,21 +116,37 @@ namespace dcpu { namespace parser {
 			return boost::none;
 		}
 
+		boost::optional<statement> result;
 		auto directive = current_token.get_directive();
 		switch (directive) {
 		case directives::DW:
-			return statement(parse_data_word(current_token));
+			result = statement(parse_data_word(current_token));
+			break;
 		case directives::DB:
-			return statement(parse_data_byte(current_token));
+			result = statement(parse_data_byte(current_token));
+			break;
 		case directives::ORG:
-			return statement(parse_org(current_token));
+			result = statement(parse_org(current_token));
+			break;
+		case directives::EQU:
+			result = statement(parse_equ(current_token));
+			break;
+		case directives::FILL:
+			result = statement(parse_fill(current_token));
+			break;
 		default:
 			error_handler->warning(current_token.location, boost::format("directive '%s' is not yet supported")
 					% directive);
-			break;
+			return boost::none;
 		}
 
-		return boost::none;
+		auto next_tkn = next_token();
+		if (!next_tkn.is_terminator()) {
+			error_handler->unexpected_token(next_tkn, "a 'newline'");
+			advance_until(mem_fn(&token::is_terminator));
+		}
+
+		return result;
 	}
 
 	data_directive parser::parse_data_word(const token& current_token) {
@@ -188,9 +204,7 @@ namespace dcpu { namespace parser {
 			current_token = next_token();
 		}
 
-		if (!current_token.is_terminator()) {
-			error_handler->unexpected_token(current_token, "a character, string, or integer literal");
-		}
+		move_back();
 
 		if (output.size() == 0) {
 			error_handler->warning(current_token.location, "empty data segment");
@@ -214,6 +228,31 @@ namespace dcpu { namespace parser {
 		}
 
 		return org_directive(current_token.location, value);
+	}
+
+	equ_directive parser::parse_equ(const lexer::token &current_token) {
+		auto expr = parse_expression(next_token(), false, false);
+
+		if (statements.empty() || !boost::get<label>(&statements.front())) {
+			error_handler->error(current_token.location, ".EQU must be preceded by a label");
+		}
+
+		return equ_directive(current_token.location, expr);
+	}
+
+	fill_directive parser::parse_fill(const lexer::token &current_token) {
+		auto count_expr = parse_expression(next_token(), false, false);
+
+		auto next_tkn = next_token();
+		if (next_tkn.is_terminator()) {
+			move_back();
+			return fill_directive(current_token.location, count_expr, evaluated_expression(next_tkn.location, 0));
+		} else if (next_tkn.is_character(',')) {
+			return fill_directive(current_token.location, count_expr, parse_expression(next_token(), false, false));
+		} else {
+			error_handler->unexpected_token(next_tkn, "',' or 'newline'");
+			return fill_directive(current_token.location, count_expr, invalid_expression(next_tkn.location));
+		}
 	}
 
 	optional_argument parser::parse_argument(const token& current_token, argument_position position) {
