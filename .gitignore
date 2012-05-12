@@ -1,9 +1,12 @@
-*.o
-*.bin
+# Eclipse project
 .project
 .cproject
+.settings
 
+*.o
+*.bin
 */target/*
+
 core
 emulator
 disassembler
