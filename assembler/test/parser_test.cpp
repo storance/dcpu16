@@ -127,7 +127,7 @@ TEST(Parser, Data) {
 	EXPECT_EQ(*it++, statement(data_directive(_location, {0x40, 42, 0})));
 }
 
-TEST(Parser, OrgData) {
+TEST(Parser, OrgDirective) {
 	location_ptr _location = make_shared<location>("<Test>", 1, 1);
 	statement_list statements;
 
@@ -150,6 +150,44 @@ TEST(Parser, PackedData) {
 
 	it = statements.begin();
 	EXPECT_EQ(*it++, statement(data_directive(_location, {0x402a, 0x0800})));
+}
+
+TEST(Parser, EquDirective) {
+	location_ptr _location = make_shared<location>("<Test>", 1, 1);
+	statement_list statements;
+
+	ASSERT_NO_FATAL_FAILURE(run_parser("label: .equ 0x1000\nlabel2: .EQU $ - label", 4, statements));
+
+	auto it = statements.begin();
+	EXPECT_EQ(*it++, statement(label(_location, "label")));
+	EXPECT_EQ(*it++, statement(equ_directive(_location, evaluated_expression(_location, 0x1000))));
+
+	EXPECT_EQ(*it++, statement(label(_location, "label2")));
+	EXPECT_EQ(*it++, statement(equ_directive(_location, binary_operation(_location, binary_operator::MINUS,
+			current_position_operand(_location),
+			symbol_operand(_location, "label")))));
+}
+
+TEST(Parser, FillDirective) {
+	location_ptr _location = make_shared<location>("<Test>", 1, 1);
+	statement_list statements;
+
+	ASSERT_NO_FATAL_FAILURE(run_parser(".fill 5\n.fill 10, 0x40\n.FILL $-10, 5+6", 3, statements));
+
+	auto it = statements.begin();
+	EXPECT_EQ(*it++, statement(fill_directive(_location,
+			evaluated_expression(_location, 5),
+			evaluated_expression(_location, 0))));
+
+	EXPECT_EQ(*it++, statement(fill_directive(_location,
+			evaluated_expression(_location, 10),
+			evaluated_expression(_location, 0x40))));
+
+	EXPECT_EQ(*it++, statement(fill_directive(_location,
+			binary_operation(_location, binary_operator::MINUS,
+					current_position_operand(_location),
+					literal_operand(_location, 10)
+			),evaluated_expression(_location, 11))));
 }
 
 TEST(Parser, Register) {

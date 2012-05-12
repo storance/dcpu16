@@ -13,73 +13,73 @@ using namespace dcpu::lexer;
 
 static location_ptr test_location = make_shared<location>("<Test>", 1, 1);
 
-TEST(ArgumentCompileTest, RegisterA) {
+TEST(ArgumentCompile, RegisterA) {
 	argument arg(expression_argument(test_location, argument_position::B,
 			evaluated_expression(test_location, registers::A), false, false));
 	EXPECT_EQ(compile_result(0x0), compile(arg));
 }
 
-TEST(ArgumentCompileTest, RegisterB) {
+TEST(ArgumentCompile, RegisterB) {
 	argument arg(expression_argument(test_location, argument_position::B,
 			evaluated_expression(test_location, registers::B), false, false));
 	EXPECT_EQ(compile_result(0x1), compile(arg));
 }
 
-TEST(ArgumentCompileTest, RegisterC) {
+TEST(ArgumentCompile, RegisterC) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::C), false, false));
 	EXPECT_EQ(compile_result(0x2), compile(arg));
 }
 
-TEST(ArgumentCompileTest, RegisterX) {
+TEST(ArgumentCompile, RegisterX) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::X), false, false));
 	EXPECT_EQ(compile_result(0x3), compile(arg));
 }
 
-TEST(ArgumentCompileTest, RegisterY) {
+TEST(ArgumentCompile, RegisterY) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::Y), false, false));
 	EXPECT_EQ(compile_result(0x4), compile(arg));
 }
 
-TEST(ArgumentCompileTest, RegisterZ) {
+TEST(ArgumentCompile, RegisterZ) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::Z), false, false));
 	EXPECT_EQ(compile_result(0x5), compile(arg));
 }
 
-TEST(ArgumentCompileTest, RegisterI) {
+TEST(ArgumentCompile, RegisterI) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::I), false, false));
 	EXPECT_EQ(compile_result(0x6), compile(arg));
 }
 
-TEST(ArgumentCompileTest, RegisterJ) {
+TEST(ArgumentCompile, RegisterJ) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::J), false, false));
 	EXPECT_EQ(compile_result(0x7), compile(arg));
 }
 
-TEST(ArgumentCompileTest, RegisterSP) {
+TEST(ArgumentCompile, RegisterSP) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::SP), false, false));
 	EXPECT_EQ(compile_result(0x1b), compile(arg));
 }
 
-TEST(ArgumentCompileTest, RegisterPC) {
+TEST(ArgumentCompile, RegisterPC) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::PC), false, false));
 	EXPECT_EQ(compile_result(0x1c), compile(arg));
 }
 
-TEST(ArgumentCompileTest, RegisterEX) {
+TEST(ArgumentCompile, RegisterEX) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::EX), false, false));
 	EXPECT_EQ(compile_result(0x1d), compile(arg));
 }
 
-TEST(ArgumentCompileTest, ShortFormLiteral) {
+TEST(ArgumentCompile, ShortFormLiteral) {
 	argument arg1(expression_argument(test_location, argument_position::A, evaluated_expression(test_location, -1),
 			false, false));
 	EXPECT_EQ(compile_result(0x20), compile(arg1));
@@ -93,7 +93,7 @@ TEST(ArgumentCompileTest, ShortFormLiteral) {
 	EXPECT_EQ(compile_result(0x3f), compile(arg3));
 }
 
-TEST(ArgumentCompileTest, LongFormLiteral) {
+TEST(ArgumentCompile, LongFormLiteral) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location, -1),
 			false, false));
 	EXPECT_EQ(compile_result(0x1f, -1), compile(arg1));
@@ -115,7 +115,7 @@ TEST(ArgumentCompileTest, LongFormLiteral) {
 	EXPECT_EQ(compile_result(0x1f, 31), compile(arg5));
 }
 
-TEST(ArgumentCompileTest, Stack) {
+TEST(ArgumentCompile, Stack) {
 	argument arg1 = argument(stack_argument(test_location, argument_position::B, stack_operation::PUSH));
 	EXPECT_EQ(compile_result(0x18), compile(arg1));
 
@@ -129,7 +129,7 @@ TEST(ArgumentCompileTest, Stack) {
 	EXPECT_EQ(compile_result(0x19), compile(arg4));
 }
 
-TEST(ArgumentCompileTest, IndirectRegisterA) {
+TEST(ArgumentCompile, IndirectRegisterA) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::A), true, false));
 	EXPECT_EQ(compile_result(0x8), compile(arg1));
@@ -139,7 +139,7 @@ TEST(ArgumentCompileTest, IndirectRegisterA) {
 	EXPECT_EQ(compile_result(0x10, 0x40), compile(arg2));
 }
 
-TEST(ArgumentCompileTest, IndirectRegisterB) {
+TEST(ArgumentCompile, IndirectRegisterB) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::B), true, false));
 	EXPECT_EQ(compile_result(0x9), compile(arg1));
@@ -149,7 +149,7 @@ TEST(ArgumentCompileTest, IndirectRegisterB) {
 	EXPECT_EQ(compile_result(0x11, 0x40), compile(arg2));
 }
 
-TEST(ArgumentCompileTest, IndirectRegisterC) {
+TEST(ArgumentCompile, IndirectRegisterC) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::C), true, false));
 	EXPECT_EQ(compile_result(0xa), compile(arg1));
@@ -159,7 +159,7 @@ TEST(ArgumentCompileTest, IndirectRegisterC) {
 	EXPECT_EQ(compile_result(0x12, 0x40), compile(arg2));
 }
 
-TEST(ArgumentCompileTest, IndirectRegisterX) {
+TEST(ArgumentCompile, IndirectRegisterX) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::X), true, false));
 	EXPECT_EQ(compile_result(0xb), compile(arg1));
@@ -169,7 +169,7 @@ TEST(ArgumentCompileTest, IndirectRegisterX) {
 	EXPECT_EQ(compile_result(0x13, 0x40), compile(arg2));
 }
 
-TEST(ArgumentCompileTest, IndirectRegisterY) {
+TEST(ArgumentCompile, IndirectRegisterY) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::Y), true, false));
 	EXPECT_EQ(compile_result(0xc), compile(arg1));
@@ -179,7 +179,7 @@ TEST(ArgumentCompileTest, IndirectRegisterY) {
 	EXPECT_EQ(compile_result(0x14, 0x40), compile(arg2));
 }
 
-TEST(ArgumentCompileTest, IndirectRegisterZ) {
+TEST(ArgumentCompile, IndirectRegisterZ) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::Z), true, false));
 	EXPECT_EQ(compile_result(0xd), compile(arg1));
@@ -189,7 +189,7 @@ TEST(ArgumentCompileTest, IndirectRegisterZ) {
 	EXPECT_EQ(compile_result(0x15, 0x40), compile(arg2));
 }
 
-TEST(ArgumentCompileTest, IndirectRegisterI) {
+TEST(ArgumentCompile, IndirectRegisterI) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::I), true, false));
 	EXPECT_EQ(compile_result(0xe), compile(arg1));
@@ -199,7 +199,7 @@ TEST(ArgumentCompileTest, IndirectRegisterI) {
 	EXPECT_EQ(compile_result(0x16, 0x40), compile(arg2));
 }
 
-TEST(ArgumentCompileTest, IndirectRegisterJ) {
+TEST(ArgumentCompile, IndirectRegisterJ) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::J), true, false));
 	EXPECT_EQ(compile_result(0xf), compile(arg1));
@@ -209,7 +209,7 @@ TEST(ArgumentCompileTest, IndirectRegisterJ) {
 	EXPECT_EQ(compile_result(0x17, 0x40), compile(arg2));
 }
 
-TEST(ArgumentCompileTest, IndirectRegisterSP) {
+TEST(ArgumentCompile, IndirectRegisterSP) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::SP), true, false));
 	EXPECT_EQ(compile_result(0x19), compile(arg1));
@@ -219,7 +219,7 @@ TEST(ArgumentCompileTest, IndirectRegisterSP) {
 	EXPECT_EQ(compile_result(0x1a, 0x40), compile(arg2));
 }
 
-TEST(InstructionCompileTest, SET) {
+TEST(InstructionCompile, SET) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::SET,
@@ -234,7 +234,7 @@ TEST(InstructionCompileTest, SET) {
 	EXPECT_EQ(0x0401, output[0]);
 }
 
-TEST(InstructionCompileTest, ADD) {
+TEST(InstructionCompile, ADD) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::ADD,
@@ -249,7 +249,7 @@ TEST(InstructionCompileTest, ADD) {
 	EXPECT_EQ(0x0402, output[0]);
 }
 
-TEST(InstructionCompileTest, SUB) {
+TEST(InstructionCompile, SUB) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::SUB,
@@ -264,7 +264,7 @@ TEST(InstructionCompileTest, SUB) {
 	EXPECT_EQ(0x0403, output[0]);
 }
 
-TEST(InstructionCompileTest, MUL) {
+TEST(InstructionCompile, MUL) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::MUL,
@@ -279,7 +279,7 @@ TEST(InstructionCompileTest, MUL) {
 	EXPECT_EQ(0x0404, output[0]);
 }
 
-TEST(InstructionCompileTest, MLI) {
+TEST(InstructionCompile, MLI) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::MLI,
@@ -294,7 +294,7 @@ TEST(InstructionCompileTest, MLI) {
 	EXPECT_EQ(0x0405, output[0]);
 }
 
-TEST(InstructionCompileTest, DIV) {
+TEST(InstructionCompile, DIV) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::DIV,
@@ -309,7 +309,7 @@ TEST(InstructionCompileTest, DIV) {
 	EXPECT_EQ(0x0406, output[0]);
 }
 
-TEST(InstructionCompileTest, DVI) {
+TEST(InstructionCompile, DVI) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::DVI,
@@ -324,7 +324,7 @@ TEST(InstructionCompileTest, DVI) {
 	EXPECT_EQ(0x0407, output[0]);
 }
 
-TEST(InstructionCompileTest, MOD) {
+TEST(InstructionCompile, MOD) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::MOD,
@@ -339,7 +339,7 @@ TEST(InstructionCompileTest, MOD) {
 	EXPECT_EQ(0x0408, output[0]);
 }
 
-TEST(InstructionCompileTest, MDI) {
+TEST(InstructionCompile, MDI) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::MDI,
@@ -354,7 +354,7 @@ TEST(InstructionCompileTest, MDI) {
 	EXPECT_EQ(0x0409, output[0]);
 }
 
-TEST(InstructionCompileTest, AND) {
+TEST(InstructionCompile, AND) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::AND,
@@ -369,7 +369,7 @@ TEST(InstructionCompileTest, AND) {
 	EXPECT_EQ(0x040a, output[0]);
 }
 
-TEST(InstructionCompileTest, BOR) {
+TEST(InstructionCompile, BOR) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::BOR,
@@ -384,7 +384,7 @@ TEST(InstructionCompileTest, BOR) {
 	EXPECT_EQ(0x040b, output[0]);
 }
 
-TEST(InstructionCompileTest, XOR) {
+TEST(InstructionCompile, XOR) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::XOR,
@@ -399,7 +399,7 @@ TEST(InstructionCompileTest, XOR) {
 	EXPECT_EQ(0x040c, output[0]);
 }
 
-TEST(InstructionCompileTest, SHR) {
+TEST(InstructionCompile, SHR) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::SHR,
@@ -414,7 +414,7 @@ TEST(InstructionCompileTest, SHR) {
 	EXPECT_EQ(0x040d, output[0]);
 }
 
-TEST(InstructionCompileTest, ASR) {
+TEST(InstructionCompile, ASR) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::ASR,
@@ -429,7 +429,7 @@ TEST(InstructionCompileTest, ASR) {
 	EXPECT_EQ(0x040e, output[0]);
 }
 
-TEST(InstructionCompileTest, SHL) {
+TEST(InstructionCompile, SHL) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::SHL,
@@ -444,7 +444,7 @@ TEST(InstructionCompileTest, SHL) {
 	EXPECT_EQ(0x040f, output[0]);
 }
 
-TEST(InstructionCompileTest, IFB) {
+TEST(InstructionCompile, IFB) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IFB,
@@ -459,7 +459,7 @@ TEST(InstructionCompileTest, IFB) {
 	EXPECT_EQ(0x0410, output[0]);
 }
 
-TEST(InstructionCompileTest, IFC) {
+TEST(InstructionCompile, IFC) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IFC,
@@ -474,7 +474,7 @@ TEST(InstructionCompileTest, IFC) {
 	EXPECT_EQ(0x0411, output[0]);
 }
 
-TEST(InstructionCompileTest, IFE) {
+TEST(InstructionCompile, IFE) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IFE,
@@ -489,7 +489,7 @@ TEST(InstructionCompileTest, IFE) {
 	EXPECT_EQ(0x0412, output[0]);
 }
 
-TEST(InstructionCompileTest, IFN) {
+TEST(InstructionCompile, IFN) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IFN,
@@ -504,7 +504,7 @@ TEST(InstructionCompileTest, IFN) {
 	EXPECT_EQ(0x0413, output[0]);
 }
 
-TEST(InstructionCompileTest, IFG) {
+TEST(InstructionCompile, IFG) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IFG,
@@ -519,7 +519,7 @@ TEST(InstructionCompileTest, IFG) {
 	EXPECT_EQ(0x0414, output[0]);
 }
 
-TEST(InstructionCompileTest, IFA) {
+TEST(InstructionCompile, IFA) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IFA,
@@ -534,7 +534,7 @@ TEST(InstructionCompileTest, IFA) {
 	EXPECT_EQ(0x0415, output[0]);
 }
 
-TEST(InstructionCompileTest, IFL) {
+TEST(InstructionCompile, IFL) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IFL,
@@ -549,7 +549,7 @@ TEST(InstructionCompileTest, IFL) {
 	EXPECT_EQ(0x0416, output[0]);
 }
 
-TEST(InstructionCompileTest, IFU) {
+TEST(InstructionCompile, IFU) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IFU,
@@ -564,7 +564,7 @@ TEST(InstructionCompileTest, IFU) {
 	EXPECT_EQ(0x0417, output[0]);
 }
 
-TEST(InstructionCompileTest, ADX) {
+TEST(InstructionCompile, ADX) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::ADX,
@@ -579,7 +579,7 @@ TEST(InstructionCompileTest, ADX) {
 	EXPECT_EQ(0x041a, output[0]);
 }
 
-TEST(InstructionCompileTest, SBX) {
+TEST(InstructionCompile, SBX) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::SBX,
@@ -594,7 +594,7 @@ TEST(InstructionCompileTest, SBX) {
 	EXPECT_EQ(0x041b, output[0]);
 }
 
-TEST(InstructionCompileTest, STI) {
+TEST(InstructionCompile, STI) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::STI,
@@ -609,7 +609,7 @@ TEST(InstructionCompileTest, STI) {
 	EXPECT_EQ(0x041e, output[0]);
 }
 
-TEST(InstructionCompileTest, STD) {
+TEST(InstructionCompile, STD) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::STD,
@@ -624,7 +624,7 @@ TEST(InstructionCompileTest, STD) {
 	EXPECT_EQ(0x041f, output[0]);
 }
 
-TEST(InstructionCompileTest, JSR) {
+TEST(InstructionCompile, JSR) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::JSR,
@@ -636,7 +636,7 @@ TEST(InstructionCompileTest, JSR) {
 	EXPECT_EQ(0x0020, output[0]);
 }
 
-TEST(InstructionCompileTest, HCF) {
+TEST(InstructionCompile, HCF) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::HCF,
@@ -648,7 +648,7 @@ TEST(InstructionCompileTest, HCF) {
 	EXPECT_EQ(0x00e0, output[0]);
 }
 
-TEST(InstructionCompileTest, INT) {
+TEST(InstructionCompile, INT) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::INT,
@@ -660,7 +660,7 @@ TEST(InstructionCompileTest, INT) {
 	EXPECT_EQ(0x0100, output[0]);
 }
 
-TEST(InstructionCompileTest, IAG) {
+TEST(InstructionCompile, IAG) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IAG,
@@ -672,7 +672,7 @@ TEST(InstructionCompileTest, IAG) {
 	EXPECT_EQ(0x0120, output[0]);
 }
 
-TEST(InstructionCompileTest, IAS) {
+TEST(InstructionCompile, IAS) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IAS,
@@ -684,7 +684,7 @@ TEST(InstructionCompileTest, IAS) {
 	EXPECT_EQ(0x0140, output[0]);
 }
 
-TEST(InstructionCompileTest, RFI) {
+TEST(InstructionCompile, RFI) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::RFI,
@@ -696,7 +696,7 @@ TEST(InstructionCompileTest, RFI) {
 	EXPECT_EQ(0x0160, output[0]);
 }
 
-TEST(InstructionCompileTest, IAQ) {
+TEST(InstructionCompile, IAQ) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::IAQ,
@@ -708,7 +708,7 @@ TEST(InstructionCompileTest, IAQ) {
 	EXPECT_EQ(0x0180, output[0]);
 }
 
-TEST(InstructionCompileTest, HWN) {
+TEST(InstructionCompile, HWN) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::HWN,
@@ -720,7 +720,7 @@ TEST(InstructionCompileTest, HWN) {
 	EXPECT_EQ(0x0200, output[0]);
 }
 
-TEST(InstructionCompileTest, HWQ) {
+TEST(InstructionCompile, HWQ) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::HWQ,
@@ -732,7 +732,7 @@ TEST(InstructionCompileTest, HWQ) {
 	EXPECT_EQ(0x0220, output[0]);
 }
 
-TEST(InstructionCompileTest, HWI) {
+TEST(InstructionCompile, HWI) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::HWI,
@@ -744,7 +744,7 @@ TEST(InstructionCompileTest, HWI) {
 	EXPECT_EQ(0x0240, output[0]);
 }
 
-TEST(InstructionCompileTest, JMP) {
+TEST(InstructionCompile, JMP) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::JMP,
@@ -757,7 +757,7 @@ TEST(InstructionCompileTest, JMP) {
 }
 
 
-TEST(InstructionCompileTest, NextWordArgA) {
+TEST(InstructionCompile, NextWordArgA) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::SET,
@@ -773,7 +773,7 @@ TEST(InstructionCompileTest, NextWordArgA) {
 	EXPECT_EQ(5, output[1]);
 }
 
-TEST(InstructionCompileTest, NextWordArgB) {
+TEST(InstructionCompile, NextWordArgB) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::SET,
@@ -789,7 +789,7 @@ TEST(InstructionCompileTest, NextWordArgB) {
 	EXPECT_EQ(16, output[1]);
 }
 
-TEST(InstructionCompileTest, NextWordBoth) {
+TEST(InstructionCompile, NextWordBoth) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::SET,
@@ -807,7 +807,7 @@ TEST(InstructionCompileTest, NextWordBoth) {
 }
 
 
-TEST(InstructionCompileTest, JsrNextWordArgA) {
+TEST(InstructionCompile, JsrNextWordArgA) {
 	vector<uint16_t> output;
 
 	statement _instruction(instruction(test_location, opcodes::JSR,
@@ -820,4 +820,30 @@ TEST(InstructionCompileTest, JsrNextWordArgA) {
 	ASSERT_EQ(2, output.size());
 	EXPECT_EQ(0x7c20, output[0]);
 	EXPECT_EQ(400, output[1]);
+}
+
+TEST(DirectiveCompile, Data) {
+	vector<uint16_t> output;
+
+	vector<uint16_t> expected_data = {'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd','!', 0};
+	statement data(data_directive(test_location, expected_data));
+
+	compile(output, data);
+	ASSERT_EQ(13, output.size());
+	EXPECT_EQ(expected_data, output);
+}
+
+TEST(DirectiveCompile, Fill) {
+	vector<uint16_t> output;
+
+	statement fill(fill_directive(test_location,
+			evaluated_expression(test_location, 25),
+			evaluated_expression(test_location, 0x32)));
+
+	compile(output, fill);
+	ASSERT_EQ(25, output.size());
+	for (size_t i = 0; i < output.size(); i++) {
+		SCOPED_TRACE(str(boost::format("Word %d") % i));
+		EXPECT_EQ(0x32, output[i]);
+	}
 }
