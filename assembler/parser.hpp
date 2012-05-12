@@ -13,6 +13,7 @@ namespace dcpu { namespace parser {
 		lexer::token_iterator current, end;
 		error_handler_ptr error_handler;
 		ast::statement_list &statements;
+		uint32_t instructions_found, labels_found;
 
 		boost::optional<ast::statement> parse_label(const lexer::token&);
 		boost::optional<ast::statement> parse_instruction(const lexer::token&);

@@ -16,7 +16,8 @@ using namespace boost::algorithm;
 
 namespace dcpu { namespace parser {
 	parser::parser(lexer::lexer &lex, ast::statement_list &statements) : current(lex.tokens.begin()),
-			end(lex.tokens.end()), error_handler(lex.error_handler), statements(statements) {}
+			end(lex.tokens.end()), error_handler(lex.error_handler), statements(statements),
+			instructions_found(0), labels_found(0) {}
 
 	void parser::parse() {
 		while (current != end) {
@@ -34,6 +35,7 @@ namespace dcpu { namespace parser {
 
 			auto label = parse_label(current_token);
 			if (label) {
+				labels_found++;
 				statements.push_back(*label);
 				current_token = next_token();
 
@@ -50,6 +52,7 @@ namespace dcpu { namespace parser {
 
 			auto instruction = parse_instruction(current_token);
 			if (instruction) {
+				instructions_found++;
 				statements.push_back(*instruction);
 				continue;
 			}
@@ -212,8 +215,8 @@ namespace dcpu { namespace parser {
 	}
 
 	org_directive parser::parse_org(const token& current_token) {
-		if (!statements.empty()) {
-			error_handler->error(current_token.location, ".ORG must be the first statement");
+		if (instructions_found || labels_found) {
+			error_handler->error(current_token.location, ".ORG must occur before all labels and instructions");
 		}
 
 		auto next_tkn = next_token();
