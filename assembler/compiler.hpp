@@ -50,6 +50,7 @@ namespace dcpu { namespace compiler {
 
 		void operator()(const ast::instruction &instruction) const;
 		void operator()(const ast::data_directive &data) const;
+		void operator()(const ast::fill_directive &fill) const;
 		template <typename T> void operator()(const T&) const;
 	};
 

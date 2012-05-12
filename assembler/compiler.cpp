@@ -173,6 +173,26 @@ namespace dcpu { namespace compiler {
 		copy (data.value.begin(), data.value.end(), back_inserter(output));
 	}
 
+	void statement_compiler::operator()(const ast::fill_directive &fill) const {
+		auto evaled_count = evaluate(fill.count);
+		auto evaled_value = evaluate(fill.value);
+
+		if (evaled_count._register) {
+			throw invalid_argument("fill count expression must evaluate to a literal");
+		}
+
+		if (evaled_value._register) {
+			throw invalid_argument("fill value expression must evaluate to a literal");
+		}
+
+		uint16_t count = *evaled_count.value;
+		uint16_t value = *evaled_value.value;
+
+		for (int i = 0; i < count; i++) {
+			output.push_back(value);
+		}
+	}
+
 	/*************************************************************************
 	 *
 	 * compiler

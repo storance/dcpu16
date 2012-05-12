@@ -150,7 +150,7 @@ namespace dcpu { namespace ast {
 	bool evaluated(const expression &expr);
 	bool evaluatable(const expression &expr);
 	bool evaluates_to_literal(const expression &expr);
-	expression evaluate(const expression &expr);
+	evaluated_expression evaluate(const expression &expr);
 
 	std::ostream& operator<< (std::ostream& stream, unary_operator);
 	std::ostream& operator<< (std::ostream& stream, binary_operator);

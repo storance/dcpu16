@@ -13,11 +13,11 @@
 namespace dcpu { namespace lexer {
 	struct location {
 		std::string source;
-		std::uint32_t line;
-		std::uint32_t column;
+		uint32_t line;
+		uint32_t column;
 
 		location();
-		location(const std::string&, std::uint32_t, std::uint32_t);
+		location(const std::string&, uint32_t, uint32_t);
 
 		bool operator==(const location& other) const;
 	};
@@ -54,7 +54,7 @@ namespace dcpu { namespace lexer {
 
 	typedef boost::variant<
 		std::nullptr_t,
-		std::uint32_t,
+		uint32_t,
 		instruction_definition,
 		register_definition,
 		directives,
@@ -94,7 +94,7 @@ namespace dcpu { namespace lexer {
 		bool is_eoi() const;
 		bool is_terminator() const;
 
-		std::uint32_t get_integer() const;
+		uint32_t get_integer() const;
 		instruction_definition get_instruction() const;
 		register_definition	get_register() const;
 		directives get_directive() const;

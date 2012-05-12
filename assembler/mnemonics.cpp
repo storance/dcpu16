@@ -272,12 +272,12 @@ namespace dcpu {
 			return stream << ".INCBIN";
 		case directives::FILL:
 			return stream << ".FILL";
+		case directives::ALIGN:
+			return stream << ".ALIGN";
 		case directives::DW:
 			return stream << ".DW";
 		case directives::DB:
 			return stream << ".DB";
-		case directives::ALIGN:
-			return stream << ".ALIGN";
 		case directives::EQU:
 			return stream << ".EQU";
 		case directives::ORG:

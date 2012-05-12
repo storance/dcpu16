@@ -18,17 +18,17 @@ static error_handler_ptr test_error_handler = make_shared<dcpu::error_handler>()
 static location_ptr test_location = make_shared<location>("<Test>", 1, 1);
 
 bool compress(uint16_t pc, symbol_table *table, argument &arg) {
-	compress_expressions compressor(pc, table);
+	compress_expressions compressor(table, pc);
 	return apply_visitor(compressor, arg);
 }
 
 void resolve(uint16_t pc, symbol_table *table, expression &expr) {
-	resolve_symbols resolver(pc, test_error_handler, table);
+	resolve_symbols resolver(table, test_error_handler, pc);
 	apply_visitor(resolver, expr);
 }
 
 void resolve(uint16_t pc, symbol_table *table, argument &arg) {
-	resolve_symbols resolver(pc, test_error_handler, table);
+	resolve_symbols resolver(table, test_error_handler, pc);
 	apply_visitor(resolver, arg);
 }
 
@@ -46,7 +46,7 @@ TEST(ResolveSymbols, Expression_LabelOperand) {
 	resolve(15, &table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(expression(evaluated_expression(test_location, 31)), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(test_location, 31), evaluate(expr));
 }
 
 TEST(ResolveSymbols, Expression_CurrentPos) {
@@ -57,7 +57,7 @@ TEST(ResolveSymbols, Expression_CurrentPos) {
 	resolve(15, &table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(expression(evaluated_expression(test_location, 15)), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(test_location, 15), evaluate(expr));
 }
 
 TEST(ResolveSymbols, Expression_UnaryOperation) {
@@ -69,7 +69,7 @@ TEST(ResolveSymbols, Expression_UnaryOperation) {
 	resolve(15, &table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(expression(evaluated_expression(test_location, -31)), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(test_location, -31), evaluate(expr));
 }
 
 TEST(ResolveSymbols, Expression_BinaryOperation) {
@@ -82,7 +82,7 @@ TEST(ResolveSymbols, Expression_BinaryOperation) {
 	resolve(15, &table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(expression(evaluated_expression(test_location, 21)), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(test_location, 21), evaluate(expr));
 }
 
 static expression create_register_expression(int line, registers _register=registers::A) {
@@ -160,15 +160,15 @@ TEST(SymbolTable, BuildResolve) {
 	symbol_table table;
 	table.build(statements, test_error_handler);
 
-	EXPECT_EQ(10, table.lookup("label1", 0)->offset());
-	EXPECT_EQ(31, table.lookup("label2", 0)->offset());
-	EXPECT_EQ(16, table.lookup("label3", 0)->offset());
-	EXPECT_EQ(12, table.lookup(make_shared<location>("<Test>", 13, 9), 0)->offset());
+	EXPECT_EQ(10, table.lookup("label1", 0)->offset);
+	EXPECT_EQ(31, table.lookup("label2", 0)->offset);
+	EXPECT_EQ(16, table.lookup("label3", 0)->offset);
+	EXPECT_EQ(12, table.lookup(make_shared<location>("<Test>", 13, 9), 0)->offset);
 
 	table.resolve(statements, test_error_handler);
 
-	EXPECT_EQ(9, table.lookup("label1", 0)->offset());
-	EXPECT_EQ(28, table.lookup("label2", 0)->offset());
-	EXPECT_EQ(13, table.lookup("label3", 0)->offset());
-	EXPECT_EQ(11, table.lookup(make_shared<location>("<Test>", 13, 9), 0)->offset());
+	EXPECT_EQ(9, table.lookup("label1", 0)->offset);
+	EXPECT_EQ(28, table.lookup("label2", 0)->offset);
+	EXPECT_EQ(13, table.lookup("label3", 0)->offset);
+	EXPECT_EQ(11, table.lookup(make_shared<location>("<Test>", 13, 9), 0)->offset);
 }

@@ -158,11 +158,27 @@ namespace dcpu { namespace ast {
 		}
 
 		bool operator()(const current_position_operand &expr) const {
-			return expr.resolved_symbol != nullptr && expr.resolved_symbol->is_evaluatable();
+			if (expr.resolved_symbol != nullptr) {
+				if (expr.resolved_symbol->equ_expr != nullptr) {
+					return apply_visitor(*this, *expr.resolved_symbol->equ_expr);
+				}
+
+				return true;
+			}
+
+			return false;
 		}
 
 		bool operator()(const symbol_operand &expr) const {
-			return expr.resolved_symbol != nullptr && expr.resolved_symbol->is_evaluatable();
+			if (expr.resolved_symbol != nullptr) {
+				if (expr.resolved_symbol->equ_expr != nullptr) {
+					return apply_visitor(*this, *expr.resolved_symbol->equ_expr);
+				}
+
+				return true;
+			}
+
+			return false;
 		}
 
 		bool operator()(const binary_operation &expr) const {
@@ -240,7 +256,14 @@ namespace dcpu { namespace ast {
 			throw invalid_argument("unresolved symbols");
 		}
 
-		return expr.resolved_symbol->evaluate(expr.location);
+		if (!expr.resolved_symbol->equ_expr) {
+			return evaluated_expression(expr.location, expr.resolved_symbol->offset);
+		}
+
+		auto evaled_expr = apply_visitor(*this, *expr.resolved_symbol->equ_expr);
+		evaled_expr.location = expr.location;
+
+		return evaled_expr;
 	}
 
 	evaluated_expression expression_evaluator::operator()(const symbol_operand &expr) const {
@@ -248,7 +271,14 @@ namespace dcpu { namespace ast {
 			throw invalid_argument("unresolved symbols");
 		}
 
-		return expr.resolved_symbol->evaluate(expr.location);
+		if (!expr.resolved_symbol->equ_expr) {
+			return evaluated_expression(expr.location, expr.resolved_symbol->offset);
+		}
+
+		auto evaled_expr = apply_visitor(*this, *expr.resolved_symbol->equ_expr);
+		evaled_expr.location = expr.location;
+
+		return evaled_expr;
 	}
 
 	evaluated_expression expression_evaluator::operator()(const binary_operation &expr) const {
@@ -386,8 +416,9 @@ namespace dcpu { namespace ast {
 	 * evaluate function
 	 *
 	 *************************************************************************/
-	expression evaluate(const expression &expr) {
-		return apply_visitor(expression_evaluator(), expr);
+	evaluated_expression evaluate(const expression &expr) {
+		expression_evaluator evaluator;
+		return apply_visitor(evaluator, expr);
 	}
 
 	/*************************************************************************

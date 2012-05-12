@@ -36,7 +36,7 @@ namespace dcpu { namespace ast {
 	 *************************************************************************/
 	expression_argument::expression_argument(const location_ptr &location, argument_position position,
 			const expression &expr, bool indirect, bool force_next_word) : base_argument(location, position),
-			indirect(indirect), force_next_word(force_next_word), next_word_required(true), expr(expr) {}
+			indirect(indirect), force_next_word(force_next_word), cached_size(1), expr(expr) {}
 
 	bool expression_argument::operator==(const expression_argument& other) const {
 		return expr == other.expr && indirect == other.indirect && force_next_word == other.force_next_word;
@@ -103,6 +103,31 @@ namespace dcpu { namespace ast {
 
 	/*************************************************************************
 	 *
+	 * fill_directive
+	 *
+	 *************************************************************************/
+	fill_directive::fill_directive(const location_ptr &location, const expression &count, const expression &value)
+		: locatable(location), count(count), value(value), cached_size(0) {}
+
+	bool fill_directive::operator==(const fill_directive &other) const {
+		return count == other.count && value == other.value;
+	}
+
+	/*************************************************************************
+	 *
+	 * equ_directive
+	 *
+	 *************************************************************************/
+
+	equ_directive::equ_directive(const location_ptr &location, const expression &value)
+		: locatable(location), value(value) {}
+
+	bool equ_directive::operator==(const equ_directive &other) const {
+		return value == other.value;
+	};
+
+	/*************************************************************************
+	 *
 	 * calculate_size_expression
 	 *
 	 *************************************************************************/
@@ -139,7 +164,7 @@ namespace dcpu { namespace ast {
 
 	uint16_t calculate_size::operator()(const expression_argument &arg) const {
 		if (!evaluated(arg.expr)) {
-			return arg.next_word_required ? 1 : 0;
+			return arg.cached_size;
 		}
 
 		return output_size(arg, arg.expr);
@@ -168,6 +193,19 @@ namespace dcpu { namespace ast {
 
 	uint16_t calculate_size::operator()(const org_directive &org) const {
 		return org.offset;
+	}
+
+	uint16_t calculate_size::operator()(const fill_directive &fill) const {
+		if (!evaluated(fill.count)) {
+			return fill.cached_size;
+		}
+
+		auto evaled_expr = boost::get<evaluated_expression>(fill.count);
+		if (evaled_expr._register) {
+			throw invalid_argument("register in fill count expression");
+		}
+
+		return *evaled_expr.value;
 	}
 
 	/*************************************************************************
@@ -252,5 +290,13 @@ namespace dcpu { namespace ast {
 
 	ostream& operator<< (ostream& stream, const org_directive &org) {
 		return stream << ".ORG " << boost::format("%#04x") % org.offset;
+	}
+
+	ostream& operator<< (ostream& stream, const fill_directive &fill) {
+		return stream << ".FILL " << fill.count << ", " << fill.value;
+	}
+
+	ostream& operator<< (ostream& stream, const equ_directive &equ) {
+		return stream << ".EQU " << equ.value;
 	}
 }}

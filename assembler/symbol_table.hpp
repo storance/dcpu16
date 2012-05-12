@@ -10,6 +10,11 @@
 #include "statement.hpp"
 
 namespace dcpu {
+	/*************************************************************************
+	 *
+	 * duplicate_symbol_error
+	 *
+	 *************************************************************************/
 	class duplicate_symbol_error : public std::exception {
 		std::string message;
 	public:
@@ -19,6 +24,11 @@ namespace dcpu {
 		virtual const char *what() const throw();
 	};
 
+	/*************************************************************************
+	 *
+	 * no_global_label_error
+	 *
+	 *************************************************************************/
 	class no_global_label_error : public std::exception {
 		std::string message;
 	public:
@@ -28,6 +38,11 @@ namespace dcpu {
 		virtual const char *what() const throw();
 	};
 
+	/*************************************************************************
+	 *
+	 * undefined_symbol_error
+	 *
+	 *************************************************************************/
 	class undefined_symbol_error : public std::exception {
 		std::string message;
 	public:
@@ -44,90 +59,116 @@ namespace dcpu {
 		EQU
 	};
 
-	typedef boost::variant<std::uint16_t, ast::expression*> symbol_data;
-
+	/*************************************************************************
+	 *
+	 * symbol
+	 *
+	 *************************************************************************/
 	struct symbol : public ast::locatable {
 		symbol_type type;
 		std::string name;
-		symbol_data data;
+		uint16_t offset;
+		ast::expression *equ_expr;
 
-		symbol(const lexer::location_ptr &location, symbol_type type, const std::string name, std::uint16_t offset);
-
-		void make_equ(ast::expression &expr);
-
-		bool has_offset();
-		std::uint16_t& offset();
-		bool is_evaluatable();
-		ast::evaluated_expression evaluate(const lexer::location_ptr &location);
+		symbol(const lexer::location_ptr &location, symbol_type type, const std::string name, uint16_t offset);
 	};
 
+	/*************************************************************************
+	 *
+	 * symbol_table
+	 *
+	 *************************************************************************/
 	class symbol_table {
 		std::list<symbol> symbols;
 		std::map<std::string, symbol&> lookup_table;
 
-		symbol *last_global_before(std::uint16_t offset);
+		symbol *last_global_before(uint16_t offset);
 
-		std::string resolve_full_name(const std::string &name, std::uint16_t offset);
+		std::string full_name(const std::string &name, uint16_t offset);
 		std::string name_for_location(const lexer::location_ptr &location);
 		void add_symbol(const symbol &_symbol);
 	public:
-		void add_label(const ast::label &label, std::uint16_t offset);
-		void add_location(const lexer::location_ptr &location, std::uint16_t offset);
+		void add_label(const ast::label &label, uint16_t offset);
+		void add_location(const lexer::location_ptr &location, uint16_t offset);
 		void equ(ast::expression &expr);
-		symbol *lookup(const std::string &name, std::uint16_t offset);
-		symbol *lookup(const lexer::location_ptr &location, std::uint16_t offset);
-		void compress_after(std::uint16_t offset);
 
-		void build(const ast::statement_list &statements, error_handler_ptr &error_handler);
+		symbol *lookup(const std::string &name, uint16_t offset);
+		symbol *lookup(const lexer::location_ptr &location, uint16_t offset);
+
+		void build(ast::statement_list &statements, error_handler_ptr &error_handler);
 		void resolve(ast::statement_list &statements, error_handler_ptr &error_handler);
+		void update_after(uint16_t offset, int amount);
 		void dump();
 	};
 
+	/*************************************************************************
+	 *
+	 * base_symbol_visitor
+	 *
+	 *************************************************************************/
 	class base_symbol_visitor {
-	public:
-		std::uint16_t pc;
+	protected:
 		symbol_table* table;
-
-		base_symbol_visitor(symbol_table *table);
-		base_symbol_visitor(std::uint16_t pc, symbol_table *table);
+		uint32_t pc;
+	public:
+		base_symbol_visitor(symbol_table *table, uint32_t pc=0);
 	};
 
+	/*************************************************************************
+	 *
+	 * build_symbol_table
+	 *
+	 *************************************************************************/
 	class build_symbol_table : public boost::static_visitor<>, public base_symbol_visitor {
 		error_handler_ptr error_handler;
 	public:
-		build_symbol_table(error_handler_ptr &error_handler, symbol_table *table);
+		build_symbol_table(symbol_table *table, error_handler_ptr &error_handler, uint32_t pc);
 
-		void operator()(const ast::label &label);
-		void operator()(const ast::binary_operation &expr);
-		void operator()(const ast::unary_operation &expr);
-		void operator()(const ast::current_position_operand &expr);
-		void operator()(const ast::expression_argument &arg);
-		void operator()(const ast::instruction &instruction);
-		template <typename T> void operator()(const T &);
+		void operator()(const ast::label &label) const;
+		void operator()(const ast::binary_operation &expr) const;
+		void operator()(const ast::unary_operation &expr) const;
+		void operator()(const ast::current_position_operand &expr) const;
+		void operator()(const ast::expression_argument &arg) const;
+		void operator()(const ast::instruction &instruction) const;
+		void operator()(ast::equ_directive &equ) const;
+		template <typename T> void operator()(const T &) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * resolve_symbols
+	 *
+	 *************************************************************************/
 	class resolve_symbols : public boost::static_visitor<>, public base_symbol_visitor {
 		error_handler_ptr error_handler;
+		bool allow_forward_refs;
 	public:
-		resolve_symbols(error_handler_ptr &error_handler, symbol_table *table);
-		resolve_symbols(std::uint16_t pc, error_handler_ptr &error_handler, symbol_table *table);
+		resolve_symbols(symbol_table *table, const error_handler_ptr &error_handler, uint32_t pc=0,
+				bool allow_forward_refs=true);
 
-		void operator()(ast::symbol_operand &expr);
-		void operator()(ast::binary_operation &expr);
-		void operator()(ast::unary_operation &expr);
-		void operator()(ast::current_position_operand &expr);
-		void operator()(ast::expression_argument &arg);
-		void operator()(ast::instruction &instruction);
-		template <typename T> void operator()( T &);
+		void operator()(ast::symbol_operand &expr) const;
+		void operator()(ast::binary_operation &expr) const;
+		void operator()(ast::unary_operation &expr) const;
+		void operator()(ast::current_position_operand &expr) const;
+		void operator()(ast::expression_argument &arg) const;
+		void operator()(ast::instruction &instruction) const;
+		void operator()(ast::equ_directive &equ) const;
+		void operator()(ast::fill_directive &fill) const;
+		template <typename T> void operator()( T &) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * compress_expressions
+	 *
+	 *************************************************************************/
 	class compress_expressions : public boost::static_visitor<bool>, public base_symbol_visitor  {
 	public:
-		compress_expressions(symbol_table* symbol_table);
-		compress_expressions(std::uint16_t pc, symbol_table* symbol_table);
+		compress_expressions(symbol_table* symbol_table, uint32_t pc=0);
 
-		bool operator()(ast::expression_argument &arg);
-		bool operator()(ast::instruction &instruction);
-		template <typename T>bool operator()( T &);
+		bool operator()(ast::expression_argument &arg) const;
+		bool operator()(ast::instruction &instruction) const;
+		bool operator()(ast::fill_directive &fill) const;
+		template <typename T>bool operator()( T &) const;
 	};
 }

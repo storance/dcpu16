@@ -11,6 +11,8 @@ using namespace dcpu::lexer;
 using namespace boost;
 using namespace boost::algorithm;
 
+const unsigned int MAX_COMPRESS_ITERATIONS = 1000;
+
 namespace dcpu {
 	/*************************************************************************
 	 *
@@ -66,59 +68,24 @@ namespace dcpu {
 	 *************************************************************************/
 
 	symbol::symbol(const location_ptr &location, symbol_type type, const string name, std::uint16_t offset)
-		: locatable(location), type(type), name(name), data(offset) {}
-
-	void symbol::make_equ(expression &expr) {
-		type = symbol_type::EQU;
-		data = &expr;
-	}
-
-	bool symbol::has_offset() {
-		return data.which() == 0;
-	}
-
-	uint16_t& symbol::offset() {
-		return boost::get<uint16_t>(data);
-	}
-
-	bool symbol::is_evaluatable() {
-		if (data.which() == 0) {
-			return true;
-		} else {
-			return evaluatable(*boost::get<expression*>(data));
-		}
-	}
-
-	evaluated_expression symbol::evaluate(const location_ptr &location) {
-		if (data.which() == 0) {
-			return evaluated_expression(location, offset());
-		} else {
-			auto eval_expr = apply_visitor(expression_evaluator(), *boost::get<expression*>(data));
-			eval_expr.location = location;
-
-			return eval_expr;
-		}
-	}
+		: locatable(location), type(type), name(name), offset(offset), equ_expr(nullptr) {}
 
 	/*************************************************************************
 	 *
 	 * base_symbol_visitor
 	 *
 	 *************************************************************************/
-
-	base_symbol_visitor::base_symbol_visitor(symbol_table *table) : pc(0), table(table) {}
-
-	base_symbol_visitor::base_symbol_visitor(uint16_t pc, symbol_table *table) : pc(pc), table(table) {}
+	base_symbol_visitor::base_symbol_visitor(symbol_table *table, uint32_t pc) : table(table), pc(pc) {}
 
 	/*************************************************************************
 	 *
 	 * build_symbol_table
 	 *
 	 *************************************************************************/
-	build_symbol_table::build_symbol_table(error_handler_ptr &error_handler, symbol_table *table)
-			: base_symbol_visitor(table), error_handler(error_handler) {}
+	build_symbol_table::build_symbol_table(symbol_table *table, error_handler_ptr &error_handler, uint32_t pc)
+			: base_symbol_visitor(table, pc), error_handler(error_handler) {}
 
-	void build_symbol_table::operator()(const label &label) {
+	void build_symbol_table::operator()(const label &label) const {
 		try {
 			table->add_label(label, pc);
 		} catch (std::exception &e) {
@@ -126,20 +93,20 @@ namespace dcpu {
 		}
 	}
 
-	void build_symbol_table::operator()(const current_position_operand &expr) {
+	void build_symbol_table::operator()(const current_position_operand &expr) const {
 		table->add_location(expr.location, pc);
 	}
 
-	void build_symbol_table::operator()(const binary_operation &expr) {
+	void build_symbol_table::operator()(const binary_operation &expr) const {
 		apply_visitor(*this, expr.left);
 		apply_visitor(*this, expr.right);
 	}
 
-	void build_symbol_table::operator()(const unary_operation &expr) {
+	void build_symbol_table::operator()(const unary_operation &expr) const {
 		apply_visitor(*this, expr.operand);
 	}
 
-	void build_symbol_table::operator()(const expression_argument &arg) {
+	void build_symbol_table::operator()(const expression_argument &arg) const {
 		if (evaluated(arg.expr)) {
 			return;
 		}
@@ -147,7 +114,7 @@ namespace dcpu {
 		apply_visitor(*this, arg.expr);
 	}
 
-	void build_symbol_table::operator()(const instruction &instruction) {
+	void build_symbol_table::operator()(const instruction &instruction) const {
 		apply_visitor(*this, instruction.a);
 
 		if (instruction.b) {
@@ -155,28 +122,33 @@ namespace dcpu {
 		}
 	}
 
-	template <typename T> void build_symbol_table::operator()(const T &) {}
+	void build_symbol_table::operator()(ast::equ_directive &equ) const {
+		table->equ(equ.value);
+	}
+
+	template <typename T> void build_symbol_table::operator()(const T &) const {}
 
 	/*************************************************************************
 	 *
 	 * resolve_symbols
 	 *
 	 *************************************************************************/
-	resolve_symbols::resolve_symbols(error_handler_ptr &error_handler, symbol_table *table)
-			: base_symbol_visitor(table), error_handler(error_handler) {}
+	resolve_symbols::resolve_symbols(symbol_table *table, const error_handler_ptr &error_handler, uint32_t pc,
+			bool allow_forward_refs) : base_symbol_visitor(table, pc), error_handler(error_handler),
+			allow_forward_refs(allow_forward_refs) {}
 
-	resolve_symbols::resolve_symbols(uint16_t pc, error_handler_ptr &error_handler, symbol_table *table)
-		: base_symbol_visitor(pc, table), error_handler(error_handler) {}
-
-	void resolve_symbols::operator()(symbol_operand &expr) {
+	void resolve_symbols::operator()(symbol_operand &expr) const {
 		try {
 			expr.resolved_symbol = table->lookup(expr.name, pc);
+			if (!allow_forward_refs && expr.resolved_symbol->offset > pc) {
+				error_handler->error(expr.location, "forward symbol references are not allowed here");
+			}
 		} catch (std::exception &e) {
 			error_handler->error(expr.location, e.what());
 		}
 	}
 
-	void resolve_symbols::operator()(current_position_operand &expr) {
+	void resolve_symbols::operator()(current_position_operand &expr) const {
 		try {
 			expr.resolved_symbol = table->lookup(expr.location, pc);
 		} catch (std::exception &e) {
@@ -186,24 +158,24 @@ namespace dcpu {
 		}
 	}
 
-	void resolve_symbols::operator()(binary_operation &expr) {
+	void resolve_symbols::operator()(binary_operation &expr) const {
 		apply_visitor(*this, expr.left);
 		apply_visitor(*this, expr.right);
 	}
 
-	void resolve_symbols::operator()(unary_operation &expr) {
+	void resolve_symbols::operator()(unary_operation &expr) const {
 		apply_visitor(*this, expr.operand);
 	}
 
-	void resolve_symbols::operator()(expression_argument &arg) {
+	void resolve_symbols::operator()(expression_argument &arg) const {
 		if (evaluated(arg.expr)) {
 			return;
 		}
 
-		apply_visitor(*this, arg.expr);
+		apply_visitor(resolve_symbols(table, error_handler, pc, true), arg.expr);
 	}
 
-	void resolve_symbols::operator()(instruction &instruction) {
+	void resolve_symbols::operator()(instruction &instruction) const {
 		apply_visitor(*this, instruction.a);
 
 		if (instruction.b) {
@@ -211,28 +183,36 @@ namespace dcpu {
 		}
 	}
 
+	void resolve_symbols::operator()(ast::equ_directive &equ) const {
+		resolve_symbols resolver(table, error_handler, pc, true);
+		apply_visitor(resolver, equ.value);
+	}
+
+	void resolve_symbols::operator()(ast::fill_directive &fill) const {
+		apply_visitor(resolve_symbols(table, error_handler, pc, false), fill.count);
+		apply_visitor(resolve_symbols(table, error_handler, pc, true), fill.value);
+	}
+
 	template <typename T>
-	void resolve_symbols::operator()( T &) {}
+	void resolve_symbols::operator()( T &) const {}
 
 	/*************************************************************************
 	 *
 	 * compress_expressions
 	 *
 	 *************************************************************************/
-	compress_expressions::compress_expressions(symbol_table* table) : base_symbol_visitor(table) {}
+	compress_expressions::compress_expressions(symbol_table* table, uint32_t pc)
+			: base_symbol_visitor(table, pc) {}
 
-	compress_expressions::compress_expressions(uint16_t pc, symbol_table* table)
-			: base_symbol_visitor(pc, table) {}
-
-	bool compress_expressions::operator()(expression_argument &arg) {
+	bool compress_expressions::operator()(expression_argument &arg) const {
 		if (evaluated(arg.expr) || !evaluatable(arg.expr)) {
 			return false;
 		}
 
 		uint8_t expr_size = output_size(arg, evaluate(arg.expr));
-		if (arg.next_word_required && !expr_size) {
-			arg.next_word_required = false;
-			table->compress_after(pc+1);
+		if (arg.cached_size != expr_size) {
+			table->update_after(pc + arg.cached_size, expr_size - arg.cached_size);
+			arg.cached_size = expr_size;
 
 			return true;
 		}
@@ -240,13 +220,33 @@ namespace dcpu {
 		return false;
 	}
 
-	bool compress_expressions::operator()(instruction &instruction) {
+	bool compress_expressions::operator()(instruction &instruction) const {
 		// argument b can never be compressed, so don't both with it
 		return apply_visitor(*this, instruction.a);
 	}
 
-	template <typename T>
-	bool compress_expressions::operator()( T &) {
+	bool compress_expressions::operator()(ast::fill_directive &fill) const {
+		if (!evaluatable(fill.count)) {
+			throw invalid_argument("fill count expression can not be evaluated");
+		}
+
+		auto evaled_count = evaluate(fill.count);
+		if (evaled_count._register) {
+			throw invalid_argument("fill count expression must evaluate to a literal");
+		}
+
+		auto count = *evaled_count.value;
+		if (fill.cached_size != count) {
+			table->update_after(pc, count - fill.cached_size);
+			fill.cached_size = count;
+
+			return true;
+		}
+
+		return false;
+	}
+
+	template <typename T> bool compress_expressions::operator()( T &) const{
 		return false;
 	}
 
@@ -257,7 +257,7 @@ namespace dcpu {
 	 *************************************************************************/
 	symbol *symbol_table::last_global_before(uint16_t offset) {
 		for (auto it = symbols.rbegin(); it != symbols.rend(); it++) {
-			if (it->type == symbol_type::GLOBAL_LABEL && it->offset() < offset) {
+			if (it->type == symbol_type::GLOBAL_LABEL && it->offset < offset) {
 				return &*it;
 			}
 		}
@@ -266,7 +266,7 @@ namespace dcpu {
 	}
 
 	void symbol_table::add_label(const label &label, uint16_t offset) {
-		string name = resolve_full_name(label.name, offset);
+		string name = full_name(label.name, offset);
 
 		symbol_type type = symbol_type::GLOBAL_LABEL;
 		if (label.type == label_type::LOCAL) {
@@ -295,11 +295,11 @@ namespace dcpu {
 	}
 
 	void symbol_table::equ(expression &expr) {
-		symbols.back().make_equ(expr);
+		symbols.back().equ_expr = &expr;
 	}
 
 	symbol *symbol_table::lookup(const string &name, uint16_t offset) {
-		auto _symbol = lookup_table.find(resolve_full_name(name, offset));
+		auto _symbol = lookup_table.find(full_name(name, offset));
 		if (_symbol == lookup_table.end()) {
 			throw undefined_symbol_error(name);
 		}
@@ -310,7 +310,7 @@ namespace dcpu {
 		return lookup(name_for_location(location), offset);
 	}
 
-	string symbol_table::resolve_full_name(const string &name, uint16_t offset) {
+	string symbol_table::full_name(const string &name, uint16_t offset) {
 		if (starts_with(name, ".")) {
 			symbol *global = last_global_before(offset);
 
@@ -322,49 +322,52 @@ namespace dcpu {
 		return name;
 	}
 
-	void symbol_table::compress_after(uint16_t offset) {
-		for (auto it = symbols.rbegin(); it != symbols.rend(); it++) {
-			if (it->has_offset()) {
-				if (it->offset() < offset) {
-					break;
-				}
-
-				--it->offset();
-			}
+	void symbol_table::update_after(uint16_t offset, int amount) {
+		for (auto it = symbols.rbegin(); it != symbols.rend() && it->offset > offset; it++) {
+			it->offset += amount;
 		}
 	}
 
-	void symbol_table::build(const ast::statement_list &statements, error_handler_ptr &error_handler) {
-		uint16_t last_pc = 0;
-		auto builder = build_symbol_table(error_handler, this);
+	void symbol_table::build(ast::statement_list &statements, error_handler_ptr &error_handler) {
+		uint32_t pc = 0;
 		for (auto &stmt : statements) {
-			apply_visitor(builder, stmt);
+			apply_visitor(build_symbol_table(this, error_handler, pc), stmt);
 
-			last_pc = builder.pc;
-			builder.pc += output_size(stmt);
-
-			if (builder.pc < last_pc) {
-				error_handler->error(get_location(stmt), "generated output exceeds DCPU-16 memory size");
-			}
+			pc += output_size(stmt);
 		}
 	}
 
 	void symbol_table::resolve(ast::statement_list &statements, error_handler_ptr &error_handler) {
-		auto resolver = resolve_symbols(error_handler, this);
+		uint32_t pc = 0;
 		for (auto &stmt : statements) {
-			apply_visitor(resolver, stmt);
-			resolver.pc += output_size(stmt);
+			apply_visitor(resolve_symbols(this, error_handler, pc), stmt);
+			pc += output_size(stmt);
 		}
 
-		bool compressed = false;
-		do {
-			compressed = false;
-			auto compressor = compress_expressions(this);
+		// if we have encountered errors, don't bother attempting to compress
+		if (error_handler->has_errors()) {
+			return;
+		}
+
+		bool updated = true;
+		for (unsigned int i = 0; i < MAX_COMPRESS_ITERATIONS && updated; i++) {
+			updated = false;
+			pc = 0;
 			for (auto& stmt : statements) {
-				compressed |= apply_visitor(compressor, stmt);
-				compressor.pc += output_size(stmt);
+				updated |= apply_visitor(compress_expressions(this, pc), stmt);
+				pc += output_size(stmt);
 			}
-		} while (compressed);
+		}
+
+		if (updated) {
+			// if updated is still true then we must have hit max iterations
+			throw runtime_error("internal compiler error: failed to convert label references to short literal form "
+					"after 1000 iterations");
+		}
+
+		if (pc > UINT16_MAX) {
+			error_handler->error(get_location(statements.back()), "output exceeds 65,535 words");
+		}
 	}
 
 	void symbol_table::dump() {
@@ -378,9 +381,9 @@ namespace dcpu {
 
 			cout << " ";
 			if (symbol.type == symbol_type::EQU) {
-				cout << symbol.evaluate(symbol.location);
+				cout << evaluate(*symbol.equ_expr);
 			} else {
-				cout << boost::format("%#06x") % symbol.offset();
+				cout << boost::format("%#06x") % symbol.offset;
 			}
 
 			cout << " | " << symbol.name << endl;

@@ -35,7 +35,7 @@ namespace dcpu { namespace ast {
 	struct expression_argument : public base_argument {
 		bool indirect;
 		bool force_next_word;
-		bool next_word_required;
+		uint8_t cached_size;
 		expression expr;
 
 		expression_argument(const lexer::location_ptr &location, argument_position position, const expression &expr,
@@ -83,7 +83,29 @@ namespace dcpu { namespace ast {
 		bool operator==(const org_directive&) const;
 	};
 
-	typedef boost::variant<instruction, label, data_directive, org_directive> statement;
+	struct fill_directive : public locatable {
+		expression count;
+		expression value;
+		uint16_t cached_size;
+
+		fill_directive(const lexer::location_ptr &location, const expression &count, const expression &value);
+		bool operator==(const fill_directive&) const;
+	};
+
+	struct equ_directive : public locatable {
+		expression value;
+
+		equ_directive(const lexer::location_ptr &location, const expression &value);
+		bool operator==(const equ_directive&) const;
+	};
+
+	typedef boost::variant<
+			instruction,
+			label,
+			data_directive,
+			org_directive,
+			fill_directive,
+			equ_directive> statement;
 	typedef std::list<statement> statement_list;
 
 	class calculate_size_expression : public boost::static_visitor<std::uint16_t> {
@@ -101,6 +123,7 @@ namespace dcpu { namespace ast {
 		std::uint16_t operator()(const expression_argument &arg) const;
 		std::uint16_t operator()(const data_directive &) const;
 		std::uint16_t operator()(const org_directive &) const;
+		std::uint16_t operator()(const fill_directive &) const;
 		std::uint16_t operator()(const instruction &instruction) const;
 		template <typename T> std::uint16_t operator()( const T &expr) const;
 	};
@@ -116,4 +139,6 @@ namespace dcpu { namespace ast {
 	std::ostream& operator<< (std::ostream& stream, const instruction &instruction);
 	std::ostream& operator<< (std::ostream& stream, const data_directive &data);
 	std::ostream& operator<< (std::ostream& stream, const org_directive &org);
+	std::ostream& operator<< (std::ostream& stream, const fill_directive &fill);
+	std::ostream& operator<< (std::ostream& stream, const equ_directive &reserve);
 }}
