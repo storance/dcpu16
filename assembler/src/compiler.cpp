@@ -147,9 +147,19 @@ namespace dcpu { namespace compiler {
 		}
 
 		uint8_t expr_size = output_size(arg, evaluate(arg.expr));
+		uint8_t current_size = arg.cached_size;
 		if (arg.cached_size != expr_size) {
-			table.update_after(pc + arg.cached_size, expr_size - arg.cached_size);
 			arg.cached_size = expr_size;
+			table.update_after(pc + current_size, expr_size - current_size);
+
+			// if updating to use short literals causes the expression to no longer fit in a short literal,
+			// just force using the next word.
+			uint8_t new_size = output_size(arg, evaluate(arg.expr));
+			if (new_size > expr_size) {
+				table.update_after(pc + expr_size, new_size - expr_size);
+				arg.cached_size = new_size;
+				arg.force_next_word = true;
+			}
 
 			return true;
 		}
