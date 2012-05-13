@@ -6,8 +6,8 @@
 #include <memory>
 #include <cstdint>
 #include <list>
-#include <boost/variant.hpp>
 
+#include <boost/variant/variant.hpp>
 #include "mnemonics.hpp"
 
 namespace dcpu { namespace lexer {

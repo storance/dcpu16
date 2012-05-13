@@ -5,9 +5,6 @@
 
 #include "expression.hpp"
 #include "error_handler.hpp"
-#include "symbol_table.hpp"
-#include "lexer.hpp"
-#include "token.hpp"
 
 namespace dcpu { namespace parser {
 	typedef std::function<bool (const lexer::token*)> token_predicate;

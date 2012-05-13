@@ -1,3 +1,5 @@
+#include <boost/format.hpp>
+
 #include "error_handler.hpp"
 
 using namespace std;

@@ -131,7 +131,7 @@ namespace dcpu {
 		void operator()(const ast::expression_argument &arg) const;
 		void operator()(const ast::instruction &instruction) const;
 		void operator()(ast::equ_directive &equ) const;
-		template <typename T> void operator()(const T &) const;
+		template <typename T> void operator()(const T &) const {}
 	};
 
 	/*************************************************************************
@@ -154,7 +154,7 @@ namespace dcpu {
 		void operator()(ast::instruction &instruction) const;
 		void operator()(ast::equ_directive &equ) const;
 		void operator()(ast::fill_directive &fill) const;
-		template <typename T> void operator()( T &) const;
+		template <typename T> void operator()( T &) const {}
 	};
 
 	/*************************************************************************
@@ -169,6 +169,6 @@ namespace dcpu {
 		bool operator()(ast::expression_argument &arg) const;
 		bool operator()(ast::instruction &instruction) const;
 		bool operator()(ast::fill_directive &fill) const;
-		template <typename T>bool operator()( T &) const;
+		template <typename T>bool operator()( T &) const { return false; }
 	};
 }

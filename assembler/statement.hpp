@@ -2,11 +2,8 @@
 
 #include <string>
 #include <cstdint>
-#include <boost/variant.hpp>
 
-#include "mnemonics.hpp"
 #include "expression.hpp"
-#include "token.hpp"
 
 namespace dcpu { namespace ast {
 	enum class argument_position : std::uint8_t {

@@ -1,6 +1,7 @@
 #include "mnemonics.hpp"
 
 #include <map>
+#include <boost/optional.hpp>
 #include <boost/algorithm/string.hpp>
 
 using namespace std;

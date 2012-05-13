@@ -3,11 +3,10 @@
 #include <string>
 #include <cstdint>
 
-#include <boost/variant.hpp>
+#include <boost/variant/variant.hpp>
 #include <boost/optional.hpp>
 
 #include "token.hpp"
-#include "mnemonics.hpp"
 
 // forward declaration of symbol
 namespace dcpu { struct symbol; }
@@ -100,7 +99,7 @@ namespace dcpu { namespace ast {
 		register_operand,
 		evaluated_expression,
 		boost::recursive_wrapper<unary_operation>,
-		boost::recursive_wrapper<binary_operation> > expression;
+		boost::recursive_wrapper<binary_operation>> expression;
 
 	typedef boost::optional<expression> optional_expression;
 

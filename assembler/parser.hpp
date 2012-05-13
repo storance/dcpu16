@@ -1,10 +1,11 @@
 #pragma once
 
 #include <string>
+#include <functional>
 #include <cstdint>
 
+#include "lexer.hpp"
 #include "statement.hpp"
-#include "error_handler.hpp"
 #include "expression_parser.hpp"
 
 namespace dcpu { namespace parser {

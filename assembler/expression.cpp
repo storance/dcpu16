@@ -1,8 +1,9 @@
-#include "expression.hpp"
-
-#include <stdexcept>
+#include <boost/variant.hpp>
 #include <boost/format.hpp>
 
+#include <stdexcept>
+
+#include "expression.hpp"
 #include "symbol_table.hpp"
 
 using namespace std;
@@ -341,6 +342,8 @@ namespace dcpu { namespace ast {
 		case binary_operator::XOR:
 			value = leftValue ^ rightValue;
 			break;
+		default:
+			throw invalid_argument(str(boost::format("Unknown binary operator %s") % expr._operator));
 		}
 
 		if (left._register) {

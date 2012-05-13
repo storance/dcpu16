@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <boost/variant.hpp>
 #include <expression.hpp>
 
 using namespace std;

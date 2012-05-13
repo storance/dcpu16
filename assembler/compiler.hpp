@@ -3,8 +3,6 @@
 #include <vector>
 #include <cstdint>
 
-#include "statement.hpp"
-#include "error_handler.hpp"
 #include "symbol_table.hpp"
 
 namespace dcpu { namespace compiler {

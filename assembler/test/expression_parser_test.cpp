@@ -1,6 +1,7 @@
 #include <iostream>
 #include <list>
 #include <gtest/gtest.h>
+#include <boost/variant.hpp>
 
 #include <expression_parser.hpp>
 #include <lexer.hpp>

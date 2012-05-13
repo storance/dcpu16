@@ -1,7 +1,8 @@
+#include <boost/format.hpp>
+#include <boost/variant.hpp>
+
 #include "expression_parser.hpp"
 #include "mnemonics.hpp"
-
-#include <boost/format.hpp>
 
 using namespace std;
 using namespace std::placeholders;

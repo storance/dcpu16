@@ -3,7 +3,7 @@
 #include <string>
 #include <cstdint>
 #include <map>
-#include <boost/optional.hpp>
+#include <boost/optional/optional_fwd.hpp>
 
 namespace dcpu {
 	enum class registers : std::uint8_t {

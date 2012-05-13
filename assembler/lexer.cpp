@@ -1,11 +1,13 @@
-#include "lexer.hpp"
-
 #include <string>
 #include <cctype>
 #include <cstdlib>
 #include <climits>
 #include <stdexcept>
+
+#include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
+
+#include "lexer.hpp"
 
 using namespace std;
 using namespace boost;

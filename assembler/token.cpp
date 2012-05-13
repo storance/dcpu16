@@ -1,8 +1,7 @@
-#include "token.hpp"
-
-#include <cassert>
-
+#include <boost/variant.hpp>
 #include <boost/format.hpp>
+
+#include "token.hpp"
 
 using namespace std;
 

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <list>
 #include <gtest/gtest.h>
+#include <boost/variant.hpp>
+#include <boost/format.hpp>
 
 #include <statement.hpp>
 #include <compiler.hpp>

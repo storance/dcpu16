@@ -1,3 +1,5 @@
+#include <boost/variant.hpp>
+
 #include "compiler.hpp"
 
 #include <boost/format.hpp>

@@ -1,7 +1,10 @@
+#include <boost/variant.hpp>
+
 #include "symbol_table.hpp"
 
 #include <iomanip>
 #include <exception>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
@@ -126,8 +129,6 @@ namespace dcpu {
 		table->equ(equ.value);
 	}
 
-	template <typename T> void build_symbol_table::operator()(const T &) const {}
-
 	/*************************************************************************
 	 *
 	 * resolve_symbols
@@ -193,9 +194,6 @@ namespace dcpu {
 		apply_visitor(resolve_symbols(table, error_handler, pc, true), fill.value);
 	}
 
-	template <typename T>
-	void resolve_symbols::operator()( T &) const {}
-
 	/*************************************************************************
 	 *
 	 * compress_expressions
@@ -243,10 +241,6 @@ namespace dcpu {
 			return true;
 		}
 
-		return false;
-	}
-
-	template <typename T> bool compress_expressions::operator()( T &) const{
 		return false;
 	}
 

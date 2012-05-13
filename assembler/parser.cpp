@@ -1,18 +1,18 @@
-#include "parser.hpp"
+#include <boost/format.hpp>
+#include <boost/optional.hpp>
+#include <boost/variant.hpp>
 
 #include <functional>
 #include <iostream>
 #include <iterator>
 #include <map>
 
-#include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
+#include "parser.hpp"
 
 using namespace std;
 using namespace placeholders;
 using namespace dcpu::lexer;
 using namespace dcpu::ast;
-using namespace boost::algorithm;
 
 namespace dcpu { namespace parser {
 	parser::parser(lexer::lexer &lex, ast::statement_list &statements) : current(lex.tokens.begin()),

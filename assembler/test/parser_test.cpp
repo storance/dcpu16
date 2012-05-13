@@ -2,6 +2,7 @@
 #include <list>
 #include <memory>
 #include <gtest/gtest.h>
+#include <boost/variant.hpp>
 
 #include <parser.hpp>
 

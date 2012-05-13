@@ -8,9 +8,9 @@
 
 #include <boost/program_options.hpp>
 #include <boost/format.hpp>
+#include <boost/variant.hpp>
 
 #include "parser.hpp"
-#include "symbol_table.hpp"
 #include "compiler.hpp"
 
 using namespace std;

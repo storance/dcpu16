@@ -1,7 +1,7 @@
-#include "statement.hpp"
-
 #include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
+#include <boost/variant.hpp>
+
+#include "statement.hpp"
 
 using namespace std;
 using namespace dcpu::lexer;

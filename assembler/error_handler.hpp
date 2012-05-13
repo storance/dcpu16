@@ -5,7 +5,7 @@
 #include <iostream>
 #include <memory>
 
-#include <boost/format.hpp>
+#include <boost/format/format_fwd.hpp>
 
 #include "token.hpp"
 
