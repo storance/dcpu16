@@ -23,7 +23,96 @@ expression run_expression_parser(const string &content, bool indirect, bool allo
 	return parser.parse(next(begin, lex.tokens.end()));
 }
 
-TEST(ExpressionParserTest, OperatorPrecedenceTest) {
+TEST(ExpressionParser, Operators) {
+	location_ptr _location = make_shared<location>("<Test>", 1, 1);
+
+	expression expr = run_expression_parser("2^5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::XOR,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2|5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::OR,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2&5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::AND,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2+5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::PLUS,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2-5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::MINUS,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2*5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::MULTIPLY,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2/5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::DIVIDE,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2%5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::MODULO,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2<<5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::SHIFT_LEFT,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2>>5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::SHIFT_RIGHT,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("-2", false, true);
+	EXPECT_EQ(expr, expression(unary_operation(_location, unary_operator::MINUS,
+		literal_operand(_location, 2))
+	));
+
+	expr = run_expression_parser("+2", false, true);
+	EXPECT_EQ(expr, expression(unary_operation(_location, unary_operator::PLUS,
+		literal_operand(_location, 2))
+	));
+
+	expr = run_expression_parser("!2", false, true);
+	EXPECT_EQ(expr, expression(unary_operation(_location, unary_operator::NOT,
+		literal_operand(_location, 2))
+	));
+
+	expr = run_expression_parser("~2", false, true);
+	EXPECT_EQ(expr, expression(unary_operation(_location, unary_operator::BITWISE_NOT,
+		literal_operand(_location, 2))
+	));
+
+	expr = run_expression_parser("--2", false, true);
+	EXPECT_EQ(expr, expression(unary_operation(_location, unary_operator::MINUS,
+		unary_operation(_location, unary_operator::MINUS, literal_operand(_location, 2)))
+	));
+}
+
+TEST(ExpressionParser, OperatorPrecedence) {
 	location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
 	expression expr = run_expression_parser("1 + 2 * 3", false, true);
@@ -95,6 +184,14 @@ TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 		), unary_operation(_location, unary_operator::BITWISE_NOT, literal_operand(_location, 4))
 	)));
 
+	expr = run_expression_parser("5--10", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::MINUS,
+			literal_operand(_location, 5),
+			unary_operation(_location, unary_operator::MINUS,
+					literal_operand(_location, 10)
+			)
+	)));
+
 	expr = run_expression_parser("-(1 + 2) * (3 + 4)", false, true);
 	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::MULTIPLY,
 		unary_operation(_location, unary_operator::MINUS,
@@ -109,7 +206,7 @@ TEST(ExpressionParserTest, OperatorPrecedenceTest) {
 	)));
 }
 
-TEST(ExpressionParserTest, SymbolTest) {
+TEST(ExpressionParser, Symbols) {
 	location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
 	expression expr = run_expression_parser("$a + 3", false, true);
@@ -125,7 +222,7 @@ TEST(ExpressionParserTest, SymbolTest) {
 	));
 }
 
-TEST(ExpressionParserTest, RegisterTest) {
+TEST(ExpressionParser, Registers) {
 	location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
 	expression expr = run_expression_parser("a + 3", true, true);
@@ -135,7 +232,7 @@ TEST(ExpressionParserTest, RegisterTest) {
 	));
 }
 
-TEST(ExpressionParserTest, CurrnetPosTest) {
+TEST(ExpressionParser, CurrentPosition) {
 	location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
 	expression expr = run_expression_parser("$ + 3", false, true);

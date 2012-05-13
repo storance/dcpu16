@@ -58,7 +58,7 @@ namespace dcpu { namespace parser {
 
 	expression expression_parser::parse_bitwise_xor(const token& current_token) {
 		return parse_binary_operation(current_token, &expression_parser::parse_bitwise_and, {
-			operator_definition(binary_operator::XOR, bind(&token::is_character, _1, '%'))
+			operator_definition(binary_operator::XOR, bind(&token::is_character, _1, '^'))
 		});
 	}
 
@@ -162,6 +162,7 @@ namespace dcpu { namespace parser {
 		} else if (current_token.is_character('$')) {
 			return current_position_operand(current_token.location);
 		} else {
+			--current;
 			logger.error(current_token.location, boost::format("expected a primary-expression before '%s'")
 				% current_token.content);
 			return invalid_expression(current_token.location);
