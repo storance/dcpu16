@@ -35,8 +35,6 @@ namespace dcpu { namespace lexer {
 		STACK_OPERATION,
 		INTEGER,
 		INVALID_INTEGER,
-		INCREMENT,
-		DECREMENT,
 		SHIFT_LEFT,
 		SHIFT_RIGHT,
 		CHARACTER,
@@ -45,11 +43,16 @@ namespace dcpu { namespace lexer {
 		QUOTED_STRING,
 	};
 
-	enum class quote_type {
+	enum class quote_type : uint8_t {
 		NONE,
 		SINGLE_QUOTE,
 		DOUBLE_QUOTE,
 		ANGLE_BRACKETS
+	};
+
+	enum class symbol_type : uint8_t {
+		NORMAL,
+		EXPLICIT
 	};
 
 	typedef boost::variant<
@@ -59,7 +62,8 @@ namespace dcpu { namespace lexer {
 		register_definition,
 		directives,
 		stack_operation,
-		quote_type> token_data;
+		quote_type,
+		symbol_type> token_data;
 
 	class token {
 	public:
@@ -85,8 +89,6 @@ namespace dcpu { namespace lexer {
 		bool is_stack_operation(stack_operation) const;
 		bool is_label() const;
 		bool is_symbol() const;
-		bool is_increment() const;
-		bool is_decrement() const;
 		bool is_shift_left() const;
 		bool is_shift_right() const;
 		bool is_character(char c) const;
@@ -100,6 +102,7 @@ namespace dcpu { namespace lexer {
 		directives get_directive() const;
 		stack_operation get_stack_operation() const;
 		quote_type get_quote_type() const;
+		symbol_type get_symbol_type() const;
 	};
 
 	typedef std::list<token> token_list;

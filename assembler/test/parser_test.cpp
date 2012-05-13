@@ -346,8 +346,7 @@ TEST(Parser, StackArguments) {
 	ASSERT_NO_FATAL_FAILURE(run_parser("set A, [SP]\nset B, [SP++]\nset [--SP] , C", 3, statements));
 	auto it = statements.begin();
 	EXPECT_EQ(*it++, statement(instruction(_location, opcodes::SET,
-		argument(expression_argument(_location, argument_position::B, evaluated_expression(_location, registers::SP),
-				true, false)),
+		argument(stack_argument(_location, argument_position::A, stack_operation::PEEK)),
 		argument(expression_argument(_location, argument_position::B, evaluated_expression(_location, registers::A),
 				false, false))
 	)));

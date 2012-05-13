@@ -43,11 +43,7 @@ namespace dcpu { namespace lexer {
 		char c = next_char();
 		auto start = make_location();
 
-		if (c == '+' && consume_next_if('+')) {
-			return token(start, token_type::INCREMENT, "++");
-		} else if (c == '-' && consume_next_if('-')) {
-			return token(start, token_type::DECREMENT, "--");
-		} else if (c == '<' && consume_next_if('<')) {
+		if (c == '<' && consume_next_if('<')) {
 			return token(start, token_type::SHIFT_LEFT, "<<");
 		} else if (c == '>' && consume_next_if('>')) {
 			return token(start, token_type::SHIFT_RIGHT, ">>");
@@ -72,7 +68,8 @@ namespace dcpu { namespace lexer {
 		} else if (c == ':' && is_identifier_first_char(peek_char())) {
 			return token(start, token_type::LABEL, append_while(next_char(), &lexer::is_identifier_char));
 		} else if (c == '$' && is_identifier_first_char(peek_char())) {
-			return token(start, token_type::SYMBOL, append_while(next_char(), &lexer::is_identifier_char));
+			return token(start, token_type::SYMBOL, append_while(next_char(), &lexer::is_identifier_char),
+					symbol_type::EXPLICIT);
 		} else if (is_identifier_first_char(c)) {
 			string identifier = append_while(c, &lexer::is_identifier_char);
 			if (consume_next_if(':')) {
@@ -82,6 +79,16 @@ namespace dcpu { namespace lexer {
 			}
 		} else if (isdigit(c)) {
 			return parse_number(start, append_while(c, &lexer::is_identifier_char));
+		} else if (c == '[') {
+			iterator start_pos = current;
+			uint32_t start_col = column;
+			auto stack_op_token = parse_stack_operation(start);
+			if (stack_op_token) {
+				return *stack_op_token;
+			} else {
+				current = start_pos;
+				column = start_col;
+			}
 		} else if (c == '\n') {
 			next_line();
 
@@ -112,7 +119,41 @@ namespace dcpu { namespace lexer {
 			return token(start, token_type::STACK_OPERATION, identifier, *stack_op);
 		}
 
-		return token(start, token_type::SYMBOL, identifier);
+		return token(start, token_type::SYMBOL, identifier, symbol_type::NORMAL);
+	}
+
+	boost::optional<token> lexer::parse_stack_operation(location_ptr &location) {
+		string content = "[";
+
+		while (current != end) {
+			skip();
+			char next = next_char();
+
+			if (next == ']') {
+				content += next;
+				break;
+			} else if (next == '\n') {
+				break;
+			} else if (next == '-' && consume_next_if('-')) {
+				content += "--";
+				continue;
+			} else if (next == '+' && consume_next_if('+')) {
+				content += "++";
+				continue;
+			}
+
+			content += next;
+		}
+
+		if (algorithm::iequals(content, "[SP]")) {
+			return token(location, token_type::STACK_OPERATION, content, stack_operation::PEEK);
+		} else if (algorithm::iequals(content, "[--SP]")) {
+			return token(location, token_type::STACK_OPERATION, content, stack_operation::PUSH);
+		} else if (algorithm::iequals(content, "[SP++]")) {
+			return token(location, token_type::STACK_OPERATION, content, stack_operation::POP);
+		}
+
+		return boost::none;
 	}
 
 	string lexer::append_while(char initial, std::function<bool (char)> predicate) {

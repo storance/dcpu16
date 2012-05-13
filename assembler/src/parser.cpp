@@ -275,27 +275,8 @@ namespace dcpu { namespace parser {
 	}
 
 	optional_argument parser::parse_indirect_argument(const token& current_token, argument_position position) {
-		auto &next_tkn = next_token();
-
-		optional_argument arg;
-		if (current_token.is_register(registers::SP) && next_tkn.is_increment()) {
-			if (position == argument_position::B) {
-				logger.error(current_token.location, "[SP++] / POP is not allowed as argument b");
-			}
-
-			arg = argument(stack_argument(current_token.location, position, stack_operation::POP));
-		} else if (current_token.is_decrement() && next_tkn.is_register(registers::SP)) {
-			if (position == argument_position::A) {
-				logger.error(current_token.location, "[--SP] / PUSH is not allowed as argument a");
-			}
-
-			arg = argument(stack_argument(current_token.location, position, stack_operation::PUSH));
-		} else {
-			move_back();
-
-			arg = argument(expression_argument(current_token.location, position,
-					parse_expression(current_token, true, true), true, false));
-		}
+		argument arg(expression_argument(current_token.location, position,
+				parse_expression(current_token, true, true), true, false));
 
 		auto &end_token = next_token();
 		if (!end_token.is_character(']')) {

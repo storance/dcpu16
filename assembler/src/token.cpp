@@ -53,14 +53,6 @@ namespace dcpu { namespace lexer {
 		return type == token_type::SYMBOL;
 	}
 
-	bool token::is_increment() const {
-		return type == token_type::INCREMENT;
-	}
-
-	bool token::is_decrement() const {
-		return type == token_type::DECREMENT;
-	}
-
 	bool token::is_shift_left() const {
 		return type == token_type::SHIFT_LEFT;
 	}
@@ -163,6 +155,10 @@ namespace dcpu { namespace lexer {
 
 	stack_operation token::get_stack_operation() const {
 		return boost::get<stack_operation>(data);
+	}
+
+	symbol_type token::get_symbol_type() const {
+		return boost::get<symbol_type>(data);
 	}
 
 	token& next(token_iterator& current, token_iterator end) {

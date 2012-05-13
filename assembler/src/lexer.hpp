@@ -14,12 +14,13 @@ namespace dcpu { namespace lexer {
 
 		iterator current, end;
 		std::string source;
-		std::uint32_t line, column;
+		uint32_t line, column;
 
 		std::string append_while(char, std::function<bool (char)>);
 		std::string parse_quoted_string(location_ptr &location, char end_quote, bool allow_escapes);
 		char parse_escape_sequence();
-		std::uint8_t parse_hex_digit(char c);
+		uint8_t parse_hex_digit(char c);
+		boost::optional<token> parse_stack_operation(location_ptr &location);
 
 		char next_char();
 		char peek_char();
