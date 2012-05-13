@@ -333,14 +333,38 @@ namespace dcpu { namespace ast {
 		case binary_operator::SHIFT_RIGHT:
 			value = leftValue >> rightValue;
 			break;
-		case binary_operator::AND:
+		case binary_operator::BITWISE_AND:
 			value = leftValue & rightValue;
 			break;
-		case binary_operator::OR:
+		case binary_operator::BITWISE_OR:
 			value = leftValue | rightValue;
 			break;
-		case binary_operator::XOR:
+		case binary_operator::BITWISE_XOR:
 			value = leftValue ^ rightValue;
+			break;
+		case binary_operator::EQ:
+			value = leftValue == rightValue;
+			break;
+		case binary_operator::NEQ:
+			value = leftValue != rightValue;
+			break;
+		case binary_operator::GTE:
+			value = leftValue >= rightValue;
+			break;
+		case binary_operator::GT:
+			value = leftValue > rightValue;
+			break;
+		case binary_operator::LTE:
+			value = leftValue <= rightValue;
+			break;
+		case binary_operator::LT:
+			value = leftValue < rightValue;
+			break;
+		case binary_operator::OR:
+			value = leftValue || rightValue;
+			break;
+		case binary_operator::AND:
+			value = leftValue && rightValue;
 			break;
 		default:
 			throw invalid_argument(str(boost::format("Unknown binary operator %s") % expr._operator));
@@ -461,12 +485,28 @@ namespace dcpu { namespace ast {
 			return stream << "<<";
 		case binary_operator::SHIFT_RIGHT:
 			return stream << ">>";
-		case binary_operator::AND:
+		case binary_operator::BITWISE_AND:
 			return stream << "&";
-		case binary_operator::OR:
+		case binary_operator::BITWISE_OR:
 			return stream << "|";
-		case binary_operator::XOR:
+		case binary_operator::BITWISE_XOR:
 			return stream << "^";
+		case binary_operator::EQ:
+			return stream << "==";
+		case binary_operator::NEQ:
+			return stream << "!=";
+		case binary_operator::GTE:
+			return stream << ">=";
+		case binary_operator::GT:
+			return stream << ">";
+		case binary_operator::LTE:
+			return stream << "<=";
+		case binary_operator::LT:
+			return stream << "<";
+		case binary_operator::OR:
+			return stream << "||";
+		case binary_operator::AND:
+			return stream << "&&";
 		default:
 			return stream << "<Unknown binary_operator " << static_cast<int>(op) << ">";
 		}

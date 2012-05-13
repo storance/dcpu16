@@ -27,19 +27,73 @@ TEST(ExpressionParser, Operators) {
 	location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
 	expression expr = run_expression_parser("2^5", false, true);
-	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::XOR,
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::BITWISE_XOR,
 		literal_operand(_location, 2),
 		literal_operand(_location, 5))
 	));
 
-	expr = run_expression_parser("2|5", false, true);
+	expr = run_expression_parser("2||5", false, true);
 	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::OR,
 		literal_operand(_location, 2),
 		literal_operand(_location, 5))
 	));
 
-	expr = run_expression_parser("2&5", false, true);
+	expr = run_expression_parser("2&&5", false, true);
 	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::AND,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2==5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::EQ,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2!=5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::NEQ,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2<>5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::EQ,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2<=5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::LTE,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2<5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::LT,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2>=5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::GTE,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2>5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::GT,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2|5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::BITWISE_OR,
+		literal_operand(_location, 2),
+		literal_operand(_location, 5))
+	));
+
+	expr = run_expression_parser("2&5", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::BITWISE_AND,
 		literal_operand(_location, 2),
 		literal_operand(_location, 5))
 	));
@@ -115,28 +169,83 @@ TEST(ExpressionParser, Operators) {
 TEST(ExpressionParser, OperatorPrecedence) {
 	location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
-	expression expr = run_expression_parser("1 + 2 * 3", false, true);
-	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::PLUS,
-		literal_operand(_location, 1),
-		binary_operation(_location, binary_operator::MULTIPLY,
-			literal_operand(_location, 2),
-			literal_operand(_location, 3)
-		)
-	)));
-
-	expr = run_expression_parser("1 & 2 | 3 ^ 4", false, true);
+	expression expr = run_expression_parser("1 && 2 || 3", false, true);
 	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::OR,
 		binary_operation(_location, binary_operator::AND,
 			literal_operand(_location, 1),
 			literal_operand(_location, 2)
-		), binary_operation(_location, binary_operator::XOR,
+		), literal_operand(_location, 3)
+	)));
+
+	expr = run_expression_parser("1 | 2 && 3 | 4", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::BITWISE_AND,
+		binary_operation(_location, binary_operator::BITWISE_OR,
+			literal_operand(_location, 1),
+			literal_operand(_location, 2)
+		), binary_operation(_location, binary_operator::BITWISE_OR,
 			literal_operand(_location, 3),
 			literal_operand(_location, 4)
 		)
 	)));
 
-	expr = run_expression_parser("1 << 4 & 2 >> 3", false, true);
-	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::AND,
+	expr = run_expression_parser("1 ^ 2 | 3 ^ 4", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::BITWISE_OR,
+		binary_operation(_location, binary_operator::BITWISE_XOR,
+			literal_operand(_location, 1),
+			literal_operand(_location, 2)
+		), binary_operation(_location, binary_operator::BITWISE_XOR,
+			literal_operand(_location, 3),
+			literal_operand(_location, 4)
+		)
+	)));
+
+	expr = run_expression_parser("1 & 2 ^ 3 & 4", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::BITWISE_XOR,
+		binary_operation(_location, binary_operator::BITWISE_AND,
+			literal_operand(_location, 1),
+			literal_operand(_location, 2)
+		), binary_operation(_location, binary_operator::BITWISE_AND,
+			literal_operand(_location, 3),
+			literal_operand(_location, 4)
+		)
+	)));
+
+	expr = run_expression_parser("1 == 2 & 3 != 4", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::BITWISE_AND,
+		binary_operation(_location, binary_operator::EQ,
+			literal_operand(_location, 1),
+			literal_operand(_location, 2)
+		), binary_operation(_location, binary_operator::NEQ,
+			literal_operand(_location, 3),
+			literal_operand(_location, 4)
+		)
+	)));
+
+	expr = run_expression_parser("1 <= 2 == 3 >= 4", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::EQ,
+		binary_operation(_location, binary_operator::LTE,
+			literal_operand(_location, 1),
+			literal_operand(_location, 2)
+		), binary_operation(_location, binary_operator::GTE,
+			literal_operand(_location, 3),
+			literal_operand(_location, 4)
+		)
+	)));
+
+	expr = run_expression_parser("1 < 2 == 3 > 4", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::EQ,
+		binary_operation(_location, binary_operator::LT,
+			literal_operand(_location, 1),
+			literal_operand(_location, 2)
+		), binary_operation(_location, binary_operator::GT,
+			literal_operand(_location, 3),
+			literal_operand(_location, 4)
+		)
+	)));
+
+
+	expr = run_expression_parser("1 << 4 > 2 >> 3", false, true);
+	EXPECT_EQ(expr, expression(binary_operation(_location, binary_operator::GT,
 		binary_operation(_location, binary_operator::SHIFT_LEFT,
 			literal_operand(_location, 1),
 			literal_operand(_location, 4)

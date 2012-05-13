@@ -434,26 +434,22 @@ TEST(Lexer, DecimalNumberAtUint32Max) {
 	EXPECT_TRUE(it->is_eoi());
 }
 
-TEST(Lexer, ShiftLeft) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("<<");
-	ASSERT_EQ(2, lexer->tokens.size());
+TEST(Lexer, Operator) {
+	shared_ptr<lexer::lexer> lexer = run_lexer("<< >> && || == != <> <= >=");
+	ASSERT_EQ(10, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it++->is_shift_left());
-
-	EXPECT_TRUE(it->is_eoi());
-}
-
-TEST(Lexer, ShiftRight) {
-	shared_ptr<lexer::lexer> lexer = run_lexer(">>");
-	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->logger.has_errors());
-	EXPECT_FALSE(lexer->logger.has_warnings());
-
-	auto it = lexer->tokens.begin();
-	EXPECT_TRUE(it++->is_shift_right());
+	EXPECT_TRUE(it++->is_operator(operator_type::SHIFT_LEFT));
+	EXPECT_TRUE(it++->is_operator(operator_type::SHIFT_RIGHT));
+	EXPECT_TRUE(it++->is_operator(operator_type::AND));
+	EXPECT_TRUE(it++->is_operator(operator_type::OR));
+	EXPECT_TRUE(it++->is_operator(operator_type::EQ));
+	EXPECT_TRUE(it++->is_operator(operator_type::NEQ));
+	EXPECT_TRUE(it++->is_operator(operator_type::NEQ));
+	EXPECT_TRUE(it++->is_operator(operator_type::LTE));
+	EXPECT_TRUE(it++->is_operator(operator_type::GTE));
 
 	EXPECT_TRUE(it->is_eoi());
 }

@@ -53,12 +53,12 @@ namespace dcpu { namespace lexer {
 		return type == token_type::SYMBOL;
 	}
 
-	bool token::is_shift_left() const {
-		return type == token_type::SHIFT_LEFT;
-	}
+	bool token::is_operator(operator_type op_type) const {
+		if (type == token_type::OPERATOR) {
+			return get_operator_type() == op_type;
+		}
 
-	bool token::is_shift_right() const {
-		return type == token_type::SHIFT_RIGHT;
+		return false;
 	}
 
 	bool token::is_character(char c) const {
@@ -159,6 +159,10 @@ namespace dcpu { namespace lexer {
 
 	symbol_type token::get_symbol_type() const {
 		return boost::get<symbol_type>(data);
+	}
+
+	operator_type token::get_operator_type() const {
+		return boost::get<operator_type>(data);
 	}
 
 	token& next(token_iterator& current, token_iterator end) {

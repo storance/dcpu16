@@ -20,9 +20,17 @@ namespace dcpu { namespace ast {
 		MODULO,
 		SHIFT_LEFT,
 		SHIFT_RIGHT,
+		LT,
+		LTE,
+		GT,
+		GTE,
+		EQ,
+		NEQ,
 		AND,
 		OR,
-		XOR
+		BITWISE_AND,
+		BITWISE_OR,
+		BITWISE_XOR
 	};
 
 	enum class unary_operator : std::uint8_t {

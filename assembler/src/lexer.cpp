@@ -43,10 +43,28 @@ namespace dcpu { namespace lexer {
 		char c = next_char();
 		auto start = make_location();
 
-		if (c == '<' && consume_next_if('<')) {
-			return token(start, token_type::SHIFT_LEFT, "<<");
-		} else if (c == '>' && consume_next_if('>')) {
-			return token(start, token_type::SHIFT_RIGHT, ">>");
+		if (c == '<') {
+			if (consume_next_if('<')) {
+				return token(start, token_type::OPERATOR, "<<", operator_type::SHIFT_LEFT);
+			} else if (consume_next_if('=')) {
+				return token(start, token_type::OPERATOR, "<=", operator_type::LTE);
+			} else if (consume_next_if('>')) {
+				return token(start, token_type::OPERATOR, "<>", operator_type::NEQ);
+			}
+		} else if (c == '>') {
+			if (consume_next_if('>')) {
+				return token(start, token_type::OPERATOR, "<<", operator_type::SHIFT_RIGHT);
+			} else if (consume_next_if('=')) {
+				return token(start, token_type::OPERATOR, "<=", operator_type::GTE);
+			}
+		} else if (c == '=' && consume_next_if('=')) {
+			return token(start, token_type::OPERATOR, "==", operator_type::EQ);
+		} else if (c == '!' && consume_next_if('=')) {
+			return token(start, token_type::OPERATOR, "!=", operator_type::NEQ);
+		} else if (c == '&' && consume_next_if('&')) {
+			return token(start, token_type::OPERATOR, "&&", operator_type::AND);
+		} else if (c == '|' && consume_next_if('|')) {
+			return token(start, token_type::OPERATOR, "||", operator_type::OR);
 		} else if (c == '\'') {
 			string quoted_string = parse_quoted_string(start, c, true);
 			if (quoted_string.length() == 0) {

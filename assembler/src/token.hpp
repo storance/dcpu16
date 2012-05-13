@@ -26,7 +26,7 @@ namespace dcpu { namespace lexer {
 	std::ostream& operator<< (std::ostream& stream, const location_ptr& location);
 	bool operator==(const location_ptr &, const location_ptr &);
 
-	enum class token_type {
+	enum class token_type : uint8_t {
 		LABEL,
 		SYMBOL,
 		DIRECTIVE,
@@ -35,17 +35,25 @@ namespace dcpu { namespace lexer {
 		STACK_OPERATION,
 		INTEGER,
 		INVALID_INTEGER,
-		SHIFT_LEFT,
-		SHIFT_RIGHT,
 		CHARACTER,
 		NEWLINE,
 		END_OF_INPUT,
 		QUOTED_STRING,
+		OPERATOR
+	};
+
+	enum class operator_type : uint8_t {
+		SHIFT_LEFT,
+		SHIFT_RIGHT,
+		EQ,
+		NEQ,
+		GTE,
+		LTE,
+		AND,
+		OR
 	};
 
 	enum class quote_type : uint8_t {
-		NONE,
-		SINGLE_QUOTE,
 		DOUBLE_QUOTE,
 		ANGLE_BRACKETS
 	};
@@ -63,7 +71,8 @@ namespace dcpu { namespace lexer {
 		directives,
 		stack_operation,
 		quote_type,
-		symbol_type> token_data;
+		symbol_type,
+		operator_type> token_data;
 
 	class token {
 	public:
@@ -89,8 +98,7 @@ namespace dcpu { namespace lexer {
 		bool is_stack_operation(stack_operation) const;
 		bool is_label() const;
 		bool is_symbol() const;
-		bool is_shift_left() const;
-		bool is_shift_right() const;
+		bool is_operator(operator_type) const;
 		bool is_character(char c) const;
 		bool is_newline() const;
 		bool is_eoi() const;
@@ -103,6 +111,7 @@ namespace dcpu { namespace lexer {
 		stack_operation get_stack_operation() const;
 		quote_type get_quote_type() const;
 		symbol_type get_symbol_type() const;
+		operator_type get_operator_type() const;
 	};
 
 	typedef std::list<token> token_list;

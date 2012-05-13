@@ -47,31 +47,59 @@ namespace dcpu { namespace parser {
 		  allow_registers(allow_registers), indirection(indirection), first_register() {}
 
 	expression expression_parser::parse(const token& current_token) {
-		return parse_bitwise_or(current_token);
+		return parse_boolean_or(current_token);
+	}
+
+	expression expression_parser::parse_boolean_or(const token& current_token) {
+		return parse_binary_operation(current_token, &expression_parser::parse_boolean_and, {
+			operator_definition(binary_operator::OR, bind(&token::is_operator, _1, operator_type::OR))
+		});
+	}
+
+	expression expression_parser::parse_boolean_and(const token& current_token) {
+		return parse_binary_operation(current_token, &expression_parser::parse_bitwise_or, {
+			operator_definition(binary_operator::AND, bind(&token::is_operator, _1, operator_type::AND))
+		});
 	}
 
 	expression expression_parser::parse_bitwise_or(const token& current_token) {
 		return parse_binary_operation(current_token, &expression_parser::parse_bitwise_xor, {
-			operator_definition(binary_operator::OR, bind(&token::is_character, _1, '|'))
+			operator_definition(binary_operator::BITWISE_OR, bind(&token::is_character, _1, '|'))
 		});
 	}
 
 	expression expression_parser::parse_bitwise_xor(const token& current_token) {
 		return parse_binary_operation(current_token, &expression_parser::parse_bitwise_and, {
-			operator_definition(binary_operator::XOR, bind(&token::is_character, _1, '^'))
+			operator_definition(binary_operator::BITWISE_XOR, bind(&token::is_character, _1, '^'))
 		});
 	}
 
 	expression expression_parser::parse_bitwise_and(const token& current_token) {
+		return parse_binary_operation(current_token, &expression_parser::parse_relational_equals, {
+			operator_definition(binary_operator::BITWISE_AND, bind(&token::is_character, _1, '&'))
+		});
+	}
+
+	expression expression_parser::parse_relational_equals(const token& current_token) {
+		return parse_binary_operation(current_token, &expression_parser::parse_relational_order, {
+			operator_definition(binary_operator::EQ,  bind(&token::is_operator, _1, operator_type::EQ)),
+			operator_definition(binary_operator::NEQ, bind(&token::is_operator, _1, operator_type::NEQ))
+		});
+	}
+
+	expression expression_parser::parse_relational_order(const token& current_token) {
 		return parse_binary_operation(current_token, &expression_parser::parse_bitwise_shift, {
-			operator_definition(binary_operator::AND, bind(&token::is_character, _1, '&'))
+			operator_definition(binary_operator::GTE, bind(&token::is_operator, _1, operator_type::GTE)),
+			operator_definition(binary_operator::LTE, bind(&token::is_operator, _1, operator_type::LTE)),
+			operator_definition(binary_operator::GT,  bind(&token::is_character, _1, '<')),
+			operator_definition(binary_operator::LT,  bind(&token::is_character, _1, '>'))
 		});
 	}
 
 	expression expression_parser::parse_bitwise_shift(const token& current_token) {
 		return parse_binary_operation(current_token, &expression_parser::parse_add, {
-			operator_definition(binary_operator::SHIFT_LEFT,  mem_fn(&token::is_shift_left)),
-			operator_definition(binary_operator::SHIFT_RIGHT, mem_fn(&token::is_shift_right)),
+			operator_definition(binary_operator::SHIFT_LEFT,  bind(&token::is_operator, _1, operator_type::SHIFT_LEFT)),
+			operator_definition(binary_operator::SHIFT_RIGHT, bind(&token::is_operator, _1, operator_type::SHIFT_RIGHT)),
 		});
 	}
 

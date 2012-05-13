@@ -53,6 +53,10 @@ namespace dcpu { namespace parser {
 		ast::expression parse_bitwise_and(const lexer::token&);
 		ast::expression parse_bitwise_xor(const lexer::token&);
 		ast::expression parse_bitwise_or(const lexer::token&);
+		ast::expression parse_relational_order(const lexer::token&);
+		ast::expression parse_relational_equals(const lexer::token&);
+		ast::expression parse_boolean_and(const lexer::token&);
+		ast::expression parse_boolean_or(const lexer::token&);
 
 		lexer::token& next_token();
 	public:
