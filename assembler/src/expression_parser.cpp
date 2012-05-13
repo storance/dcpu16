@@ -41,9 +41,9 @@ namespace dcpu { namespace parser {
 		: location(location), _register(_register) {}
 
 
-	expression_parser::expression_parser(token_iterator& current, token_iterator end, error_handler_ptr& error_handler,
+	expression_parser::expression_parser(token_iterator& current, token_iterator end, logging::log &logger,
 		bool allow_registers, bool allow_symbols, bool indirection)
-		: current(current), end(end), error_handler(error_handler), allow_symbols(allow_symbols),
+		: current(current), end(end), logger(logger), allow_symbols(allow_symbols),
 		  allow_registers(allow_registers), indirection(indirection), first_register() {}
 
 	expression expression_parser::parse(const token& current_token) {
@@ -117,12 +117,12 @@ namespace dcpu { namespace parser {
 		bool right_literal = definition->right_literal || !indirection;
 
 		if (left_literal && !evaluates_to_literal(left)) {
-			error_handler->error(get_location(left), boost::format(LEFT_OPERAND_NOT_LITERAL) % definition->_operator);
+			logger.error(get_location(left), boost::format(LEFT_OPERAND_NOT_LITERAL) % definition->_operator);
 			left = invalid_expression(get_location(left));
 		}
 
 		if (right_literal && !evaluates_to_literal(right)) {
-			error_handler->error(get_location(right), boost::format(RIGHT_OPERAND_NOT_LITERAL) % definition->_operator);
+			logger.error(get_location(right), boost::format(RIGHT_OPERAND_NOT_LITERAL) % definition->_operator);
 			right = invalid_expression(get_location(right));
 		}
 	}
@@ -143,7 +143,7 @@ namespace dcpu { namespace parser {
 
 		expression operand = parse_unary(next_token());
 		if (!evaluates_to_literal(operand)) {
-			error_handler->error(current_token.location, boost::format(UNARY_OPERAND_NOT_LITERAL) % _operator);
+			logger.error(current_token.location, boost::format(UNARY_OPERAND_NOT_LITERAL) % _operator);
 			return invalid_expression(current_token.location);
 		}
 
@@ -162,7 +162,7 @@ namespace dcpu { namespace parser {
 		} else if (current_token.is_character('$')) {
 			return current_position_operand(current_token.location);
 		} else {
-			error_handler->error(current_token.location, boost::format("expected a primary-expression before '%s'")
+			logger.error(current_token.location, boost::format("expected a primary-expression before '%s'")
 				% current_token.content);
 			return invalid_expression(current_token.location);
 		}
@@ -174,7 +174,7 @@ namespace dcpu { namespace parser {
 		auto& next_tkn = next_token();
 		if (!next_tkn.is_character(')')) {
 			--current;
-			error_handler->unexpected_token(next_tkn, ')');
+			logger.unexpected_token(next_tkn, ')');
 		}
 
 		return expr;
@@ -184,13 +184,13 @@ namespace dcpu { namespace parser {
 		auto definition = current_token.get_register();
 
 		if (!allow_registers) {
-			error_handler->error(current_token.location, boost::format(REGISTER_NOT_ALLOWED) % definition._register);
+			logger.error(current_token.location, boost::format(REGISTER_NOT_ALLOWED) % definition._register);
 
 			return invalid_expression(current_token.location);
 		}
 
 		if (first_register) {
-			error_handler->error(current_token.location, boost::format(MULTIPLE_REGISTERS)
+			logger.error(current_token.location, boost::format(MULTIPLE_REGISTERS)
 					% (*first_register)._register % (*first_register).location);
 
 			return invalid_expression(current_token.location);
@@ -199,7 +199,7 @@ namespace dcpu { namespace parser {
 		}
 
 		if (indirection && !definition.indirectable) {
-			error_handler->error(current_token.location, boost::format(REGISTER_NOT_INDIRECTABLE)
+			logger.error(current_token.location, boost::format(REGISTER_NOT_INDIRECTABLE)
 					% definition._register);
 
 			return invalid_expression(current_token.location);
@@ -210,7 +210,7 @@ namespace dcpu { namespace parser {
 
 	expression expression_parser::parse_symbol(const token& current_token) {
 		if (!allow_symbols) {
-			error_handler->error(current_token.location, boost::format(SYMBOL_NOT_ALLOWED) % current_token.content);
+			logger.error(current_token.location, boost::format(SYMBOL_NOT_ALLOWED) % current_token.content);
 
 			return invalid_expression(current_token.location);
 		}

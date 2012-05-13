@@ -201,8 +201,8 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 
-	compiler::compiler(error_handler_ptr &error_handler, symbol_table &table)
-			: error_handler(error_handler), table(table) {}
+	compiler::compiler(logging::log &logger, symbol_table &table)
+			: logger(logger), table(table) {}
 
 	void compiler::compile(statement_list &statements) {
 		auto stmt_compiler = statement_compiler(output);

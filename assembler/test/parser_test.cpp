@@ -13,7 +13,8 @@ using namespace dcpu::parser;
 using namespace dcpu::lexer;
 
 void run_parser(const string &content, int expected_statements, statement_list &statements) {
-	lexer::lexer lex(content, "<Test>");
+	logging::log logger;
+	lexer::lexer lex(content, "<Test>", logger);
 	lex.parse();
 
 	statements.clear();

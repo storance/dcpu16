@@ -6,7 +6,6 @@
 #include <statement.hpp>
 #include <compiler.hpp>
 #include <symbol_table.hpp>
-#include <error_handler.hpp>
 
 using namespace std;
 using namespace dcpu;
@@ -15,8 +14,8 @@ using namespace dcpu::ast;
 using namespace dcpu::lexer;
 using namespace boost;
 
-static error_handler_ptr test_error_handler = make_shared<dcpu::error_handler>();
-static location_ptr test_location = make_shared<location>("<Test>", 1, 1);
+static logging::log logger;
+static location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
 bool compress(uint16_t pc, symbol_table *table, argument &arg) {
 	compress_expressions compressor(table, pc);
@@ -24,18 +23,18 @@ bool compress(uint16_t pc, symbol_table *table, argument &arg) {
 }
 
 void resolve(uint16_t pc, symbol_table *table, expression &expr) {
-	resolve_symbols resolver(table, test_error_handler, pc);
+	resolve_symbols resolver(table, logger, pc);
 	apply_visitor(resolver, expr);
 }
 
 void resolve(uint16_t pc, symbol_table *table, argument &arg) {
-	resolve_symbols resolver(table, test_error_handler, pc);
+	resolve_symbols resolver(table, logger, pc);
 	apply_visitor(resolver, arg);
 }
 
 void add_symbols(symbol_table &table, map<string, uint16_t> labels) {
 	for (auto& entry : labels) {
-		table.add_label(label(test_location, entry.first), entry.second);
+		table.add_label(label(_location, entry.first), entry.second);
 	}
 }
 
@@ -43,47 +42,47 @@ TEST(ResolveSymbols, Expression_LabelOperand) {
 	symbol_table table;
 	add_symbols(table, { {"label1", 10}, {"label2", 31} });
 
-	expression expr(symbol_operand(test_location, "label2"));
+	expression expr(symbol_operand(_location, "label2"));
 	resolve(15, &table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(evaluated_expression(test_location, 31), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(_location, 31), evaluate(expr));
 }
 
 TEST(ResolveSymbols, Expression_CurrentPos) {
 	symbol_table table;
-	table.add_location(test_location, 15);
+	table.add_location(_location, 15);
 
-	expression expr = expression(current_position_operand(test_location));
+	expression expr = expression(current_position_operand(_location));
 	resolve(15, &table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(evaluated_expression(test_location, 15), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(_location, 15), evaluate(expr));
 }
 
 TEST(ResolveSymbols, Expression_UnaryOperation) {
 	symbol_table table;
 	add_symbols(table, { {"label1", 10}, {"label2", 31} });
 
-	expression expr(unary_operation(test_location, unary_operator::MINUS,
-			symbol_operand(test_location, "label2")));
+	expression expr(unary_operation(_location, unary_operator::MINUS,
+			symbol_operand(_location, "label2")));
 	resolve(15, &table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(evaluated_expression(test_location, -31), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(_location, -31), evaluate(expr));
 }
 
 TEST(ResolveSymbols, Expression_BinaryOperation) {
 	symbol_table table;
 	add_symbols(table, { {"label1", 10}, {"label2", 31} });
 
-	expression expr(binary_operation(test_location, binary_operator::MINUS,
-			symbol_operand(test_location, "label2"),
-			symbol_operand(test_location, "label1")));
+	expression expr(binary_operation(_location, binary_operator::MINUS,
+			symbol_operand(_location, "label2"),
+			symbol_operand(_location, "label1")));
 	resolve(15, &table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(evaluated_expression(test_location, 21), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(_location, 21), evaluate(expr));
 }
 
 static expression create_register_expression(int line, registers _register=registers::A) {
@@ -159,14 +158,14 @@ TEST(SymbolTable, BuildResolve) {
 	statements.push_back(create_no_op(33));
 
 	symbol_table table;
-	table.build(statements, test_error_handler);
+	table.build(statements, logger);
 
 	EXPECT_EQ(10, table.lookup("label1", 0)->offset);
 	EXPECT_EQ(31, table.lookup("label2", 0)->offset);
 	EXPECT_EQ(16, table.lookup("label3", 0)->offset);
 	EXPECT_EQ(12, table.lookup(make_shared<location>("<Test>", 13, 9), 0)->offset);
 
-	table.resolve(statements, test_error_handler);
+	table.resolve(statements, logger);
 
 	EXPECT_EQ(9, table.lookup("label1", 0)->offset);
 	EXPECT_EQ(28, table.lookup("label2", 0)->offset);

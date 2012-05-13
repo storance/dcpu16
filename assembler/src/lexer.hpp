@@ -5,7 +5,7 @@
 #include <functional>
 
 #include "token.hpp"
-#include "error_handler.hpp"
+#include "log.hpp"
 
 namespace dcpu { namespace lexer {
 	class lexer {
@@ -38,11 +38,10 @@ namespace dcpu { namespace lexer {
 		token parse_number(location_ptr&, const std::string&);
 		token parse_identifier(location_ptr&, const std::string&);
 	public:
-		error_handler_ptr error_handler;
+		logging::log &logger;
 		token_list tokens;
 
-		lexer(const std::string &content, const std::string &source);
-		lexer(const std::string &content, const std::string &source, error_handler_ptr &error_handler);
+		lexer(const std::string &content, const std::string &source, logging::log &logger);
 
 		void parse();
 	};

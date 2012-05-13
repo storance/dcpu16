@@ -9,8 +9,8 @@
 
 #include "token.hpp"
 
-namespace dcpu {
-	class error_handler {
+namespace dcpu { namespace logging {
+	class log {
 	private:
 		unsigned int total_errors;
 		unsigned int total_warnings;
@@ -29,9 +29,7 @@ namespace dcpu {
 		bool has_errors();
 		void summary();
 
-		error_handler();
-		error_handler(std::ostream &);
+		log();
+		log(std::ostream &);
 	};
-
-	typedef std::shared_ptr<error_handler> error_handler_ptr;
-}
+}}

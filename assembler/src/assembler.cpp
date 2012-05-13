@@ -53,20 +53,20 @@ void write_compiled_output(compiler::compiler &_compiler, const string &output_f
 	}
 }
 
-void parse_file(const string &filename, error_handler_ptr error_handler, statement_list &statements) {
+void parse_file(const string &filename, logging::log &logger, statement_list &statements) {
 	string content;
 	read_file(filename, content);
 
-	lexer::lexer _lexer(content, filename, error_handler);
+	lexer::lexer _lexer(content, filename, logger);
 	_lexer.parse();
 
 	parser::parser _parser(_lexer, statements);
 	_parser.parse();
 }
 
-void handle_errors(error_handler_ptr error_handler) {
-	if (error_handler->has_errors()) {
-		error_handler->summary();
+void handle_errors(logging::log &logger) {
+	if (logger.has_errors()) {
+		logger.summary();
 		exit(1);
 	}
 }
@@ -157,33 +157,33 @@ int main(int argc, char **argv) {
 	}
 
 	try {
-		error_handler_ptr error_handler = make_shared<dcpu::error_handler>();
+		logging::log logger;
 		statement_list statements;
-		parse_file(input_file, error_handler, statements);
+		parse_file(input_file, logger, statements);
 
 		if (syntax_only) {
-			handle_errors(error_handler);
+			handle_errors(logger);
 
 			return 0;
 		} else if (ast_print) {
-			handle_errors(error_handler);
+			handle_errors(logger);
 			print_ast(statements);
 
 			return 0;
 		}
 
 		symbol_table table;
-		table.build(statements, error_handler);
-		table.resolve(statements, error_handler);
+		table.build(statements, logger);
+		table.resolve(statements, logger);
 
-		handle_errors(error_handler);
+		handle_errors(logger);
 
 		if (symbols_print) {
 			table.dump();
 			return 0;
 		}
 
-		compiler::compiler _compiler(error_handler, table);
+		compiler::compiler _compiler(logger, table);
 		_compiler.compile(statements);
 
 		write_compiled_output(_compiler, output_file);

@@ -8,9 +8,10 @@ using namespace std;
 using namespace dcpu;
 using namespace dcpu::lexer;
 
-shared_ptr<lexer::lexer> run_lexer(const string &content, error_handler_ptr error_handler =
-		make_shared<dcpu::error_handler>()) {
-	shared_ptr<lexer::lexer> lexer = make_shared<lexer::lexer>(content, "<Test>", error_handler);
+static logging::log default_logger;
+
+shared_ptr<lexer::lexer> run_lexer(const string &content, logging::log &logger=default_logger) {
+	shared_ptr<lexer::lexer> lexer = make_shared<lexer::lexer>(content, "<Test>", logger);
 	lexer->parse();
 
 	return lexer;
@@ -19,8 +20,8 @@ shared_ptr<lexer::lexer> run_lexer(const string &content, error_handler_ptr erro
 TEST(LexerTest, SymbolStartsUnderscore) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("_a1_?.$#@");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_symbol());
@@ -32,8 +33,8 @@ TEST(LexerTest, SymbolStartsUnderscore) {
 TEST(LexerTest, SymbolStartsPeriod) {
 	shared_ptr<lexer::lexer> lexer = run_lexer(".aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_symbol());
@@ -45,8 +46,8 @@ TEST(LexerTest, SymbolStartsPeriod) {
 TEST(LexerTest, SymbolStartsQuestion) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("?aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_symbol());
@@ -58,8 +59,8 @@ TEST(LexerTest, SymbolStartsQuestion) {
 TEST(LexerTest, SymbolStartsLetter) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_symbol());
@@ -71,8 +72,8 @@ TEST(LexerTest, SymbolStartsLetter) {
 TEST(LexerTest, ExplicitSymbol) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("$pc");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_symbol());
@@ -84,8 +85,8 @@ TEST(LexerTest, ExplicitSymbol) {
 TEST(LexerTest, QuotedString) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("\"hello, world!\"");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_quoted_string());
@@ -98,8 +99,8 @@ TEST(LexerTest, QuotedString) {
 TEST(LexerTest, LabelColonSuffix) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("_a1_?.$#@:");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_label());
@@ -111,8 +112,8 @@ TEST(LexerTest, LabelColonSuffix) {
 TEST(LexerTest, LabelColonPrefix) {
 	shared_ptr<lexer::lexer> lexer = run_lexer(":_a1_?.$#@");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_label());
@@ -124,8 +125,8 @@ TEST(LexerTest, LabelColonPrefix) {
 TEST(LexerTest, RegisterTest) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("A B C X Y Z I J PC SP EX");
 	ASSERT_EQ(12, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_register(registers::A));
@@ -146,8 +147,8 @@ TEST(LexerTest, RegisterTest) {
 TEST(LexerTest, DirectiveTest) {
 	shared_ptr<lexer::lexer> lexer = run_lexer(".DW .DAT DAT .DB .DP .INCLUDE .INCBIN .FILL .ALIGN .EQU .ORG");
 	ASSERT_EQ(12, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_directive(directives::DW));
@@ -169,8 +170,8 @@ TEST(LexerTest, InstructionTest) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("SET ADD SUB MUL MLI DIV DVI MOD MDI AND BOR XOR SHR ASR SHL IFB IFC "
 			"IFE IFN IFG IFA IFL IFU ADX SBX STI STD JSR HCF INT IAG IAS RFI IAQ HWN HWQ HWI JMP");
 	ASSERT_EQ(39, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_instruction(opcodes::SET));
@@ -218,8 +219,8 @@ TEST(LexerTest, InstructionTest) {
 TEST(LexerTest, DecimalNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("100");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -231,8 +232,8 @@ TEST(LexerTest, DecimalNumber) {
 TEST(LexerTest, HexNumberLowercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0xff");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -244,8 +245,8 @@ TEST(LexerTest, HexNumberLowercase) {
 TEST(LexerTest, HexNumberUppercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0X1D");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -257,8 +258,8 @@ TEST(LexerTest, HexNumberUppercase) {
 TEST(LexerTest, BinaryNumberLowercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0b1011");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -270,8 +271,8 @@ TEST(LexerTest, BinaryNumberLowercase) {
 TEST(LexerTest, BinaryNumberUppercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0B10001011");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -283,8 +284,8 @@ TEST(LexerTest, BinaryNumberUppercase) {
 TEST(LexerTest, OctalNumberLowercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0o32");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -296,8 +297,8 @@ TEST(LexerTest, OctalNumberLowercase) {
 TEST(LexerTest, OctalNumberUppercase) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0O27");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -309,8 +310,8 @@ TEST(LexerTest, OctalNumberUppercase) {
 TEST(LexerTest, InvalidDecimalNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("100a3");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_invalid_integer());
@@ -322,8 +323,8 @@ TEST(LexerTest, InvalidDecimalNumber) {
 TEST(LexerTest, InvalidHexNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0X100Z3");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_invalid_integer());
@@ -335,8 +336,8 @@ TEST(LexerTest, InvalidHexNumber) {
 TEST(LexerTest, OctalWithInvalidNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0o10093");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_invalid_integer());
@@ -348,8 +349,8 @@ TEST(LexerTest, OctalWithInvalidNumber) {
 TEST(LexerTest, OctalWithInvalidLetter) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0o100a3");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_invalid_integer());
@@ -361,8 +362,8 @@ TEST(LexerTest, OctalWithInvalidLetter) {
 TEST(LexerTest, BinaryWithInvalidNumber) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0b1113");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_invalid_integer());
@@ -374,8 +375,8 @@ TEST(LexerTest, BinaryWithInvalidNumber) {
 TEST(LexerTest, BinaryWithInvalidLetter) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("0B111a");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it->is_invalid_integer());
@@ -386,10 +387,12 @@ TEST(LexerTest, BinaryWithInvalidLetter) {
 
 TEST(LexerTest, OverflowNumber) {
 	stringstream out;
-	shared_ptr<lexer::lexer> lexer = run_lexer("4294967296", make_shared<error_handler>(out));
+	logging::log capturing_logger(out);
+
+	shared_ptr<lexer::lexer> lexer = run_lexer("4294967296", capturing_logger);
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_TRUE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_TRUE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -403,8 +406,8 @@ TEST(LexerTest, OverflowNumber) {
 TEST(LexerTest, DecimalNumberAtUint32Max) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("4294967295");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -416,8 +419,8 @@ TEST(LexerTest, DecimalNumberAtUint32Max) {
 TEST(LexerTest, Increment) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("++");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_increment());
@@ -428,8 +431,8 @@ TEST(LexerTest, Increment) {
 TEST(LexerTest, Decrement) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("--");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_decrement());
@@ -439,8 +442,8 @@ TEST(LexerTest, Decrement) {
 TEST(LexerTest, ShiftLeft) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("<<");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_shift_left());
@@ -451,8 +454,8 @@ TEST(LexerTest, ShiftLeft) {
 TEST(LexerTest, ShiftRight) {
 	shared_ptr<lexer::lexer> lexer = run_lexer(">>");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_shift_right());
@@ -463,8 +466,8 @@ TEST(LexerTest, ShiftRight) {
 TEST(LexerTest, Newline) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("\n");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_newline());
@@ -475,8 +478,8 @@ TEST(LexerTest, Newline) {
 TEST(LexerTest, SingleCharacters) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("@");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_character('@'));
@@ -484,8 +487,8 @@ TEST(LexerTest, SingleCharacters) {
 
 	lexer = run_lexer(",");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_character(','));
@@ -493,8 +496,8 @@ TEST(LexerTest, SingleCharacters) {
 
 	lexer = run_lexer("$");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_character('$'));
@@ -502,8 +505,8 @@ TEST(LexerTest, SingleCharacters) {
 
 	lexer = run_lexer("[");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_character('['));
@@ -511,8 +514,8 @@ TEST(LexerTest, SingleCharacters) {
 
 	lexer = run_lexer("]");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_character(']'));
@@ -520,8 +523,8 @@ TEST(LexerTest, SingleCharacters) {
 
 	lexer = run_lexer("(");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_character('('));
@@ -529,8 +532,8 @@ TEST(LexerTest, SingleCharacters) {
 
 	lexer = run_lexer(")");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_character(')'));
@@ -538,8 +541,8 @@ TEST(LexerTest, SingleCharacters) {
 
 	lexer = run_lexer("+");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_character('+'));
@@ -547,8 +550,8 @@ TEST(LexerTest, SingleCharacters) {
 
 	lexer = run_lexer("-");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	EXPECT_TRUE(it++->is_character('-'));
@@ -558,8 +561,8 @@ TEST(LexerTest, SingleCharacters) {
 TEST(LexerTest, CharacterLiterals) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("'a'");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -568,8 +571,8 @@ TEST(LexerTest, CharacterLiterals) {
 
 	lexer = run_lexer("'\\x4'");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -578,8 +581,8 @@ TEST(LexerTest, CharacterLiterals) {
 
 	lexer = run_lexer("'\\X42'");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -588,8 +591,8 @@ TEST(LexerTest, CharacterLiterals) {
 
 	lexer = run_lexer("'\\n'");
 	ASSERT_EQ(2, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
@@ -604,8 +607,8 @@ location_ptr makeLocation(uint32_t line, uint32_t column) {
 TEST(LexerTest, MultipleTokens) {
 	shared_ptr<lexer::lexer> lexer = run_lexer("set A, b\n  set [J], 0x400\n;a test comment\nlabel: JSR label+4\n");
 	ASSERT_EQ(20, lexer->tokens.size());
-	EXPECT_FALSE(lexer->error_handler->has_errors());
-	EXPECT_FALSE(lexer->error_handler->has_warnings());
+	EXPECT_FALSE(lexer->logger.has_errors());
+	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	// Line 1
 	auto it = lexer->tokens.begin();

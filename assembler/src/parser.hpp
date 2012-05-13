@@ -12,7 +12,7 @@ namespace dcpu { namespace parser {
 	class parser {
 	protected:
 		lexer::token_iterator current, end;
-		error_handler_ptr error_handler;
+		logging::log& logger;
 		ast::statement_list &statements;
 		uint32_t instructions_found, labels_found;
 

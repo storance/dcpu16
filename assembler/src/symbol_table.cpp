@@ -85,14 +85,14 @@ namespace dcpu {
 	 * build_symbol_table
 	 *
 	 *************************************************************************/
-	build_symbol_table::build_symbol_table(symbol_table *table, error_handler_ptr &error_handler, uint32_t pc)
-			: base_symbol_visitor(table, pc), error_handler(error_handler) {}
+	build_symbol_table::build_symbol_table(symbol_table *table, logging::log &logger, uint32_t pc)
+			: base_symbol_visitor(table, pc), logger(logger) {}
 
 	void build_symbol_table::operator()(const label &label) const {
 		try {
 			table->add_label(label, pc);
 		} catch (std::exception &e) {
-			error_handler->error(label.location, e.what());
+			logger.error(label.location, e.what());
 		}
 	}
 
@@ -134,18 +134,18 @@ namespace dcpu {
 	 * resolve_symbols
 	 *
 	 *************************************************************************/
-	resolve_symbols::resolve_symbols(symbol_table *table, const error_handler_ptr &error_handler, uint32_t pc,
-			bool allow_forward_refs) : base_symbol_visitor(table, pc), error_handler(error_handler),
+	resolve_symbols::resolve_symbols(symbol_table *table, logging::log &logger, uint32_t pc,
+			bool allow_forward_refs) : base_symbol_visitor(table, pc), logger(logger),
 			allow_forward_refs(allow_forward_refs) {}
 
 	void resolve_symbols::operator()(symbol_operand &expr) const {
 		try {
 			expr.resolved_symbol = table->lookup(expr.name, pc);
 			if (!allow_forward_refs && expr.resolved_symbol->offset > pc) {
-				error_handler->error(expr.location, "forward symbol references are not allowed here");
+				logger.error(expr.location, "forward symbol references are not allowed here");
 			}
 		} catch (std::exception &e) {
-			error_handler->error(expr.location, e.what());
+			logger.error(expr.location, e.what());
 		}
 	}
 
@@ -173,7 +173,7 @@ namespace dcpu {
 			return;
 		}
 
-		apply_visitor(resolve_symbols(table, error_handler, pc, true), arg.expr);
+		apply_visitor(resolve_symbols(table, logger, pc, true), arg.expr);
 	}
 
 	void resolve_symbols::operator()(instruction &instruction) const {
@@ -185,13 +185,13 @@ namespace dcpu {
 	}
 
 	void resolve_symbols::operator()(ast::equ_directive &equ) const {
-		resolve_symbols resolver(table, error_handler, pc, true);
+		resolve_symbols resolver(table, logger, pc, true);
 		apply_visitor(resolver, equ.value);
 	}
 
 	void resolve_symbols::operator()(ast::fill_directive &fill) const {
-		apply_visitor(resolve_symbols(table, error_handler, pc, false), fill.count);
-		apply_visitor(resolve_symbols(table, error_handler, pc, true), fill.value);
+		apply_visitor(resolve_symbols(table, logger, pc, false), fill.count);
+		apply_visitor(resolve_symbols(table, logger, pc, true), fill.value);
 	}
 
 	/*************************************************************************
@@ -322,24 +322,24 @@ namespace dcpu {
 		}
 	}
 
-	void symbol_table::build(ast::statement_list &statements, error_handler_ptr &error_handler) {
+	void symbol_table::build(ast::statement_list &statements, logging::log &logger) {
 		uint32_t pc = 0;
 		for (auto &stmt : statements) {
-			apply_visitor(build_symbol_table(this, error_handler, pc), stmt);
+			apply_visitor(build_symbol_table(this, logger, pc), stmt);
 
 			pc += output_size(stmt);
 		}
 	}
 
-	void symbol_table::resolve(ast::statement_list &statements, error_handler_ptr &error_handler) {
+	void symbol_table::resolve(ast::statement_list &statements, logging::log &logger) {
 		uint32_t pc = 0;
 		for (auto &stmt : statements) {
-			apply_visitor(resolve_symbols(this, error_handler, pc), stmt);
+			apply_visitor(resolve_symbols(this, logger, pc), stmt);
 			pc += output_size(stmt);
 		}
 
 		// if we have encountered errors, don't bother attempting to compress
-		if (error_handler->has_errors()) {
+		if (logger.has_errors()) {
 			return;
 		}
 
@@ -360,7 +360,7 @@ namespace dcpu {
 		}
 
 		if (pc > UINT16_MAX) {
-			error_handler->error(get_location(statements.back()), "output exceeds 65,535 words");
+			logger.error(get_location(statements.back()), "output exceeds 65,535 words");
 		}
 	}
 

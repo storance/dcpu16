@@ -12,7 +12,7 @@ else
 endif
 
 OBJECTS = $(OUTPUT_DIR)/lexer.o \
-		  $(OUTPUT_DIR)/error_handler.o \
+		  $(OUTPUT_DIR)/log.o \
 		  $(OUTPUT_DIR)/symbol_table.o \
 		  $(OUTPUT_DIR)/compiler.o \
 		  $(OUTPUT_DIR)/token.o \
@@ -32,13 +32,13 @@ TEST_OBJECTS = $(OBJECTS) \
 
 MNEMONICS_DEP=src/mnemonics.hpp
 TOKEN_DEPS=$(sort src/token.hpp $(MNEMONICS_DEP))
-ERROR_HANDLER_DEPS=$(sort src/error_handler.hpp $(TOKEN_DEPS))
-LEXER_DEPS=$(sort src/lexer.hpp $(ERROR_HANDLER_DEPS))
+LOG_DEPS=$(sort src/log.hpp $(TOKEN_DEPS))
+LEXER_DEPS=$(sort src/lexer.hpp $(LOG_DEPS))
 EXPRESSION_DEPS=$(sort src/expression.hpp src/symbol_table.hpp $(TOKEN_DEPS))
 STATEMENT_DEPS=$(sort src/statement.hpp $(EXPRESSION_DEPS))
-EXPRESSION_PARSER_DEPS=$(sort src/expression_parser.hpp $(ERROR_HANDLER_DEPS) $(EXPRESSION_DEPS))
+EXPRESSION_PARSER_DEPS=$(sort src/expression_parser.hpp $(LOG_DEPS) $(EXPRESSION_DEPS))
 PARSER_DEPS=$(sort src/parser.hpp $(EXPRESSION_PARSER_DEPS) $(STATEMENT_DEPS) $(LEXER_DEPS))
-SYMBOL_TABLE_DEPS=$(sort src/symbol_table.hpp $(STATEMENT_DEPS) $(ERROR_HANDLER_DEPS))
+SYMBOL_TABLE_DEPS=$(sort src/symbol_table.hpp $(STATEMENT_DEPS) $(LOG_DEPS))
 COMPILER_DEPS=$(sort src/compiler.hpp $(SYMBOL_TABLE_DEPS))
 ASSEMBLER_DEPS=$(sort $(PARSER_DEPS) $(SYMBOL_TABLE_DEPS))
 
@@ -55,7 +55,7 @@ $(OUTPUT_DIR)/mnemonics.o: src/mnemonics.cpp $(MNEMONICS_DEP) | $(OUTPUT_DIR)
 $(OUTPUT_DIR)/token.o: src/token.cpp $(TOKEN_DEPS) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 	
-$(OUTPUT_DIR)/error_handler.o: src/error_handler.cpp $(ERROR_HANDLER_DEPS) | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/log.o: src/log.cpp $(LOG_DEPS) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 	
 $(OUTPUT_DIR)/lexer.o: src/lexer.cpp $(LEXER_DEPS) | $(OUTPUT_DIR)

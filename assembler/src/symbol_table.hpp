@@ -6,7 +6,7 @@
 #include <memory>
 #include <cstdint>
 
-#include "error_handler.hpp"
+#include "log.hpp"
 #include "statement.hpp"
 
 namespace dcpu {
@@ -95,8 +95,8 @@ namespace dcpu {
 		symbol *lookup(const std::string &name, uint16_t offset);
 		symbol *lookup(const lexer::location_ptr &location, uint16_t offset);
 
-		void build(ast::statement_list &statements, error_handler_ptr &error_handler);
-		void resolve(ast::statement_list &statements, error_handler_ptr &error_handler);
+		void build(ast::statement_list &statements, logging::log &logger);
+		void resolve(ast::statement_list &statements, logging::log &logger);
 		void update_after(uint16_t offset, int amount);
 		void dump();
 	};
@@ -120,9 +120,9 @@ namespace dcpu {
 	 *
 	 *************************************************************************/
 	class build_symbol_table : public boost::static_visitor<>, public base_symbol_visitor {
-		error_handler_ptr error_handler;
+		logging::log& logger;
 	public:
-		build_symbol_table(symbol_table *table, error_handler_ptr &error_handler, uint32_t pc);
+		build_symbol_table(symbol_table *table, logging::log &logger, uint32_t pc);
 
 		void operator()(const ast::label &label) const;
 		void operator()(const ast::binary_operation &expr) const;
@@ -140,10 +140,10 @@ namespace dcpu {
 	 *
 	 *************************************************************************/
 	class resolve_symbols : public boost::static_visitor<>, public base_symbol_visitor {
-		error_handler_ptr error_handler;
+		logging::log& logger;
 		bool allow_forward_refs;
 	public:
-		resolve_symbols(symbol_table *table, const error_handler_ptr &error_handler, uint32_t pc=0,
+		resolve_symbols(symbol_table *table, logging::log &logger, uint32_t pc=0,
 				bool allow_forward_refs=true);
 
 		void operator()(ast::symbol_operand &expr) const;

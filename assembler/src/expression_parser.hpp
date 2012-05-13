@@ -4,7 +4,7 @@
 #include <functional>
 
 #include "expression.hpp"
-#include "error_handler.hpp"
+#include "log.hpp"
 
 namespace dcpu { namespace parser {
 	typedef std::function<bool (const lexer::token*)> token_predicate;
@@ -35,7 +35,7 @@ namespace dcpu { namespace parser {
 		typedef ast::expression (expression_parser::*expr_parser_t)(const lexer::token&);
 
 		lexer::token_iterator &current, end;
-		error_handler_ptr error_handler;
+		logging::log& logger;
 		bool allow_symbols, allow_registers, indirection;
 		boost::optional<register_location> first_register;
 
@@ -56,7 +56,7 @@ namespace dcpu { namespace parser {
 
 		lexer::token& next_token();
 	public:
-		expression_parser(lexer::token_iterator&, lexer::token_iterator, error_handler_ptr&, bool, bool, bool);
+		expression_parser(lexer::token_iterator&, lexer::token_iterator, logging::log&, bool, bool, bool);
 
 		ast::expression parse(const lexer::token&);
 	};

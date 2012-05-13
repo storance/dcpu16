@@ -13,21 +13,13 @@ using namespace std;
 using namespace boost;
 
 namespace dcpu { namespace lexer {
-	lexer::lexer(const string &content, const string &source)
+	lexer::lexer(const string &content, const string &source, logging::log &logger)
 		: current(content.begin()),
 		  end(content.end()),
 		  source(source),
 		  line(1),
 		  column(0),
-		  error_handler(make_shared<dcpu::error_handler>()) {}
-
-	lexer::lexer(const string &content, const string &source, error_handler_ptr &error_handler)
-		: current(content.begin()),
-		  end(content.end()),
-		  source(source),
-		  line(1),
-		  column(0),
-		  error_handler(error_handler) {}
+		  logger(logger) {}
 
 	void lexer::parse() {
 		while (true) {
@@ -62,13 +54,13 @@ namespace dcpu { namespace lexer {
 		} else if (c == '\'') {
 			string quoted_string = parse_quoted_string(start, c, true);
 			if (quoted_string.length() == 0) {
-				error_handler->warning(start, "empty character literal; assuming null terminator");
+				logger.warning(start, "empty character literal; assuming null terminator");
 
 				return token(start, token_type::INTEGER, quoted_string, 0);
 			}
 
 			if (quoted_string.length() > 1) {
-				error_handler->error(start, "multi-byte character literal");
+				logger.error(start, "multi-byte character literal");
 			}
 
 			uint8_t value = quoted_string[0];
@@ -159,14 +151,14 @@ namespace dcpu { namespace lexer {
 				quoted_string += parse_escape_sequence();
 			} else {
 				if (c & 0x80) {
-					error_handler->warning(make_location(), boost::format("invalid 7-bit ASCII character '%c'") % c);
+					logger.warning(make_location(), boost::format("invalid 7-bit ASCII character '%c'") % c);
 				}
 
 				quoted_string += c;
 			}
 		}
 
-		error_handler->error(location, format("unterminated %s literal")
+		logger.error(location, format("unterminated %s literal")
 			% (end_quote == '\'' ? "character" : "string"));
 		return quoted_string;
 	}
@@ -211,7 +203,7 @@ namespace dcpu { namespace lexer {
 				}
 
 				if (!isxdigit(firstDigit)) {
-					error_handler->error(make_location(), format("invalid hex digit '%c' following hex escape")
+					logger.error(make_location(), format("invalid hex digit '%c' following hex escape")
 						% firstDigit);
 					move_back();
 					return '\0';
@@ -224,14 +216,14 @@ namespace dcpu { namespace lexer {
 				}
 
 				if (parsed_int & 0x80) {
-					error_handler->warning(make_location(), boost::format("invalid 7-bit ASCII character '%#02x'")
+					logger.warning(make_location(), boost::format("invalid 7-bit ASCII character '%#02x'")
 						% parsed_int);
 				}
 
 				return parsed_int;
 			}
 		default:
-			error_handler->error(make_location(), format("unrecognized escape character '%c'") % c);
+			logger.error(make_location(), format("unrecognized escape character '%c'") % c);
 			return c;
 		}
 	}
@@ -354,7 +346,7 @@ namespace dcpu { namespace lexer {
 		} catch (invalid_argument &ia) {
 			return token(start, token_type::INVALID_INTEGER, value);
 		} catch (out_of_range &oor) {
-			error_handler->warning(start, format("integer '%s' overflows 32-bit intermediary storage") % value);
+			logger.warning(start, format("integer '%s' overflows 32-bit intermediary storage") % value);
 
 			return token(start, token_type::INTEGER, value, UINT32_MAX);
 		}

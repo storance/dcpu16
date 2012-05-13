@@ -16,7 +16,7 @@ using namespace dcpu::ast;
 
 namespace dcpu { namespace parser {
 	parser::parser(lexer::lexer &lex, ast::statement_list &statements) : current(lex.tokens.begin()),
-			end(lex.tokens.end()), error_handler(lex.error_handler), statements(statements),
+			end(lex.tokens.end()), logger(lex.logger), statements(statements),
 			instructions_found(0), labels_found(0) {}
 
 	void parser::parse() {
@@ -69,7 +69,7 @@ namespace dcpu { namespace parser {
 
 	boost::optional<statement> parser::parse_instruction(const token& current_token) {
 		if (!current_token.is_instruction()) {
-			error_handler->unexpected_token(current_token, "a label, instruction, or directive");
+			logger.unexpected_token(current_token, "a label, instruction, or directive");
 			return boost::none;
 		}
 
@@ -94,7 +94,7 @@ namespace dcpu { namespace parser {
 
 			auto& next_tkn = next_token();
 			if (!next_tkn.is_character(',')) {
-				error_handler->unexpected_token(next_tkn, ',');
+				logger.unexpected_token(next_tkn, ',');
 				move_back();
 			}
 
@@ -107,7 +107,7 @@ namespace dcpu { namespace parser {
 
 		auto& eoltoken = next_token();
 		if (!eoltoken.is_terminator()) {
-			error_handler->unexpected_token(eoltoken, "'newline' or 'eof'");
+			logger.unexpected_token(eoltoken, "'newline' or 'eof'");
 			advance_until(mem_fn(&token::is_terminator));
 		}
 
@@ -138,14 +138,14 @@ namespace dcpu { namespace parser {
 			result = statement(parse_fill(current_token));
 			break;
 		default:
-			error_handler->warning(current_token.location, boost::format("directive '%s' is not yet supported")
+			logger.warning(current_token.location, boost::format("directive '%s' is not yet supported")
 					% directive);
 			return boost::none;
 		}
 
 		auto next_tkn = next_token();
 		if (!next_tkn.is_terminator()) {
-			error_handler->unexpected_token(next_tkn, "a 'newline'");
+			logger.unexpected_token(next_tkn, "a 'newline'");
 			advance_until(mem_fn(&token::is_terminator));
 		}
 
@@ -189,9 +189,9 @@ namespace dcpu { namespace parser {
 			} else if (current_token.is_integer()) {
 				uint32_t value = current_token.get_integer();
 				if (!packed && value > UINT16_MAX) {
-					error_handler->warning(current_token.location, "overflow in converting to 16-bit integer");
+					logger.warning(current_token.location, "overflow in converting to 16-bit integer");
 				} else if (packed && value > UINT8_MAX) {
-					error_handler->warning(current_token.location, "overflow in converting to 8-bit integer");
+					logger.warning(current_token.location, "overflow in converting to 8-bit integer");
 				}
 
 				output.push_back(value);
@@ -210,24 +210,24 @@ namespace dcpu { namespace parser {
 		move_back();
 
 		if (output.size() == 0) {
-			error_handler->warning(current_token.location, "empty data segment");
+			logger.warning(current_token.location, "empty data segment");
 		}
 	}
 
 	org_directive parser::parse_org(const token& current_token) {
 		if (instructions_found || labels_found) {
-			error_handler->error(current_token.location, ".ORG must occur before all labels and instructions");
+			logger.error(current_token.location, ".ORG must occur before all labels and instructions");
 		}
 
 		auto next_tkn = next_token();
 		if (!next_tkn.is_integer()) {
-			error_handler->unexpected_token(next_tkn, "an integer constant");
+			logger.unexpected_token(next_tkn, "an integer constant");
 			return org_directive(current_token.location, 0);
 		}
 
 		uint32_t value = next_tkn.get_integer();
 		if (value > UINT16_MAX) {
-			error_handler->warning(current_token.location, "overflow in converting to 16-bit integer");
+			logger.warning(current_token.location, "overflow in converting to 16-bit integer");
 		}
 
 		return org_directive(current_token.location, value);
@@ -237,7 +237,7 @@ namespace dcpu { namespace parser {
 		auto expr = parse_expression(next_token(), false, false);
 
 		if (statements.empty() || !boost::get<label>(&statements.front())) {
-			error_handler->error(current_token.location, ".EQU must be preceded by a label");
+			logger.error(current_token.location, ".EQU must be preceded by a label");
 		}
 
 		return equ_directive(current_token.location, expr);
@@ -253,14 +253,14 @@ namespace dcpu { namespace parser {
 		} else if (next_tkn.is_character(',')) {
 			return fill_directive(current_token.location, count_expr, parse_expression(next_token(), false, false));
 		} else {
-			error_handler->unexpected_token(next_tkn, "',' or 'newline'");
+			logger.unexpected_token(next_tkn, "',' or 'newline'");
 			return fill_directive(current_token.location, count_expr, invalid_expression(next_tkn.location));
 		}
 	}
 
 	optional_argument parser::parse_argument(const token& current_token, argument_position position) {
 		if (current_token.is_character(',') || current_token.is_terminator()) {
-			error_handler->unexpected_token(current_token, "an instruction argument");
+			logger.unexpected_token(current_token, "an instruction argument");
 			return boost::none;
 		}
 
@@ -280,13 +280,13 @@ namespace dcpu { namespace parser {
 		optional_argument arg;
 		if (current_token.is_register(registers::SP) && next_tkn.is_increment()) {
 			if (position == argument_position::B) {
-				error_handler->error(current_token.location, "[SP++] / POP is not allowed as argument b");
+				logger.error(current_token.location, "[SP++] / POP is not allowed as argument b");
 			}
 
 			arg = argument(stack_argument(current_token.location, position, stack_operation::POP));
 		} else if (current_token.is_decrement() && next_tkn.is_register(registers::SP)) {
 			if (position == argument_position::A) {
-				error_handler->error(current_token.location, "[--SP] / PUSH is not allowed as argument a");
+				logger.error(current_token.location, "[--SP] / PUSH is not allowed as argument a");
 			}
 
 			arg = argument(stack_argument(current_token.location, position, stack_operation::PUSH));
@@ -300,7 +300,7 @@ namespace dcpu { namespace parser {
 		auto &end_token = next_token();
 		if (!end_token.is_character(']')) {
 			move_back();
-			error_handler->unexpected_token(end_token, ']');
+			logger.unexpected_token(end_token, ']');
 			return boost::none;
 		}
 
@@ -324,16 +324,16 @@ namespace dcpu { namespace parser {
 		}
 
 		if (operation == stack_operation::PUSH && position == argument_position::A) {
-			error_handler->error(current_token.location, "[--SP] / PUSH is not allowed as argument a");
+			logger.error(current_token.location, "[--SP] / PUSH is not allowed as argument a");
 		} else if (operation == stack_operation::POP && position == argument_position::B) {
-			error_handler->error(current_token.location, "[SP++] / POP is not allowed as argument b");
+			logger.error(current_token.location, "[SP++] / POP is not allowed as argument b");
 		}
 
 		return argument(stack_argument(current_token.location, position, operation));
 	}
 
 	expression parser::parse_expression(const token& current_token, bool allow_registers, bool indirection) {
-		expression_parser expr_parser(current, end, error_handler, allow_registers, true, indirection);
+		expression_parser expr_parser(current, end, logger, allow_registers, true, indirection);
 		auto expr = expr_parser.parse(current_token);
 		if (evaluatable(expr)) {
 			return evaluate(expr);
