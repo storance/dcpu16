@@ -39,20 +39,6 @@ void read_file(const string &filename, string &content) {
 	}
 }
 
-void write_compiled_output(compiler::compiler &_compiler, const string &output_filename) {
-	ofstream out(output_filename, ios_base::binary | ios_base::out);
-	if (!out) {
-		throw runtime_error(str(boost::format("Failed to open file %s for write: %s" )
-				% output_filename % strerror(errno)));
-	}
-	_compiler.write(out);
-	out.close();
-	if (out.fail()) {
-		throw runtime_error(str(boost::format("Failed to open file %s for write: %s" )
-				% output_filename % strerror(errno)));
-	}
-}
-
 void parse_file(const string &filename, logging::log &logger, statement_list &statements) {
 	string content;
 	read_file(filename, content);
@@ -83,9 +69,9 @@ void usage(const char *program_name, const po::options_description &visible_opti
 }
 
 int main(int argc, char **argv) {
-	bool ast_print = false;
-	bool symbols_print = false;
-	bool syntax_only = false;
+	bool ast_print;
+	bool symbols_print;
+	bool syntax_only;
 	string input_file;
 	string output_file;
 
@@ -97,11 +83,11 @@ int main(int argc, char **argv) {
 	    ("symbols-print", po::bool_switch(&symbols_print), "prints all symbols and their memory location")
 	    ("syntax-only", po::bool_switch(&syntax_only), "performs a syntax check only and does not produce any output")
 	    ("include-path,I", po::value<vector<string> >(), "Add the directory to the list of directories to be search for includes.")
-	    ("output-file,o", po::value<string>(&output_file), "Write output to the specified file.");
+	    ("output-file,o", po::value<string>(&output_file), "Write output to the specified file.  Use - for stdout.");
 
 	po::options_description hidden_options("Hidden options");
 	hidden_options.add_options()
-		("input-file", po::value<string>(&input_file), "set compression level");
+		("input-file", po::value<string>(&input_file), "the input file");
 
 	po::options_description cmdline_options;
 	cmdline_options.add(visible_options).add(hidden_options);
@@ -113,21 +99,6 @@ int main(int argc, char **argv) {
 	po::store(po::command_line_parser(argc, argv).
 	          options(cmdline_options).positional(positional_args).run(), vm);
 	po::notify(vm);
-
-	if (ast_print && syntax_only) {
-		cerr << "--ast-print and --syntax-only can not both be set" << endl;
-		return 1;
-	}
-
-	if (symbols_print && syntax_only) {
-		cerr << "--symbols-print and --syntax-only can not both be set" << endl;
-		return 1;
-	}
-
-	if (ast_print & symbols_print) {
-		cerr << "--ast-print and --symbols-print can not both be set" << endl;
-		return 1;
-	}
 
 	if (vm.count("help")) {
 		usage(argv[0], visible_options);
@@ -146,7 +117,16 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	if (output_file.length() == 0) {
+	compiler_mode mode = compiler_mode::NORMAL;
+	if (ast_print) {
+		mode = compiler_mode::PRINT_AST;
+	} else if (symbols_print) {
+		mode = compiler_mode::PRINT_SYMBOLS;
+	} else if (syntax_only) {
+		mode = compiler_mode::SYNTAX_ONLY;
+	}
+
+	if (output_file.length() == 0 && mode == compiler_mode::NORMAL) {
 		string::size_type ext_index = input_file.rfind('.');
 
 		if (ext_index != string::npos) {
@@ -154,39 +134,29 @@ int main(int argc, char **argv) {
 		} else {
 			output_file = input_file + ".bin";
 		}
+	} else {
+		output_file = "-";
 	}
+
+	ofstream fout;
+	if (output_file != "-") {
+		fout.open(output_file, ios_base::binary | ios_base::out);
+		if (!fout) {
+			throw runtime_error(str(boost::format("Failed to open file %s for write: %s" )
+					% output_file % strerror(errno)));
+		}
+	}
+
+	ostream &out = (output_file == "-" ? cout : fout);
 
 	try {
 		logging::log logger;
 		statement_list statements;
 		parse_file(input_file, logger, statements);
 
-		if (syntax_only) {
-			handle_errors(logger);
-
-			return 0;
-		} else if (ast_print) {
-			handle_errors(logger);
-			print_ast(statements);
-
-			return 0;
-		}
-
 		symbol_table table;
-		table.build(statements, logger);
-		table.resolve(statements, logger);
-
-		handle_errors(logger);
-
-		if (symbols_print) {
-			table.dump();
-			return 0;
-		}
-
-		compiler::compiler _compiler(logger, table);
-		_compiler.compile(statements);
-
-		write_compiled_output(_compiler, output_file);
+		compiler::compiler _compiler(logger, table, statements);
+		_compiler.compile(out, mode);
 	} catch (std::exception &e) {
 		cerr << e.what() << endl;
 		return 1;

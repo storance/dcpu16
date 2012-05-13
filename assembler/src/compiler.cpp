@@ -1,14 +1,188 @@
 #include <boost/variant.hpp>
+#include <boost/format.hpp>
+
+#include <cstring>
 
 #include "compiler.hpp"
-
-#include <boost/format.hpp>
 
 using namespace std;
 using namespace dcpu::ast;
 using namespace boost;
 
+const unsigned int MAX_COMPRESS_ITERATIONS = 1000;
+
 namespace dcpu { namespace compiler {
+/*************************************************************************
+	 *
+	 * base_symbol_visitor
+	 *
+	 *************************************************************************/
+	base_symbol_visitor::base_symbol_visitor(symbol_table& table, uint32_t pc) : table(table), pc(pc) {}
+
+	/*************************************************************************
+	 *
+	 * build_symbol_table
+	 *
+	 *************************************************************************/
+	build_symbol_table::build_symbol_table(symbol_table& table, logging::log &logger, uint32_t pc)
+			: base_symbol_visitor(table, pc), logger(logger) {}
+
+	void build_symbol_table::operator()(const label &label) const {
+		try {
+			table.add_label(label, pc);
+		} catch (std::exception &e) {
+			logger.error(label.location, e.what());
+		}
+	}
+
+	void build_symbol_table::operator()(const current_position_operand &expr) const {
+		table.add_location(expr.location, pc);
+	}
+
+	void build_symbol_table::operator()(const binary_operation &expr) const {
+		apply_visitor(*this, expr.left);
+		apply_visitor(*this, expr.right);
+	}
+
+	void build_symbol_table::operator()(const unary_operation &expr) const {
+		apply_visitor(*this, expr.operand);
+	}
+
+	void build_symbol_table::operator()(const expression_argument &arg) const {
+		if (evaluated(arg.expr)) {
+			return;
+		}
+
+		apply_visitor(*this, arg.expr);
+	}
+
+	void build_symbol_table::operator()(const instruction &instruction) const {
+		apply_visitor(*this, instruction.a);
+
+		if (instruction.b) {
+			apply_visitor(*this, *instruction.b);
+		}
+	}
+
+	void build_symbol_table::operator()(ast::equ_directive &equ) const {
+		table.equ(equ.value);
+	}
+
+	/*************************************************************************
+	 *
+	 * resolve_symbols
+	 *
+	 *************************************************************************/
+	resolve_symbols::resolve_symbols(symbol_table& table, logging::log &logger, uint32_t pc,
+			bool allow_forward_refs) : base_symbol_visitor(table, pc), logger(logger),
+			allow_forward_refs(allow_forward_refs) {}
+
+	void resolve_symbols::operator()(symbol_operand &expr) const {
+		try {
+			expr.resolved_symbol = table.lookup(expr.name, pc);
+			if (!allow_forward_refs && expr.resolved_symbol->offset > pc) {
+				logger.error(expr.location, "forward symbol references are not allowed here");
+			}
+		} catch (std::exception &e) {
+			logger.error(expr.location, e.what());
+		}
+	}
+
+	void resolve_symbols::operator()(current_position_operand &expr) const {
+		try {
+			expr.resolved_symbol = table.lookup(expr.location, pc);
+		} catch (std::exception &e) {
+			// we should never get here
+			throw runtime_error(str(boost::format("internal compiler error: failed to resolve $ at %s") %
+					expr.location));
+		}
+	}
+
+	void resolve_symbols::operator()(binary_operation &expr) const {
+		apply_visitor(*this, expr.left);
+		apply_visitor(*this, expr.right);
+	}
+
+	void resolve_symbols::operator()(unary_operation &expr) const {
+		apply_visitor(*this, expr.operand);
+	}
+
+	void resolve_symbols::operator()(expression_argument &arg) const {
+		if (evaluated(arg.expr)) {
+			return;
+		}
+
+		apply_visitor(resolve_symbols(table, logger, pc, true), arg.expr);
+	}
+
+	void resolve_symbols::operator()(instruction &instruction) const {
+		apply_visitor(*this, instruction.a);
+
+		if (instruction.b) {
+			apply_visitor(*this, *instruction.b);
+		}
+	}
+
+	void resolve_symbols::operator()(ast::equ_directive &equ) const {
+		resolve_symbols resolver(table, logger, pc, true);
+		apply_visitor(resolver, equ.value);
+	}
+
+	void resolve_symbols::operator()(ast::fill_directive &fill) const {
+		apply_visitor(resolve_symbols(table, logger, pc, false), fill.count);
+		apply_visitor(resolve_symbols(table, logger, pc, true), fill.value);
+	}
+
+	/*************************************************************************
+	 *
+	 * compress_expressions
+	 *
+	 *************************************************************************/
+	compress_expressions::compress_expressions(symbol_table& table, uint32_t pc)
+			: base_symbol_visitor(table, pc) {}
+
+	bool compress_expressions::operator()(expression_argument &arg) const {
+		if (evaluated(arg.expr) || !evaluatable(arg.expr)) {
+			return false;
+		}
+
+		uint8_t expr_size = output_size(arg, evaluate(arg.expr));
+		if (arg.cached_size != expr_size) {
+			table.update_after(pc + arg.cached_size, expr_size - arg.cached_size);
+			arg.cached_size = expr_size;
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool compress_expressions::operator()(instruction &instruction) const {
+		// argument b can never be compressed, so don't both with it
+		return apply_visitor(*this, instruction.a);
+	}
+
+	bool compress_expressions::operator()(ast::fill_directive &fill) const {
+		if (!evaluatable(fill.count)) {
+			throw invalid_argument("fill count expression can not be evaluated");
+		}
+
+		auto evaled_count = evaluate(fill.count);
+		if (evaled_count._register) {
+			throw invalid_argument("fill count expression must evaluate to a literal");
+		}
+
+		auto count = *evaled_count.value;
+		if (fill.cached_size != count) {
+			table.update_after(pc, count - fill.cached_size);
+			fill.cached_size = count;
+
+			return true;
+		}
+
+		return false;
+	}
+
 	/*************************************************************************
 	 *
 	 * compile_result
@@ -201,28 +375,100 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 
-	compiler::compiler(logging::log &logger, symbol_table &table)
-			: logger(logger), table(table) {}
+	compiler::compiler(logging::log &logger, symbol_table& table, statement_list &statements)
+			: logger(logger), table(table), statements(statements) {}
 
-	void compiler::compile(statement_list &statements) {
-		auto stmt_compiler = statement_compiler(output);
-		for (auto& stmt : statements) {
-			apply_visitor(stmt_compiler, stmt);
+	void compiler::compile(std::ostream &out, compiler_mode mode, endianness format) {
+		if (mode == compiler_mode::PRINT_AST) {
+			print_ast(out);
+			return;
+		}
+
+		build();
+		resolve();
+
+		if (mode == compiler_mode::SYNTAX_ONLY || logger.has_errors()) {
+			return;
+		} else if (mode == compiler_mode::PRINT_SYMBOLS) {
+			table.dump(out);
+		}
+
+		if (mode == compiler_mode::NORMAL) {
+			vector<uint16_t> output;
+			auto stmt_compiler = statement_compiler(output);
+			for (auto& stmt : statements) {
+				apply_visitor(stmt_compiler, stmt);
+			}
+
+			write(output, out, format);
 		}
 	}
 
-	void compiler::write(ostream &out, Endianness format) {
+	void compiler::print_ast(std::ostream &out) {
+		for (auto &stmt : statements) {
+			out << stmt << endl;
+		}
+	}
+
+	void compiler::build() {
+		uint32_t pc = 0;
+		for (auto &stmt : statements) {
+			apply_visitor(build_symbol_table(table, logger, pc), stmt);
+
+			pc += output_size(stmt);
+		}
+	}
+
+	void compiler::resolve() {
+		uint32_t pc = 0;
+		for (auto &stmt : statements) {
+			apply_visitor(resolve_symbols(table, logger, pc), stmt);
+			pc += output_size(stmt);
+		}
+
+		// if we have encountered errors, don't bother attempting to compress
+		if (logger.has_errors()) {
+			return;
+		}
+
+		bool updated = true;
+		for (unsigned int i = 0; i < MAX_COMPRESS_ITERATIONS && updated; i++) {
+			updated = false;
+			pc = 0;
+			for (auto& stmt : statements) {
+				updated |= apply_visitor(compress_expressions(table, pc), stmt);
+				pc += output_size(stmt);
+			}
+		}
+
+		if (updated) {
+			// if updated is still true then we must have hit max iterations
+			throw runtime_error("internal compiler error: failed to convert label references to short literal form "
+					"after 1000 iterations");
+		}
+
+		if (pc > UINT16_MAX) {
+			logger.error(get_location(statements.back()), "output exceeds 65,535 words");
+		}
+	}
+
+	void compiler::write(vector<uint16_t> &output, ostream &out, endianness format) {
 		for (auto word : output) {
 	        uint8_t b1 = word & 0xff;
 	        uint8_t b2 = (word >> 8) & 0xff;
 
-	        if (format == Endianness::BIG) {
+	        if (format == endianness::BIG) {
 	            out.put(b1);
 	            out.put(b2);
 	        } else {
 	            out.put(b2);
 	            out.put(b1);
 	        }
+
+	        if (out.fail()) {
+				throw runtime_error(str(boost::format("Error writing compiled output: %s" )
+						% strerror(errno)));
+			}
 	    }
 	}
 

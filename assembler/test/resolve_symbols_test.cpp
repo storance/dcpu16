@@ -17,17 +17,17 @@ using namespace boost;
 static logging::log logger;
 static location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
-bool compress(uint16_t pc, symbol_table *table, argument &arg) {
+bool compress(uint16_t pc, symbol_table &table, argument &arg) {
 	compress_expressions compressor(table, pc);
 	return apply_visitor(compressor, arg);
 }
 
-void resolve(uint16_t pc, symbol_table *table, expression &expr) {
+void resolve(uint16_t pc, symbol_table &table, expression &expr) {
 	resolve_symbols resolver(table, logger, pc);
 	apply_visitor(resolver, expr);
 }
 
-void resolve(uint16_t pc, symbol_table *table, argument &arg) {
+void resolve(uint16_t pc, symbol_table &table, argument &arg) {
 	resolve_symbols resolver(table, logger, pc);
 	apply_visitor(resolver, arg);
 }
@@ -43,7 +43,7 @@ TEST(ResolveSymbols, Expression_LabelOperand) {
 	add_symbols(table, { {"label1", 10}, {"label2", 31} });
 
 	expression expr(symbol_operand(_location, "label2"));
-	resolve(15, &table, expr);
+	resolve(15, table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
 	EXPECT_EQ(evaluated_expression(_location, 31), evaluate(expr));
@@ -54,7 +54,7 @@ TEST(ResolveSymbols, Expression_CurrentPos) {
 	table.add_location(_location, 15);
 
 	expression expr = expression(current_position_operand(_location));
-	resolve(15, &table, expr);
+	resolve(15, table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
 	EXPECT_EQ(evaluated_expression(_location, 15), evaluate(expr));
@@ -66,7 +66,7 @@ TEST(ResolveSymbols, Expression_UnaryOperation) {
 
 	expression expr(unary_operation(_location, unary_operator::MINUS,
 			symbol_operand(_location, "label2")));
-	resolve(15, &table, expr);
+	resolve(15, table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
 	EXPECT_EQ(evaluated_expression(_location, -31), evaluate(expr));
@@ -79,7 +79,7 @@ TEST(ResolveSymbols, Expression_BinaryOperation) {
 	expression expr(binary_operation(_location, binary_operator::MINUS,
 			symbol_operand(_location, "label2"),
 			symbol_operand(_location, "label1")));
-	resolve(15, &table, expr);
+	resolve(15, table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
 	EXPECT_EQ(evaluated_expression(_location, 21), evaluate(expr));
@@ -158,14 +158,8 @@ TEST(SymbolTable, BuildResolve) {
 	statements.push_back(create_no_op(33));
 
 	symbol_table table;
-	table.build(statements, logger);
-
-	EXPECT_EQ(10, table.lookup("label1", 0)->offset);
-	EXPECT_EQ(31, table.lookup("label2", 0)->offset);
-	EXPECT_EQ(16, table.lookup("label3", 0)->offset);
-	EXPECT_EQ(12, table.lookup(make_shared<location>("<Test>", 13, 9), 0)->offset);
-
-	table.resolve(statements, logger);
+	compiler::compiler _compiler(logger, table, statements);
+	_compiler.compile(cout, compiler_mode::SYNTAX_ONLY);
 
 	EXPECT_EQ(9, table.lookup("label1", 0)->offset);
 	EXPECT_EQ(28, table.lookup("label2", 0)->offset);
