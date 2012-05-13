@@ -93,8 +93,17 @@ static expression create_symbol_expression(int line, const string &symbol) {
 	return symbol_operand(make_shared<location>("<Test>", line, 8), symbol);
 }
 
+static expression create_literal_expression(int line, uint32_t literal) {
+	return literal_operand(make_shared<location>("<Test>", line, 8), literal);
+}
+
 static expression create_current_pos_expression(int line) {
 	return current_position_operand(make_shared<location>("<Test>", line, 9));
+}
+
+static expression create_binary_expression(int line, binary_operator _operator, const expression &left,
+		const expression &right) {
+	return binary_operation(make_shared<location>("<Test>", line, 9), _operator, left, right);
 }
 
 static argument create_expression_argument(int line, argument_position position, const expression &expr) {
@@ -165,4 +174,25 @@ TEST(SymbolTable, BuildResolve) {
 	EXPECT_EQ(28, table.lookup("label2", 0)->offset);
 	EXPECT_EQ(13, table.lookup("label3", 0)->offset);
 	EXPECT_EQ(11, table.lookup(make_shared<location>("<Test>", 13, 9), 0)->offset);
+}
+
+TEST(SymbolTable, ShortLongOscillate) {
+	statement_list statements;
+	statements.push_back(create_label(1, "label1"));
+	statements.push_back(create_instruction(2,
+			create_expression_argument(2, argument_position::A, create_binary_expression(2, binary_operator::MINUS,
+					create_binary_expression(2, binary_operator::PLUS,
+						create_symbol_expression(2, "label1"),
+						create_literal_expression(2, 32)),
+					create_symbol_expression(2, "label2"))),
+			create_expression_argument(2, argument_position::B, create_register_expression(2))));
+
+	statements.push_back(create_label(3, "label2"));
+
+	symbol_table table;
+	compiler::compiler _compiler(logger, table, statements);
+	_compiler.compile(cout, compiler_mode::SYNTAX_ONLY);
+
+	EXPECT_EQ(0, table.lookup("label1", 0)->offset);
+	EXPECT_EQ(2, table.lookup("label2", 0)->offset);
 }
