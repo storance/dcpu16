@@ -160,6 +160,11 @@ int main(int argc, char **argv) {
 
 		if (logger.has_errors()) {
 			logger.summary();
+
+			if (output_file != "-") {
+				fout.close();
+				remove(output_file.c_str());
+			}
 		}
 	} catch (std::exception &e) {
 		cerr << e.what() << endl;
