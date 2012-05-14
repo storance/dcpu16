@@ -157,6 +157,10 @@ int main(int argc, char **argv) {
 		symbol_table table;
 		compiler::compiler _compiler(logger, table, statements);
 		_compiler.compile(out, mode);
+
+		if (logger.has_errors()) {
+			logger.summary();
+		}
 	} catch (std::exception &e) {
 		cerr << e.what() << endl;
 		return 1;
