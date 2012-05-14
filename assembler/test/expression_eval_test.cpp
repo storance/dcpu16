@@ -58,6 +58,7 @@ TEST(ExpressionEval, DivideByZero) {
 		literal_operand(_location, 0)));
 
 	EXPECT_EQ(evaluated_expression(_location, 0), evaluate(capture_log, expr));
+	EXPECT_EQ(evaluated_expression(_location, 0), evaluate(capture_log, expr));
 	EXPECT_EQ("<Test>:1:1: warning: division or modulo by zero\n", out.str());
 }
 
