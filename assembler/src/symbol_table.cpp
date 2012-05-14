@@ -149,7 +149,7 @@ namespace dcpu {
 		}
 	}
 
-	void symbol_table::dump(std::ostream &out) {
+	void symbol_table::dump(logging::log &logger, std::ostream &out) {
 		out << " Value  | Symbol Name" << endl
 			 << "---------------------" << endl;
 		for (auto &symbol : symbols) {
@@ -160,7 +160,7 @@ namespace dcpu {
 
 			out << " ";
 			if (symbol.type == symbol_type::EQU) {
-				out << evaluate(*symbol.equ_expr);
+				out << evaluate(logger, *symbol.equ_expr);
 			} else {
 				out << boost::format("%#06x") % symbol.offset;
 			}

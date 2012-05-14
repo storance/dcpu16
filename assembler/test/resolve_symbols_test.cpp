@@ -18,7 +18,7 @@ static logging::log logger;
 static location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
 bool compress(uint16_t pc, symbol_table &table, argument &arg) {
-	compress_expressions compressor(table, pc);
+	compress_expressions compressor(table, logger, pc);
 	return apply_visitor(compressor, arg);
 }
 
@@ -46,7 +46,7 @@ TEST(ResolveSymbols, Expression_LabelOperand) {
 	resolve(15, table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(evaluated_expression(_location, 31), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(_location, 31), evaluate(logger, expr));
 }
 
 TEST(ResolveSymbols, Expression_CurrentPos) {
@@ -57,7 +57,7 @@ TEST(ResolveSymbols, Expression_CurrentPos) {
 	resolve(15, table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(evaluated_expression(_location, 15), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(_location, 15), evaluate(logger, expr));
 }
 
 TEST(ResolveSymbols, Expression_UnaryOperation) {
@@ -69,7 +69,7 @@ TEST(ResolveSymbols, Expression_UnaryOperation) {
 	resolve(15, table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(evaluated_expression(_location, -31), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(_location, -31), evaluate(logger, expr));
 }
 
 TEST(ResolveSymbols, Expression_BinaryOperation) {
@@ -82,7 +82,7 @@ TEST(ResolveSymbols, Expression_BinaryOperation) {
 	resolve(15, table, expr);
 
 	ASSERT_TRUE(evaluatable(expr));
-	EXPECT_EQ(evaluated_expression(_location, 21), evaluate(expr));
+	EXPECT_EQ(evaluated_expression(_location, 21), evaluate(logger, expr));
 }
 
 static expression create_register_expression(int line, registers _register=registers::A) {

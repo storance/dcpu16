@@ -7,6 +7,7 @@
 #include <boost/optional.hpp>
 
 #include "token.hpp"
+#include "log.hpp"
 
 // forward declaration of symbol
 namespace dcpu { struct symbol; }
@@ -132,7 +133,10 @@ namespace dcpu { namespace ast {
 	};
 
 	class expression_evaluator : public boost::static_visitor<evaluated_expression> {
+		logging::log &logger;
 	public:
+		expression_evaluator(logging::log &logger);
+
 		evaluated_expression operator()(const evaluated_expression &expr) const;
 		evaluated_expression operator()(const register_operand &expr) const;
 		evaluated_expression operator()(const literal_operand &expr) const;
@@ -157,7 +161,7 @@ namespace dcpu { namespace ast {
 	bool evaluated(const expression &expr);
 	bool evaluatable(const expression &expr);
 	bool evaluates_to_literal(const expression &expr);
-	evaluated_expression evaluate(const expression &expr);
+	evaluated_expression evaluate(logging::log &logger, const expression &expr);
 
 	std::ostream& operator<< (std::ostream& stream, unary_operator);
 	std::ostream& operator<< (std::ostream& stream, binary_operator);

@@ -13,212 +13,213 @@ using namespace dcpu::compiler;
 using namespace dcpu::ast;
 using namespace dcpu::lexer;
 
+static logging::log logger;
 static location_ptr test_location = make_shared<location>("<Test>", 1, 1);
 
 TEST(ArgumentCompile, RegisterA) {
 	argument arg(expression_argument(test_location, argument_position::B,
 			evaluated_expression(test_location, registers::A), false, false));
-	EXPECT_EQ(compile_result(0x0), compile(arg));
+	EXPECT_EQ(compile_result(0x0), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, RegisterB) {
 	argument arg(expression_argument(test_location, argument_position::B,
 			evaluated_expression(test_location, registers::B), false, false));
-	EXPECT_EQ(compile_result(0x1), compile(arg));
+	EXPECT_EQ(compile_result(0x1), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, RegisterC) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::C), false, false));
-	EXPECT_EQ(compile_result(0x2), compile(arg));
+	EXPECT_EQ(compile_result(0x2), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, RegisterX) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::X), false, false));
-	EXPECT_EQ(compile_result(0x3), compile(arg));
+	EXPECT_EQ(compile_result(0x3), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, RegisterY) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::Y), false, false));
-	EXPECT_EQ(compile_result(0x4), compile(arg));
+	EXPECT_EQ(compile_result(0x4), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, RegisterZ) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::Z), false, false));
-	EXPECT_EQ(compile_result(0x5), compile(arg));
+	EXPECT_EQ(compile_result(0x5), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, RegisterI) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::I), false, false));
-	EXPECT_EQ(compile_result(0x6), compile(arg));
+	EXPECT_EQ(compile_result(0x6), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, RegisterJ) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::J), false, false));
-	EXPECT_EQ(compile_result(0x7), compile(arg));
+	EXPECT_EQ(compile_result(0x7), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, RegisterSP) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::SP), false, false));
-	EXPECT_EQ(compile_result(0x1b), compile(arg));
+	EXPECT_EQ(compile_result(0x1b), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, RegisterPC) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::PC), false, false));
-	EXPECT_EQ(compile_result(0x1c), compile(arg));
+	EXPECT_EQ(compile_result(0x1c), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, RegisterEX) {
 	argument arg(expression_argument(test_location, argument_position::B,
 				evaluated_expression(test_location, registers::EX), false, false));
-	EXPECT_EQ(compile_result(0x1d), compile(arg));
+	EXPECT_EQ(compile_result(0x1d), compile(logger, arg));
 }
 
 TEST(ArgumentCompile, ShortFormLiteral) {
 	argument arg1(expression_argument(test_location, argument_position::A, evaluated_expression(test_location, -1),
 			false, false));
-	EXPECT_EQ(compile_result(0x20), compile(arg1));
+	EXPECT_EQ(compile_result(0x20), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::A, evaluated_expression(test_location, 0),
 			false, false));
-	EXPECT_EQ(compile_result(0x21), compile(arg2));
+	EXPECT_EQ(compile_result(0x21), compile(logger, arg2));
 
 	argument arg3(expression_argument(test_location, argument_position::A, evaluated_expression(test_location, 30),
 			false, false));
-	EXPECT_EQ(compile_result(0x3f), compile(arg3));
+	EXPECT_EQ(compile_result(0x3f), compile(logger, arg3));
 }
 
 TEST(ArgumentCompile, LongFormLiteral) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location, -1),
 			false, false));
-	EXPECT_EQ(compile_result(0x1f, -1), compile(arg1));
+	EXPECT_EQ(compile_result(0x1f, -1), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::B, evaluated_expression(test_location, 0),
 			false, false));
-	EXPECT_EQ(compile_result(0x1f, 0), compile(arg2));
+	EXPECT_EQ(compile_result(0x1f, 0), compile(logger, arg2));
 
 	argument arg3(expression_argument(test_location, argument_position::B, evaluated_expression(test_location, 30),
 			false, false));
-	EXPECT_EQ(compile_result(0x1f, 30), compile(arg3));
+	EXPECT_EQ(compile_result(0x1f, 30), compile(logger, arg3));
 
 	argument arg4(expression_argument(test_location, argument_position::A, evaluated_expression(test_location, -2),
 			false, false));
-	EXPECT_EQ(compile_result(0x1f, -2), compile(arg4));
+	EXPECT_EQ(compile_result(0x1f, -2), compile(logger, arg4));
 
 	argument arg5(expression_argument(test_location, argument_position::A, evaluated_expression(test_location, 31),
 			false, false));
-	EXPECT_EQ(compile_result(0x1f, 31), compile(arg5));
+	EXPECT_EQ(compile_result(0x1f, 31), compile(logger, arg5));
 }
 
 TEST(ArgumentCompile, Stack) {
 	argument arg1 = argument(stack_argument(test_location, argument_position::B, stack_operation::PUSH));
-	EXPECT_EQ(compile_result(0x18), compile(arg1));
+	EXPECT_EQ(compile_result(0x18), compile(logger, arg1));
 
 	argument arg2 = argument(stack_argument(test_location, argument_position::A, stack_operation::POP));
-	EXPECT_EQ(compile_result(0x18), compile(arg2));
+	EXPECT_EQ(compile_result(0x18), compile(logger, arg2));
 
 	argument arg3 = argument(stack_argument(test_location, argument_position::A, stack_operation::PEEK));
-	EXPECT_EQ(compile_result(0x19), compile(arg3));
+	EXPECT_EQ(compile_result(0x19), compile(logger, arg3));
 
 	argument arg4 = argument(stack_argument(test_location, argument_position::B, stack_operation::PEEK));
-	EXPECT_EQ(compile_result(0x19), compile(arg4));
+	EXPECT_EQ(compile_result(0x19), compile(logger, arg4));
 }
 
 TEST(ArgumentCompile, IndirectRegisterA) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::A), true, false));
-	EXPECT_EQ(compile_result(0x8), compile(arg1));
+	EXPECT_EQ(compile_result(0x8), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::A, 0x40), true, false));
-	EXPECT_EQ(compile_result(0x10, 0x40), compile(arg2));
+	EXPECT_EQ(compile_result(0x10, 0x40), compile(logger, arg2));
 }
 
 TEST(ArgumentCompile, IndirectRegisterB) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::B), true, false));
-	EXPECT_EQ(compile_result(0x9), compile(arg1));
+	EXPECT_EQ(compile_result(0x9), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::B, 0x40), true, false));
-	EXPECT_EQ(compile_result(0x11, 0x40), compile(arg2));
+	EXPECT_EQ(compile_result(0x11, 0x40), compile(logger, arg2));
 }
 
 TEST(ArgumentCompile, IndirectRegisterC) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::C), true, false));
-	EXPECT_EQ(compile_result(0xa), compile(arg1));
+	EXPECT_EQ(compile_result(0xa), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::C, 0x40), true, false));
-	EXPECT_EQ(compile_result(0x12, 0x40), compile(arg2));
+	EXPECT_EQ(compile_result(0x12, 0x40), compile(logger, arg2));
 }
 
 TEST(ArgumentCompile, IndirectRegisterX) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::X), true, false));
-	EXPECT_EQ(compile_result(0xb), compile(arg1));
+	EXPECT_EQ(compile_result(0xb), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::X, 0x40), true, false));
-	EXPECT_EQ(compile_result(0x13, 0x40), compile(arg2));
+	EXPECT_EQ(compile_result(0x13, 0x40), compile(logger, arg2));
 }
 
 TEST(ArgumentCompile, IndirectRegisterY) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::Y), true, false));
-	EXPECT_EQ(compile_result(0xc), compile(arg1));
+	EXPECT_EQ(compile_result(0xc), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::Y, 0x40), true, false));
-	EXPECT_EQ(compile_result(0x14, 0x40), compile(arg2));
+	EXPECT_EQ(compile_result(0x14, 0x40), compile(logger, arg2));
 }
 
 TEST(ArgumentCompile, IndirectRegisterZ) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::Z), true, false));
-	EXPECT_EQ(compile_result(0xd), compile(arg1));
+	EXPECT_EQ(compile_result(0xd), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::Z, 0x40), true, false));
-	EXPECT_EQ(compile_result(0x15, 0x40), compile(arg2));
+	EXPECT_EQ(compile_result(0x15, 0x40), compile(logger, arg2));
 }
 
 TEST(ArgumentCompile, IndirectRegisterI) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::I), true, false));
-	EXPECT_EQ(compile_result(0xe), compile(arg1));
+	EXPECT_EQ(compile_result(0xe), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::I, 0x40), true, false));
-	EXPECT_EQ(compile_result(0x16, 0x40), compile(arg2));
+	EXPECT_EQ(compile_result(0x16, 0x40), compile(logger, arg2));
 }
 
 TEST(ArgumentCompile, IndirectRegisterJ) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::J), true, false));
-	EXPECT_EQ(compile_result(0xf), compile(arg1));
+	EXPECT_EQ(compile_result(0xf), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::J, 0x40), true, false));
-	EXPECT_EQ(compile_result(0x17, 0x40), compile(arg2));
+	EXPECT_EQ(compile_result(0x17, 0x40), compile(logger, arg2));
 }
 
 TEST(ArgumentCompile, IndirectRegisterSP) {
 	argument arg1(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::SP), true, false));
-	EXPECT_EQ(compile_result(0x19), compile(arg1));
+	EXPECT_EQ(compile_result(0x19), compile(logger, arg1));
 
 	argument arg2(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 			registers::SP, 0x40), true, false));
-	EXPECT_EQ(compile_result(0x1a, 0x40), compile(arg2));
+	EXPECT_EQ(compile_result(0x1a, 0x40), compile(logger, arg2));
 }
 
 TEST(InstructionCompile, SET) {
@@ -230,7 +231,7 @@ TEST(InstructionCompile, SET) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0401, output[0]);
@@ -245,7 +246,7 @@ TEST(InstructionCompile, ADD) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0402, output[0]);
@@ -260,7 +261,7 @@ TEST(InstructionCompile, SUB) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0403, output[0]);
@@ -275,7 +276,7 @@ TEST(InstructionCompile, MUL) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0404, output[0]);
@@ -290,7 +291,7 @@ TEST(InstructionCompile, MLI) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0405, output[0]);
@@ -305,7 +306,7 @@ TEST(InstructionCompile, DIV) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0406, output[0]);
@@ -320,7 +321,7 @@ TEST(InstructionCompile, DVI) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0407, output[0]);
@@ -335,7 +336,7 @@ TEST(InstructionCompile, MOD) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0408, output[0]);
@@ -350,7 +351,7 @@ TEST(InstructionCompile, MDI) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0409, output[0]);
@@ -365,7 +366,7 @@ TEST(InstructionCompile, AND) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x040a, output[0]);
@@ -380,7 +381,7 @@ TEST(InstructionCompile, BOR) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x040b, output[0]);
@@ -395,7 +396,7 @@ TEST(InstructionCompile, XOR) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x040c, output[0]);
@@ -410,7 +411,7 @@ TEST(InstructionCompile, SHR) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x040d, output[0]);
@@ -425,7 +426,7 @@ TEST(InstructionCompile, ASR) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x040e, output[0]);
@@ -440,7 +441,7 @@ TEST(InstructionCompile, SHL) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x040f, output[0]);
@@ -455,7 +456,7 @@ TEST(InstructionCompile, IFB) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0410, output[0]);
@@ -470,7 +471,7 @@ TEST(InstructionCompile, IFC) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0411, output[0]);
@@ -485,7 +486,7 @@ TEST(InstructionCompile, IFE) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0412, output[0]);
@@ -500,7 +501,7 @@ TEST(InstructionCompile, IFN) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0413, output[0]);
@@ -515,7 +516,7 @@ TEST(InstructionCompile, IFG) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0414, output[0]);
@@ -530,7 +531,7 @@ TEST(InstructionCompile, IFA) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0415, output[0]);
@@ -545,7 +546,7 @@ TEST(InstructionCompile, IFL) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0416, output[0]);
@@ -560,7 +561,7 @@ TEST(InstructionCompile, IFU) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0417, output[0]);
@@ -575,7 +576,7 @@ TEST(InstructionCompile, ADX) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x041a, output[0]);
@@ -590,7 +591,7 @@ TEST(InstructionCompile, SBX) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x041b, output[0]);
@@ -605,7 +606,7 @@ TEST(InstructionCompile, STI) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x041e, output[0]);
@@ -620,7 +621,7 @@ TEST(InstructionCompile, STD) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x041f, output[0]);
@@ -632,7 +633,7 @@ TEST(InstructionCompile, JSR) {
 	statement _instruction(instruction(test_location, opcodes::JSR,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0020, output[0]);
@@ -644,7 +645,7 @@ TEST(InstructionCompile, HCF) {
 	statement _instruction(instruction(test_location, opcodes::HCF,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x00e0, output[0]);
@@ -656,7 +657,7 @@ TEST(InstructionCompile, INT) {
 	statement _instruction(instruction(test_location, opcodes::INT,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0100, output[0]);
@@ -668,7 +669,7 @@ TEST(InstructionCompile, IAG) {
 	statement _instruction(instruction(test_location, opcodes::IAG,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0120, output[0]);
@@ -680,7 +681,7 @@ TEST(InstructionCompile, IAS) {
 	statement _instruction(instruction(test_location, opcodes::IAS,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0140, output[0]);
@@ -692,7 +693,7 @@ TEST(InstructionCompile, RFI) {
 	statement _instruction(instruction(test_location, opcodes::RFI,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0160, output[0]);
@@ -704,7 +705,7 @@ TEST(InstructionCompile, IAQ) {
 	statement _instruction(instruction(test_location, opcodes::IAQ,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0180, output[0]);
@@ -716,7 +717,7 @@ TEST(InstructionCompile, HWN) {
 	statement _instruction(instruction(test_location, opcodes::HWN,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0200, output[0]);
@@ -728,7 +729,7 @@ TEST(InstructionCompile, HWQ) {
 	statement _instruction(instruction(test_location, opcodes::HWQ,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0220, output[0]);
@@ -740,7 +741,7 @@ TEST(InstructionCompile, HWI) {
 	statement _instruction(instruction(test_location, opcodes::HWI,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0240, output[0]);
@@ -752,7 +753,7 @@ TEST(InstructionCompile, JMP) {
 	statement _instruction(instruction(test_location, opcodes::JMP,
 		argument(expression_argument(test_location, argument_position::A, evaluated_expression(test_location,
 				registers::A), false, false)), boost::none));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(1, output.size());
 	EXPECT_EQ(0x0381, output[0]);
@@ -768,7 +769,7 @@ TEST(InstructionCompile, NextWordArgA) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location,
 				registers::A), false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(2, output.size());
 	EXPECT_EQ(0x6801, output[0]);
@@ -784,7 +785,7 @@ TEST(InstructionCompile, NextWordArgB) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location, 16),
 				false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(2, output.size());
 	EXPECT_EQ(0x6fe1, output[0]);
@@ -800,7 +801,7 @@ TEST(InstructionCompile, NextWordBoth) {
 		argument(expression_argument(test_location, argument_position::B, evaluated_expression(test_location, 16),
 				false, false))
 	));
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 
 	ASSERT_EQ(3, output.size());
 	EXPECT_EQ(0x6be1, output[0]);
@@ -817,7 +818,7 @@ TEST(InstructionCompile, JsrNextWordArgA) {
 				false, false)), boost::none
 	));
 
-	compile(output, _instruction);
+	compile(logger, output, _instruction);
 	
 	ASSERT_EQ(2, output.size());
 	EXPECT_EQ(0x7c20, output[0]);
@@ -830,7 +831,7 @@ TEST(DirectiveCompile, Data) {
 	vector<uint16_t> expected_data = {'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd','!', 0};
 	statement data(data_directive(test_location, expected_data));
 
-	compile(output, data);
+	compile(logger, output, data);
 	ASSERT_EQ(13, output.size());
 	EXPECT_EQ(expected_data, output);
 }
@@ -842,7 +843,7 @@ TEST(DirectiveCompile, Fill) {
 			evaluated_expression(test_location, 25),
 			evaluated_expression(test_location, 0x32)));
 
-	compile(output, fill);
+	compile(logger, output, fill);
 	ASSERT_EQ(25, output.size());
 	for (size_t i = 0; i < output.size(); i++) {
 		SCOPED_TRACE(str(boost::format("Word %d") % i));

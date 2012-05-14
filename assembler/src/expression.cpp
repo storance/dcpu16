@@ -240,6 +240,8 @@ namespace dcpu { namespace ast {
 	 * expression_evaluator
 	 *
 	 *************************************************************************/
+	expression_evaluator::expression_evaluator(logging::log &logger) : logger(logger) {}
+
 	evaluated_expression expression_evaluator::operator()(const evaluated_expression &expr) const {
 		return expr;
 	}
@@ -322,10 +324,20 @@ namespace dcpu { namespace ast {
 			value = leftValue * rightValue;
 			break;
 		case binary_operator::DIVIDE:
-			value = leftValue / rightValue;
+			if (rightValue == 0) {
+				logger.divide_by_zero(right.location);
+				value = 0;
+			} else {
+				value = leftValue / rightValue;
+			}
 			break;
 		case binary_operator::MODULO:
-			value = leftValue % rightValue;
+			if (rightValue == 0) {
+				logger.divide_by_zero(right.location);
+				value = 0;
+			} else {
+				value = leftValue % rightValue;
+			}
 			break;
 		case binary_operator::SHIFT_LEFT:
 			value = leftValue << rightValue;
@@ -443,9 +455,8 @@ namespace dcpu { namespace ast {
 	 * evaluate function
 	 *
 	 *************************************************************************/
-	evaluated_expression evaluate(const expression &expr) {
-		expression_evaluator evaluator;
-		return apply_visitor(evaluator, expr);
+	evaluated_expression evaluate(logging::log &logger, const expression &expr) {
+		return apply_visitor(expression_evaluator(logger), expr);
 	}
 
 	/*************************************************************************

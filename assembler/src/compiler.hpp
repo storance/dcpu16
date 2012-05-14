@@ -52,11 +52,14 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 	class expression_compiler : public boost::static_visitor<compile_result> {
-		const ast::expression_argument &arg;
+		logging::log &logger;
+		bool position_a;
+		bool inside_indirect;
+		bool force_next_word;
 
 		compile_result compile_register(boost::optional<std::int32_t>, std::uint8_t, std::uint8_t, std::uint8_t) const;
 	public:
-		expression_compiler(const ast::expression_argument &arg);
+		expression_compiler(logging::log &logger, const ast::expression_argument &arg);
 
 		compile_result operator()(const ast::evaluated_expression& expr) const;
 		template <typename T> compile_result operator()(const T& expr) const;
@@ -68,7 +71,10 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 	class argument_compiler : public boost::static_visitor<compile_result> {
+		logging::log &logger;
 	public:
+		argument_compiler(logging::log &logger);
+
 		compile_result operator()(const ast::expression_argument &arg) const;
 		compile_result operator()(const ast::stack_argument &arg) const;
 	};
@@ -79,9 +85,10 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 	class statement_compiler : public boost::static_visitor<> {
+		logging::log &logger;
 		std::vector<uint16_t> &output;
 	public:
-		statement_compiler(std::vector<uint16_t> &output);
+		statement_compiler(logging::log &logger, std::vector<uint16_t> &output);
 
 		void operator()(const ast::instruction &instruction) const;
 		void operator()(const ast::data_directive &data) const;
@@ -151,8 +158,9 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 	class compress_expressions : public boost::static_visitor<bool>, public base_symbol_visitor  {
+		logging::log &logger;
 	public:
-		compress_expressions(symbol_table& symbol_table, uint32_t pc=0);
+		compress_expressions(symbol_table& symbol_table, logging::log &logger, uint32_t pc=0);
 
 		bool operator()(ast::expression_argument &arg) const;
 		bool operator()(ast::instruction &instruction) const;
@@ -182,6 +190,6 @@ namespace dcpu { namespace compiler {
 		void compile(std::ostream &out, compiler_mode mode=compiler_mode::NORMAL, endianness format=endianness::BIG);
 	};
 
-	compile_result compile(const ast::argument &arg);
-	void compile(std::vector<uint16_t> &output, const ast::statement &stmt);
+	compile_result compile(logging::log &logger, const ast::argument &arg);
+	void compile(logging::log &logger, std::vector<uint16_t> &output, const ast::statement &stmt);
 }}

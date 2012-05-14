@@ -96,6 +96,6 @@ namespace dcpu {
 		symbol *lookup(const lexer::location_ptr &location, uint16_t offset);
 
 		void update_after(uint16_t offset, int amount);
-		void dump(std::ostream &out);
+		void dump(logging::log &logger, std::ostream &out);
 	};
 }

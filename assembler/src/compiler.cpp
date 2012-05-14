@@ -138,15 +138,15 @@ namespace dcpu { namespace compiler {
 	 * compress_expressions
 	 *
 	 *************************************************************************/
-	compress_expressions::compress_expressions(symbol_table& table, uint32_t pc)
-			: base_symbol_visitor(table, pc) {}
+	compress_expressions::compress_expressions(symbol_table& table, logging::log &logger, uint32_t pc)
+			: base_symbol_visitor(table, pc), logger(logger) {}
 
 	bool compress_expressions::operator()(expression_argument &arg) const {
 		if (evaluated(arg.expr) || !evaluatable(arg.expr)) {
 			return false;
 		}
 
-		uint8_t expr_size = output_size(arg, evaluate(arg.expr));
+		uint8_t expr_size = output_size(arg, evaluate(logger, arg.expr));
 		uint8_t current_size = arg.cached_size;
 		if (arg.cached_size != expr_size) {
 			arg.cached_size = expr_size;
@@ -154,7 +154,7 @@ namespace dcpu { namespace compiler {
 
 			// if updating to use short literals causes the expression to no longer fit in a short literal,
 			// just force using the next word.
-			uint8_t new_size = output_size(arg, evaluate(arg.expr));
+			uint8_t new_size = output_size(arg, evaluate(logger, arg.expr));
 			if (new_size > expr_size) {
 				table.update_after(pc + expr_size, new_size - expr_size);
 				arg.cached_size = new_size;
@@ -177,7 +177,7 @@ namespace dcpu { namespace compiler {
 			throw invalid_argument("fill count expression can not be evaluated");
 		}
 
-		auto evaled_count = evaluate(fill.count);
+		auto evaled_count = evaluate(logger, fill.count);
 		if (evaled_count._register) {
 			throw invalid_argument("fill count expression must evaluate to a literal");
 		}
@@ -228,7 +228,9 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 
-	expression_compiler::expression_compiler(const expression_argument &arg) : arg(arg) {}
+	expression_compiler::expression_compiler(logging::log &logger, const expression_argument &arg)
+			: logger(logger), position_a(arg.position == argument_position::A),
+			  inside_indirect(arg.indirect), force_next_word(arg.force_next_word) {}
 
 	compile_result expression_compiler::operator()(const evaluated_expression& expr) const {
 		if (expr._register) {
@@ -260,10 +262,10 @@ namespace dcpu { namespace compiler {
 			}
 		}
 
-		if (arg.indirect) {
+		if (inside_indirect) {
 			return compile_result(0x1e, (uint16_t)*expr.value);
 		} else {
-			if (arg.position == argument_position::B || arg.force_next_word
+			if (!position_a || force_next_word
 					|| *expr.value < -1 || *expr.value > 30) {
 				return compile_result(0x1f, (uint16_t)*expr.value);
 			} else {
@@ -274,11 +276,11 @@ namespace dcpu { namespace compiler {
 
 	compile_result expression_compiler::compile_register(boost::optional<int32_t> offset, uint8_t no_indirect,
 			uint8_t indirect, uint8_t indirect_offset) const {
-		if (!arg.indirect) {
+		if (!inside_indirect) {
 			return compile_result(no_indirect);
 		}
 
-		if (offset && (arg.force_next_word || *offset != 0)) {
+		if (offset && (force_next_word || *offset != 0)) {
 			return compile_result(indirect_offset, (uint16_t)*offset);
 		} else {
 			return compile_result(indirect);
@@ -287,7 +289,7 @@ namespace dcpu { namespace compiler {
 
 	template <typename T>
 	compile_result expression_compiler::operator()(const T& expr) const {
-		expression eval_expr = evaluate(expression(expr));
+		expression eval_expr = evaluate(logger, expression(expr));
 		return apply_visitor(*this, eval_expr);
 	}
 
@@ -296,9 +298,10 @@ namespace dcpu { namespace compiler {
 	 * argument_compiler
 	 *
 	 *************************************************************************/
+	argument_compiler::argument_compiler(logging::log &logger) : logger(logger) {}
 
 	compile_result argument_compiler::operator()(const expression_argument &arg) const {
-		return apply_visitor(expression_compiler(arg), arg.expr);
+		return apply_visitor(expression_compiler(logger, arg), arg.expr);
 	}
 
 	compile_result argument_compiler::operator()(const stack_argument &arg) const {
@@ -319,7 +322,8 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 
-	statement_compiler::statement_compiler(vector<uint16_t> &output) : output(output) {}
+	statement_compiler::statement_compiler(logging::log &logger, vector<uint16_t> &output)
+			: logger(logger), output(output) {}
 
 	template <typename T> void statement_compiler::operator()(const T&) const {
 
@@ -336,9 +340,9 @@ namespace dcpu { namespace compiler {
 
 		compile_result a_result, b_result;
 
-		a_result = compile(instruction.a);
+		a_result = compile(logger, instruction.a);
 		if (instruction.b) {
-			b_result = compile(*instruction.b);
+			b_result = compile(logger, *instruction.b);
 		}
 
 		uint16_t encoded_value = static_cast<uint16_t>(instruction.opcode)
@@ -360,8 +364,8 @@ namespace dcpu { namespace compiler {
 	}
 
 	void statement_compiler::operator()(const ast::fill_directive &fill) const {
-		auto evaled_count = evaluate(fill.count);
-		auto evaled_value = evaluate(fill.value);
+		auto evaled_count = evaluate(logger, fill.count);
+		auto evaled_value = evaluate(logger, fill.value);
 
 		if (evaled_count._register) {
 			throw invalid_argument("fill count expression must evaluate to a literal");
@@ -400,17 +404,19 @@ namespace dcpu { namespace compiler {
 		if (mode == compiler_mode::SYNTAX_ONLY || logger.has_errors()) {
 			return;
 		} else if (mode == compiler_mode::PRINT_SYMBOLS) {
-			table.dump(out);
+			table.dump(logger, out);
 		}
 
 		if (mode == compiler_mode::NORMAL) {
 			vector<uint16_t> output;
-			auto stmt_compiler = statement_compiler(output);
+			auto stmt_compiler = statement_compiler(logger, output);
 			for (auto& stmt : statements) {
 				apply_visitor(stmt_compiler, stmt);
 			}
 
-			write(output, out, format);
+			if (!logger.has_errors()) {
+				write(output, out, format);
+			}
 		}
 	}
 
@@ -446,7 +452,7 @@ namespace dcpu { namespace compiler {
 			updated = false;
 			pc = 0;
 			for (auto& stmt : statements) {
-				updated |= apply_visitor(compress_expressions(table, pc), stmt);
+				updated |= apply_visitor(compress_expressions(table, logger, pc), stmt);
 				pc += output_size(stmt);
 			}
 		}
@@ -482,11 +488,11 @@ namespace dcpu { namespace compiler {
 	    }
 	}
 
-	compile_result compile(const argument &arg) {
-		return apply_visitor(argument_compiler(), arg);
+	compile_result compile(logging::log &logger, const argument &arg) {
+		return apply_visitor(argument_compiler(logger), arg);
 	}
 
-	void compile(vector<uint16_t> &output, const statement &stmt) {
-		return apply_visitor(statement_compiler(output), stmt);
+	void compile(logging::log &logger, vector<uint16_t> &output, const statement &stmt) {
+		return apply_visitor(statement_compiler(logger, output), stmt);
 	}
 }}

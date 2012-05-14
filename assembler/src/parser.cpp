@@ -297,7 +297,7 @@ namespace dcpu { namespace parser {
 					parse_expression(next_token(), false, false));
 
 			if (evaluatable(pick_expr)) {
-				return argument(expression_argument(current_token.location, position, evaluate(pick_expr),
+				return argument(expression_argument(current_token.location, position, evaluate(logger, pick_expr),
 						true, false));
 			} else {
 				return argument(expression_argument(current_token.location, position, pick_expr, true, false));
@@ -317,7 +317,7 @@ namespace dcpu { namespace parser {
 		expression_parser expr_parser(current, end, logger, allow_registers, true, indirection);
 		auto expr = expr_parser.parse(current_token);
 		if (evaluatable(expr)) {
-			return evaluate(expr);
+			return evaluate(logger, expr);
 		}
 
 		return expr;
