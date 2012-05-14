@@ -36,15 +36,6 @@ namespace dcpu { namespace logging {
 		warning(location, str(fmt));
 	}
 
-	void log::divide_by_zero(const location_ptr &location) {
-		if (warned_divide_by_zero.count(location)) {
-			return;
-		}
-
-		warned_divide_by_zero.insert(location);
-		warning(location, "division or modulo by zero");
-	}
-
 	bool log::has_errors() {
 		return total_errors > 0;
 	}

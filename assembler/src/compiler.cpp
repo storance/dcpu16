@@ -146,7 +146,7 @@ namespace dcpu { namespace compiler {
 			return false;
 		}
 
-		uint8_t expr_size = output_size(arg, evaluate(logger, arg.expr));
+		uint8_t expr_size = output_size(arg, evaluate(logger, arg.expr, true));
 		uint8_t current_size = arg.cached_size;
 		if (arg.cached_size != expr_size) {
 			arg.cached_size = expr_size;
@@ -177,7 +177,7 @@ namespace dcpu { namespace compiler {
 			throw invalid_argument("fill count expression can not be evaluated");
 		}
 
-		auto evaled_count = evaluate(logger, fill.count);
+		auto evaled_count = evaluate(logger, fill.count, true);
 		if (evaled_count._register) {
 			throw invalid_argument("fill count expression must evaluate to a literal");
 		}

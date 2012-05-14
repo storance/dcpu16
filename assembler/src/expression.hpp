@@ -134,8 +134,9 @@ namespace dcpu { namespace ast {
 
 	class expression_evaluator : public boost::static_visitor<evaluated_expression> {
 		logging::log &logger;
+		bool intermediary_evaluation;
 	public:
-		expression_evaluator(logging::log &logger);
+		expression_evaluator(logging::log &logger, bool intermediary_evaluation);
 
 		evaluated_expression operator()(const evaluated_expression &expr) const;
 		evaluated_expression operator()(const register_operand &expr) const;
@@ -161,7 +162,7 @@ namespace dcpu { namespace ast {
 	bool evaluated(const expression &expr);
 	bool evaluatable(const expression &expr);
 	bool evaluates_to_literal(const expression &expr);
-	evaluated_expression evaluate(logging::log &logger, const expression &expr);
+	evaluated_expression evaluate(logging::log &logger, const expression &expr, bool intermediary_evaluation=false);
 
 	std::ostream& operator<< (std::ostream& stream, unary_operator);
 	std::ostream& operator<< (std::ostream& stream, binary_operator);

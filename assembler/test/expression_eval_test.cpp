@@ -57,9 +57,22 @@ TEST(ExpressionEval, DivideByZero) {
 		literal_operand(_location, 8),
 		literal_operand(_location, 0)));
 
+	EXPECT_EQ(evaluated_expression(_location, 0), evaluate(capture_log, expr, true));
 	EXPECT_EQ(evaluated_expression(_location, 0), evaluate(capture_log, expr));
+	EXPECT_EQ("<Test>:1:1: warning: divide by zero\n", out.str());
+}
+
+TEST(ExpressionEval, ModuloByZero) {
+	stringstream out;
+	logging::log capture_log(out);
+
+	auto expr = expression(binary_operation(_location, binary_operator::MODULO,
+		literal_operand(_location, 8),
+		literal_operand(_location, 0)));
+
+	EXPECT_EQ(evaluated_expression(_location, 0), evaluate(capture_log, expr, true));
 	EXPECT_EQ(evaluated_expression(_location, 0), evaluate(capture_log, expr));
-	EXPECT_EQ("<Test>:1:1: warning: division or modulo by zero\n", out.str());
+	EXPECT_EQ("<Test>:1:1: warning: modulo by zero\n", out.str());
 }
 
 TEST(ExpressionEval, Modulo) {

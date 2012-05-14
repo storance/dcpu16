@@ -15,7 +15,6 @@ namespace dcpu { namespace logging {
 	private:
 		unsigned int total_errors;
 		unsigned int total_warnings;
-		std::set<lexer::location_ptr> warned_divide_by_zero;
 
 		std::ostream &out;
 	public:
@@ -26,8 +25,6 @@ namespace dcpu { namespace logging {
 
 		void unexpected_token(const lexer::token& token, char c);
 		void unexpected_token(const lexer::token& token, const std::string &expected);
-
-		void divide_by_zero(const lexer::location_ptr&);
 
 		bool has_warnings();
 		bool has_errors();
