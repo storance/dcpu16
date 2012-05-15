@@ -50,19 +50,6 @@ void parse_file(const string &filename, logging::log &logger, statement_list &st
 	_parser.parse();
 }
 
-void handle_errors(logging::log &logger) {
-	if (logger.has_errors()) {
-		logger.summary();
-		exit(1);
-	}
-}
-
-void print_ast(statement_list &statements) {
-	for (auto &statement : statements) {
-		cout << statement << endl;
-	}
-}
-
 void usage(const char *program_name, const po::options_description &visible_options) {
 	cout << "Usage: " << program_name << " [OPTIONS] <input-file>" << endl;
 	cout << visible_options << endl;
