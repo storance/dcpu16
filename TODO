@@ -12,9 +12,9 @@ Disassembler
 
 Assembler
 ============
-* .align
 * .include
 * .incbin
+* expressions in dw/db
 * .ascii
 * .asciip
 * .asciic
