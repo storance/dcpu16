@@ -28,7 +28,7 @@ namespace dcpu { namespace parser {
 		ast::optional_argument parse_argument(const lexer::token&, ast::argument_position);
 		ast::optional_argument parse_indirect_argument(const lexer::token&, ast::argument_position);
 		ast::optional_argument parse_stack_argument(const lexer::token&, ast::argument_position);
-		ast::expression parse_expression(const lexer::token&, bool, bool);
+		ast::expression parse_expression(const lexer::token&, uint32_t flags);
 
 		lexer::token& next_token();
 		void move_back();

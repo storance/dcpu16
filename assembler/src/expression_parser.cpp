@@ -9,32 +9,20 @@ using namespace std::placeholders;
 using namespace dcpu::ast;
 using namespace dcpu::lexer;
 
-const string UNARY_OPERAND_NOT_LITERAL = "operand for unary '%s' is not a literal expression";
-const string LEFT_OPERAND_NOT_LITERAL = "left operand of '%s' is not a literal expression";
-const string RIGHT_OPERAND_NOT_LITERAL = "right operand of '%s' is not a literal expression";
-const string SYMBOL_NOT_ALLOWED = "symbol not allowed in expression";
-const string REGISTER_NOT_ALLOWED = "register not allowed in expression";
-const string REGISTER_NOT_INDIRECTABLE = "register '%s' is not indirectable.";
-const string MULTIPLE_REGISTERS = "multiple registers in expression; first register '%s' at %s";
-
 namespace dcpu { namespace parser {
-
-	operator_definition::operator_definition(binary_operator _operator, token_predicate is_operator)
-			: _operator(_operator), is_operator(is_operator), left_literal(true), right_literal(true) {}
-
-	operator_definition::operator_definition(ast::binary_operator _operator, token_predicate is_operator,
+	operator_definition::operator_definition(binary_operator _operator, token_predicate is_operator,
 			bool left_literal, bool right_literal) : _operator(_operator), is_operator(is_operator),
 			left_literal(left_literal), right_literal(right_literal) {}
 
-	const operator_definition* operator_definition::lookup(initializer_list<operator_definition> definitions,
+	boost::optional<operator_definition> operator_definition::lookup(const vector<operator_definition> &definitions,
 			const token &current_token) {
 		for (auto& definition : definitions) {
 			if (definition.is_operator(&current_token)) {
-				return &definition;
+				return definition;
 			}
 		}
 
-		return nullptr;
+		return boost::none;
 	}
 
 	register_location::register_location(const location_ptr &location, registers _register)
@@ -42,9 +30,8 @@ namespace dcpu { namespace parser {
 
 
 	expression_parser::expression_parser(token_iterator& current, token_iterator end, logging::log &logger,
-		bool allow_registers, bool allow_symbols, bool indirection)
-		: current(current), end(end), logger(logger), allow_symbols(allow_symbols),
-		  allow_registers(allow_registers), indirection(indirection), first_register() {}
+		uint32_t allowed_flags)
+		: current(current), end(end), logger(logger), allowed_flags(allowed_flags), first_register() {}
 
 	expression expression_parser::parse(const token& current_token) {
 		return parse_boolean_or(current_token);
@@ -119,40 +106,44 @@ namespace dcpu { namespace parser {
 	}
 
 	expression expression_parser::parse_binary_operation(const token& current_token, expr_parser_t expr_parser,
-		initializer_list<operator_definition> definitions) {
+		const vector<operator_definition> &definitions) {
 
 		expression left = (this->*expr_parser)(current_token);
 
 		while (true) {
 			auto &operator_token = next_token();
-			const operator_definition *definition = operator_definition::lookup(definitions, operator_token);
-			if (definition == nullptr) {
+			auto definition = operator_definition::lookup(definitions, operator_token);
+			if (!definition) {
 				--current;
-				return left;
+				break;
 			}
 
 			expression right = (this->*expr_parser)(next_token());
-			validate_expressions(definition, left, right);
-
-			left = binary_operation(operator_token.location, definition->_operator, left, right);
+			if (!is_expression_valid(*definition, current_token.location, left, right)) {
+				left = invalid_expression(current_token.location);
+			} else {
+				left = binary_operation(operator_token.location, definition->_operator, left, right);
+			}
 		}
+
+		return left;
 	}
 
-	void expression_parser::validate_expressions(const operator_definition *definition, expression &left,
-		expression &right) {
+	bool expression_parser::is_expression_valid(const operator_definition& definition, const location_ptr& location,
+			expression &left, expression &right) {
 
-		bool left_literal = definition->left_literal || !indirection;
-		bool right_literal = definition->right_literal || !indirection;
+		bool left_invalid = (definition.left_literal || !is_register_in_expressions_allowed())
+				&& !evaluates_to_literal(left);
+		bool right_invalid = (definition.right_literal || !is_register_in_expressions_allowed())
+				&& !evaluates_to_literal(right);
 
-		if (left_literal && !evaluates_to_literal(left)) {
-			logger.error(get_location(left), boost::format(LEFT_OPERAND_NOT_LITERAL) % definition->_operator);
-			left = invalid_expression(get_location(left));
+		if (left_invalid || right_invalid) {
+			logger.error(location, boost::format("non-constant operands for operator '%s'")
+					% definition._operator);
+			return false;
 		}
 
-		if (right_literal && !evaluates_to_literal(right)) {
-			logger.error(get_location(right), boost::format(RIGHT_OPERAND_NOT_LITERAL) % definition->_operator);
-			right = invalid_expression(get_location(right));
-		}
+		return true;
 	}
 
 	expression expression_parser::parse_unary(const token& current_token) {
@@ -171,7 +162,8 @@ namespace dcpu { namespace parser {
 
 		expression operand = parse_unary(next_token());
 		if (!evaluates_to_literal(operand)) {
-			logger.error(current_token.location, boost::format(UNARY_OPERAND_NOT_LITERAL) % _operator);
+			logger.error(current_token.location, boost::format("non-constant operand for unary operator '%s'")
+					% _operator);
 			return invalid_expression(current_token.location);
 		}
 
@@ -210,36 +202,30 @@ namespace dcpu { namespace parser {
 	}
 
 	expression expression_parser::parse_register(const token& current_token) {
-		auto definition = current_token.get_register();
+		auto _register = current_token.get_register();
 
-		if (!allow_registers) {
-			logger.error(current_token.location, boost::format(REGISTER_NOT_ALLOWED) % definition._register);
+		if (!is_register_allowed(_register)) {
+			logger.error(current_token.location, boost::format("register '%s' is not allowed here") % _register);
 
 			return invalid_expression(current_token.location);
 		}
 
 		if (first_register) {
-			logger.error(current_token.location, boost::format(MULTIPLE_REGISTERS)
-					% (*first_register)._register % (*first_register).location);
+			logger.error(current_token.location, boost::format("multiple registers in expression; "
+					"first register '%s' at %s") % (*first_register)._register % (*first_register).location);
 
 			return invalid_expression(current_token.location);
 		} else {
-			first_register = register_location(current_token.location, definition._register);
+			first_register = register_location(current_token.location, _register);
 		}
 
-		if (indirection && !definition.indirectable) {
-			logger.error(current_token.location, boost::format(REGISTER_NOT_INDIRECTABLE)
-					% definition._register);
 
-			return invalid_expression(current_token.location);
-		}
-
-		return register_operand(current_token.location, definition._register);
+		return register_operand(current_token.location, _register);
 	}
 
 	expression expression_parser::parse_symbol(const token& current_token) {
-		if (!allow_symbols) {
-			logger.error(current_token.location, boost::format(SYMBOL_NOT_ALLOWED) % current_token.content);
+		if (!is_symbols_allowed()) {
+			logger.error(current_token.location, "symbols not allowed here");
 
 			return invalid_expression(current_token.location);
 		}
@@ -249,6 +235,47 @@ namespace dcpu { namespace parser {
 
 	expression expression_parser::parse_literal(const token& current_token) {
 		return literal_operand(current_token.location, current_token.get_integer());
+	}
+
+	bool expression_parser::is_register_allowed(registers _register) {
+		switch (_register) {
+		case registers::A:
+			return allowed_flags & REGISTER_A;
+		case registers::B:
+			return allowed_flags & REGISTER_B;
+		case registers::C:
+			return allowed_flags & REGISTER_C;
+		case registers::X:
+			return allowed_flags & REGISTER_X;
+		case registers::Y:
+			return allowed_flags & REGISTER_Y;
+		case registers::Z:
+			return allowed_flags & REGISTER_Z;
+		case registers::I:
+			return allowed_flags & REGISTER_I;
+		case registers::J:
+			return allowed_flags & REGISTER_J;
+		case registers::SP:
+			return allowed_flags & REGISTER_SP;
+		case registers::PC:
+			return allowed_flags & REGISTER_PC;
+		case registers::EX:
+			return allowed_flags & REGISTER_EX;
+		default:
+			return false;
+		}
+	}
+
+	bool expression_parser::is_register_in_expressions_allowed() {
+		return allowed_flags & REGISTER_EXPRESSIONS;
+	}
+
+	bool expression_parser::is_symbols_allowed() {
+		return allowed_flags & SYMBOL;
+	}
+
+	bool expression_parser::is_current_position_allowed() {
+		return allowed_flags & CURRENT_POSITION;
 	}
 
 	token& expression_parser::next_token() {

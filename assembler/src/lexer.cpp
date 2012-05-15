@@ -117,7 +117,7 @@ namespace dcpu { namespace lexer {
 	}
 
 	token lexer::parse_identifier(location_ptr &start, const string &identifier) {
-		auto _register = register_definition::lookup(identifier);
+		auto _register = lookup_register(identifier);
 		if (_register) {
 			return token(start, token_type::REGISTER, identifier, *_register);
 		}
@@ -405,7 +405,7 @@ namespace dcpu { namespace lexer {
 		} catch (invalid_argument &ia) {
 			return token(start, token_type::INVALID_INTEGER, value);
 		} catch (out_of_range &oor) {
-			logger.warning(start, format("integer '%s' overflows 32-bit intermediary storage") % value);
+			logger.warning(start, format("overflow converting '%s' to a 32-bit integer") % value);
 
 			return token(start, token_type::INTEGER, value, UINT32_MAX);
 		}

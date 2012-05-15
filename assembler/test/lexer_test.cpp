@@ -418,7 +418,7 @@ TEST(Lexer, OverflowNumber) {
 
 	EXPECT_TRUE(it->is_eoi());
 
-	EXPECT_EQ("<Test>:1:1: warning: integer '4294967296' overflows 32-bit intermediary storage\n", out.str());
+	EXPECT_EQ("<Test>:1:1: warning: overflow converting '4294967296' to a 32-bit integer\n", out.str());
 }
 
 TEST(Lexer, DecimalNumberAtUint32Max) {

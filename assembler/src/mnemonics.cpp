@@ -69,34 +69,36 @@ namespace dcpu {
 
 	/*************************************************************************
 	 *
-	 * register_definition
+	 * registers
 	 *
 	 *************************************************************************/
 
-	map<string, register_definition> register_definition::definitions = {
-		{"a",  register_definition(registers::A, true)},
-		{"b",  register_definition(registers::B, true)},
-		{"c",  register_definition(registers::C, true)},
-		{"x",  register_definition(registers::X, true)},
-		{"y",  register_definition(registers::Y, true)},
-		{"z",  register_definition(registers::Z, true)},
-		{"i",  register_definition(registers::I, true)},
-		{"j",  register_definition(registers::J, true)},
-		{"sp", register_definition(registers::SP, true)},
-		{"pc", register_definition(registers::PC, false)},
-		{"ex", register_definition(registers::EX, false)}
-	};
-
-	register_definition::register_definition(registers reg, bool indirectable)
-		: _register(reg), indirectable(indirectable) {}
-
-	boost::optional<register_definition> register_definition::lookup(const string &mnemonic) {
-		auto it = definitions.find(to_lower_copy(mnemonic));
-		if (it == definitions.end()) {
-			return boost::none;
+	boost::optional<registers> lookup_register(const std::string &mnenmonic) {
+		if (iequals(mnenmonic, "a")) {
+			return registers::A;
+		} else if (iequals(mnenmonic, "b")) {
+			return registers::B;
+		}else if (iequals(mnenmonic, "c")) {
+			return registers::C;
+		} else if (iequals(mnenmonic, "x")) {
+			return registers::X;
+		} else if (iequals(mnenmonic, "y")) {
+			return registers::Y;
+		}else if (iequals(mnenmonic, "z")) {
+			return registers::Z;
+		} else if (iequals(mnenmonic, "i")) {
+			return registers::I;
+		} else if (iequals(mnenmonic, "j")) {
+			return registers::J;
+		} else if (iequals(mnenmonic, "sp")) {
+			return registers::SP;
+		} else if (iequals(mnenmonic, "pc")) {
+			return registers::PC;
+		} else if (iequals(mnenmonic, "ex")) {
+			return registers::EX;
 		}
 
-		return it->second;
+		return boost::none;
 	}
 
 	/*************************************************************************

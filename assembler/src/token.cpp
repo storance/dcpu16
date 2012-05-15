@@ -127,7 +127,7 @@ namespace dcpu { namespace lexer {
 
 	bool token::is_register(registers _register) const {
 		if (is_register()) {
-			return get_register()._register == _register;
+			return get_register() == _register;
 		}
 
 		return false;
@@ -141,8 +141,8 @@ namespace dcpu { namespace lexer {
 		return boost::get<instruction_definition>(data);
 	}
 
-	register_definition token::get_register() const {
-		return boost::get<register_definition>(data);
+	registers token::get_register() const {
+		return boost::get<registers>(data);
 	}
 
 	directives token::get_directive() const {

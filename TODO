@@ -12,21 +12,17 @@ Disassembler
 
 Assembler
 ============
-* .dw
-* .dp
+* .align
+* .include
+* .incbin
 * .ascii
 * .asciip
 * .asciic
-* .org
-* .include
-* .incbin
-* inline boolean operators (<, >, <=, >=, ==, !=, <>, ||, &&, ^^)
-* .rep/.end
-* .define, .def, .equ
+* .times
+* .define, .def
 * .undef
 * .if, .elif, .else, ifdef, ifndef
 * isdef()
-* .align
 * .error
 * .echo
 * .macro

@@ -80,17 +80,7 @@ namespace dcpu {
 		static boost::optional<instruction_definition> lookup(const std::string &mnemonic);
 	};
 
-	class register_definition {
-		static std::map<std::string, register_definition> definitions;
-
-		register_definition(registers reg, bool indirectable);
-	public:
-		registers _register;
-		bool indirectable;
-
-		static boost::optional<register_definition> lookup(const std::string &mnemonic);
-	};
-
+	boost::optional<registers> lookup_register(const std::string &mnenmonic);
 	boost::optional<directives> lookup_directive(const std::string &mnemonic);
 	boost::optional<stack_operation> lookup_stack_operation(const std::string &mnemonic);
 

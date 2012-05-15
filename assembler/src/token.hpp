@@ -67,7 +67,7 @@ namespace dcpu { namespace lexer {
 		std::nullptr_t,
 		uint32_t,
 		instruction_definition,
-		register_definition,
+		registers,
 		directives,
 		stack_operation,
 		quote_type,
@@ -106,7 +106,7 @@ namespace dcpu { namespace lexer {
 
 		uint32_t get_integer() const;
 		instruction_definition get_instruction() const;
-		register_definition	get_register() const;
+		registers get_register() const;
 		directives get_directive() const;
 		stack_operation get_stack_operation() const;
 		quote_type get_quote_type() const;

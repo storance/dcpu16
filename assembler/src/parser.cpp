@@ -234,7 +234,7 @@ namespace dcpu { namespace parser {
 	}
 
 	equ_directive parser::parse_equ(const lexer::token &current_token) {
-		auto expr = parse_expression(next_token(), false, false);
+		auto expr = parse_expression(next_token(), expression_parser::CONSTANT);
 
 		if (statements.empty() || !boost::get<label>(&statements.front())) {
 			logger.error(current_token.location, ".EQU must be preceded by a label");
@@ -244,14 +244,15 @@ namespace dcpu { namespace parser {
 	}
 
 	fill_directive parser::parse_fill(const lexer::token &current_token) {
-		auto count_expr = parse_expression(next_token(), false, false);
+		auto count_expr = parse_expression(next_token(), expression_parser::CONSTANT);
 
 		auto next_tkn = next_token();
 		if (next_tkn.is_terminator()) {
 			move_back();
 			return fill_directive(current_token.location, count_expr, evaluated_expression(next_tkn.location, 0));
 		} else if (next_tkn.is_character(',')) {
-			return fill_directive(current_token.location, count_expr, parse_expression(next_token(), false, false));
+			return fill_directive(current_token.location, count_expr, parse_expression(next_token(),
+					expression_parser::CONSTANT));
 		} else {
 			logger.unexpected_token(next_tkn, "',' or 'newline'");
 			return fill_directive(current_token.location, count_expr, invalid_expression(next_tkn.location));
@@ -271,12 +272,12 @@ namespace dcpu { namespace parser {
 		}
 
 		return argument(expression_argument(current_token.location, position,
-				parse_expression(current_token, true, false), false, false));
+				parse_expression(current_token, expression_parser::DIRECT), false, false));
 	}
 
 	optional_argument parser::parse_indirect_argument(const token& current_token, argument_position position) {
 		argument arg(expression_argument(current_token.location, position,
-				parse_expression(current_token, true, true), true, false));
+				parse_expression(current_token, expression_parser::INDIRECT), true, false));
 
 		auto &end_token = next_token();
 		if (!end_token.is_character(']')) {
@@ -294,7 +295,7 @@ namespace dcpu { namespace parser {
 		if (operation == stack_operation::PICK) {
 			auto pick_expr = binary_operation(current_token.location, binary_operator::PLUS,
 					register_operand(current_token.location, registers::SP),
-					parse_expression(next_token(), false, false));
+					parse_expression(next_token(), expression_parser::CONSTANT));
 
 			if (evaluatable(pick_expr)) {
 				return argument(expression_argument(current_token.location, position, evaluate(logger, pick_expr),
@@ -313,11 +314,21 @@ namespace dcpu { namespace parser {
 		return argument(stack_argument(current_token.location, position, operation));
 	}
 
-	expression parser::parse_expression(const token& current_token, bool allow_registers, bool indirection) {
-		expression_parser expr_parser(current, end, logger, allow_registers, true, indirection);
+	expression parser::parse_expression(const token& current_token, uint32_t flags) {
+		expression_parser expr_parser(current, end, logger, flags);
 		auto expr = expr_parser.parse(current_token);
 		if (evaluatable(expr)) {
-			return evaluate(logger, expr);
+			auto evaled_expr = evaluate(logger, expr);
+
+			if (evaled_expr.value) {
+				if (evaled_expr.value > UINT16_MAX) {
+					logger.warning(evaled_expr.location, "overflow in converting to 16-bit integer");
+				} else if (evaled_expr.value < INT16_MIN) {
+					logger.warning(evaled_expr.location, "underflow in converting to 16-bit integer");
+				}
+			}
+
+			return evaled_expr;
 		}
 
 		return expr;
