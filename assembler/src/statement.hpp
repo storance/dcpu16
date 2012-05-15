@@ -22,7 +22,6 @@ namespace dcpu { namespace ast {
 
 	struct stack_argument : public base_argument {
 		stack_operation operation;
-		optional_expression pick_expr;
 
 		stack_argument(const lexer::location_ptr &location, argument_position position, stack_operation operation);
 
@@ -96,13 +95,22 @@ namespace dcpu { namespace ast {
 		bool operator==(const equ_directive&) const;
 	};
 
+	struct align_directive : public locatable {
+		uint16_t alignment;
+		uint16_t cached_size;
+
+		align_directive(const lexer::location_ptr &location, uint16_t alignment);
+		bool operator==(const align_directive&) const;
+	};
+
 	typedef boost::variant<
 			instruction,
 			label,
 			data_directive,
 			org_directive,
 			fill_directive,
-			equ_directive> statement;
+			equ_directive,
+			align_directive> statement;
 	typedef std::list<statement> statement_list;
 
 	class calculate_size_expression : public boost::static_visitor<std::uint16_t> {
@@ -115,18 +123,22 @@ namespace dcpu { namespace ast {
 	};
 
 	class calculate_size : public boost::static_visitor<std::uint16_t> {
+		boost::optional<uint16_t> pc;
 	public:
+		calculate_size(boost::optional<uint16_t> pc);
+
 		std::uint16_t operator()(const stack_argument& arg) const;
 		std::uint16_t operator()(const expression_argument &arg) const;
 		std::uint16_t operator()(const data_directive &) const;
 		std::uint16_t operator()(const org_directive &) const;
 		std::uint16_t operator()(const fill_directive &) const;
+		std::uint16_t operator()(const align_directive &) const;
 		std::uint16_t operator()(const instruction &instruction) const;
 		template <typename T> std::uint16_t operator()( const T &expr) const;
 	};
 
-	std::uint16_t output_size(const statement &statement);
-	std::uint16_t output_size(const argument &arg);
+	std::uint16_t output_size(const statement &statement, boost::optional<uint16_t> pc=boost::none);
+	std::uint16_t output_size(const argument &arg, boost::optional<uint16_t> pc=boost::none);
 	std::uint16_t output_size(const expression_argument &arg, const expression &expr);
 
 	std::ostream& operator<< (std::ostream& stream, label_type labelType);
@@ -138,4 +150,5 @@ namespace dcpu { namespace ast {
 	std::ostream& operator<< (std::ostream& stream, const org_directive &org);
 	std::ostream& operator<< (std::ostream& stream, const fill_directive &fill);
 	std::ostream& operator<< (std::ostream& stream, const equ_directive &reserve);
+	std::ostream& operator<< (std::ostream& stream, const align_directive &reserve);
 }}

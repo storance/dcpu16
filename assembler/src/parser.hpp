@@ -25,6 +25,7 @@ namespace dcpu { namespace parser {
 		ast::org_directive parse_org(const lexer::token&);
 		ast::equ_directive parse_equ(const lexer::token&);
 		ast::fill_directive parse_fill(const lexer::token&);
+		ast::align_directive parse_align(const lexer::token&);
 		ast::optional_argument parse_argument(const lexer::token&, ast::argument_position);
 		ast::optional_argument parse_indirect_argument(const lexer::token&, ast::argument_position);
 		ast::optional_argument parse_stack_argument(const lexer::token&, ast::argument_position);

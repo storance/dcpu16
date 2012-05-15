@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cstdint>
+#include <stdexcept>
 
 #include <boost/variant/variant.hpp>
 #include <boost/optional.hpp>
@@ -13,6 +14,11 @@
 namespace dcpu { struct symbol; }
 
 namespace dcpu { namespace ast {
+	/*************************************************************************
+	 *
+	 * binary_operator
+	 *
+	 *************************************************************************/
 	enum class binary_operator : std::uint8_t {
 		PLUS,
 		MINUS,
@@ -34,6 +40,11 @@ namespace dcpu { namespace ast {
 		BITWISE_XOR
 	};
 
+	/*************************************************************************
+	 *
+	 * unary_operator
+	 *
+	 *************************************************************************/
 	enum class unary_operator : std::uint8_t {
 		PLUS,
 		MINUS,
@@ -41,12 +52,22 @@ namespace dcpu { namespace ast {
 		BITWISE_NOT
 	};
 
+	/*************************************************************************
+	 *
+	 * locatable
+	 *
+	 *************************************************************************/
 	struct locatable {
 		lexer::location_ptr location;
 
 		locatable(const lexer::location_ptr &location);
 	};
 
+	/*************************************************************************
+	 *
+	 * literal_operand
+	 *
+	 *************************************************************************/
 	struct literal_operand : public locatable {
 		std::uint32_t value;
 
@@ -55,6 +76,11 @@ namespace dcpu { namespace ast {
 		bool operator==(const literal_operand& other) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * symbol_operand
+	 *
+	 *************************************************************************/
 	struct symbol_operand : public locatable {
 		std::string name;
 		symbol *resolved_symbol;
@@ -64,6 +90,11 @@ namespace dcpu { namespace ast {
 		bool operator==(const symbol_operand& other) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * register_operand
+	 *
+	 *************************************************************************/
 	struct register_operand : public locatable {
 		registers _register;
 
@@ -72,6 +103,11 @@ namespace dcpu { namespace ast {
 		bool operator==(const register_operand& other) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * current_position_operand
+	 *
+	 *************************************************************************/
 	struct current_position_operand : public locatable {
 		symbol *resolved_symbol;
 
@@ -80,6 +116,11 @@ namespace dcpu { namespace ast {
 		bool operator==(const current_position_operand& other) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * evaluated_expression
+	 *
+	 *************************************************************************/
 	struct evaluated_expression : public locatable {
 		boost::optional<registers> _register;
 		boost::optional<std::int32_t> value;
@@ -91,12 +132,22 @@ namespace dcpu { namespace ast {
 		bool operator==(const evaluated_expression& other) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * invalid_expression
+	 *
+	 *************************************************************************/
 	struct invalid_expression : public locatable {
 		invalid_expression(const lexer::location_ptr &location);
 
 		bool operator==(const invalid_expression& other) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * expression
+	 *
+	 *************************************************************************/
 	struct unary_operation;
 	struct binary_operation;
 
@@ -110,8 +161,11 @@ namespace dcpu { namespace ast {
 		boost::recursive_wrapper<unary_operation>,
 		boost::recursive_wrapper<binary_operation>> expression;
 
-	typedef boost::optional<expression> optional_expression;
-
+	/*************************************************************************
+	 *
+	 * unary_operation
+	 *
+	 *************************************************************************/
 	struct unary_operation : public locatable {
 		unary_operator _operator;
 		expression operand;
@@ -121,6 +175,11 @@ namespace dcpu { namespace ast {
 		bool operator==(const unary_operation& other) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * binary_operation
+	 *
+	 *************************************************************************/
 	struct binary_operation : public locatable {
 		binary_operator _operator;
 		expression left;
@@ -132,6 +191,11 @@ namespace dcpu { namespace ast {
 		bool operator==(const binary_operation& other) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * expression_evaluator
+	 *
+	 *************************************************************************/
 	class expression_evaluator : public boost::static_visitor<evaluated_expression> {
 		logging::log &logger;
 		bool intermediary_evaluation;
@@ -148,6 +212,11 @@ namespace dcpu { namespace ast {
 		evaluated_expression operator()(const invalid_expression& expr) const;
 	};
 
+	/*************************************************************************
+	 *
+	 * expression_evaluator
+	 *
+	 *************************************************************************/
 	class location_getter : public boost::static_visitor<lexer::location_ptr> {
 	public:
 		template <typename T> lexer::location_ptr operator()(const T &locatable) const {
@@ -155,15 +224,40 @@ namespace dcpu { namespace ast {
 		}
 	};
 
+	/*************************************************************************
+	 *
+	 * get_evaluated_value
+	 *
+	 *************************************************************************/
+	class get_evaluated_value : public boost::static_visitor<int32_t> {
+	public:
+		int32_t operator()(const evaluated_expression &expr) const;
+
+		template <typename T> int32_t operator()(const T &) const {
+			throw std::invalid_argument("expression has not been evaluated");
+		}
+	};
+
 	template <typename T> lexer::location_ptr get_location(const T &arg) {
 		return apply_visitor(location_getter(), arg);
 	}
 
+	/*************************************************************************
+	 *
+	 * helper functions
+	 *
+	 *************************************************************************/
 	bool evaluated(const expression &expr);
 	bool evaluatable(const expression &expr);
 	bool evaluates_to_literal(const expression &expr);
-	evaluated_expression evaluate(logging::log &logger, const expression &expr, bool intermediary_evaluation=false);
+	evaluated_expression evaluate(logging::log &logger, const expression &expr, bool intermediary=false);
+	int32_t evaluated_value(const expression &expr);
 
+	/*************************************************************************
+	 *
+	 * stream operators
+	 *
+	 *************************************************************************/
 	std::ostream& operator<< (std::ostream& stream, unary_operator);
 	std::ostream& operator<< (std::ostream& stream, binary_operator);
 	std::ostream& operator<< (std::ostream& stream, const unary_operation &expr);

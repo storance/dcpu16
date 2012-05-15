@@ -430,38 +430,40 @@ namespace dcpu { namespace ast {
 
 	/*************************************************************************
 	 *
-	 * evaluated function
+	 * get_evaluated_value
+	 *
+	 *************************************************************************/
+	int32_t get_evaluated_value::operator()(const evaluated_expression &expr) const {
+		if (expr._register || !expr.value) {
+			throw invalid_argument("expression is a register expression");
+		}
+
+		return *expr.value;
+	}
+
+	/*************************************************************************
+	 *
+	 * helper functions
 	 *
 	 *************************************************************************/
 	bool evaluated(const expression &expr) {
 		return apply_visitor(expression_evaluated(), expr);
 	}
 
-	/*************************************************************************
-	 *
-	 * evaluatable function
-	 *
-	 *************************************************************************/
 	bool evaluatable(const expression &expr) {
 		return apply_visitor(expression_evaluatable(), expr);
 	}
 
-	/*************************************************************************
-	 *
-	 * evaluates_to_literal function
-	 *
-	 *************************************************************************/
 	bool evaluates_to_literal(const expression &expr) {
 		return apply_visitor(expression_evals_to_literal(), expr);
 	}
 
-	/*************************************************************************
-	 *
-	 * evaluate function
-	 *
-	 *************************************************************************/
-	evaluated_expression evaluate(logging::log &logger, const expression &expr, bool intermediary_evaluation) {
-		return apply_visitor(expression_evaluator(logger, intermediary_evaluation), expr);
+	evaluated_expression evaluate(logging::log &logger, const expression &expr, bool intermediary) {
+		return apply_visitor(expression_evaluator(logger, intermediary), expr);
+	}
+
+	int32_t evaluated_value(const expression &expr) {
+		return apply_visitor(get_evaluated_value(), expr);
 	}
 
 	/*************************************************************************

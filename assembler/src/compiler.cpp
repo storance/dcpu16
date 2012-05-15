@@ -172,7 +172,7 @@ namespace dcpu { namespace compiler {
 		return apply_visitor(*this, instruction.a);
 	}
 
-	bool compress_expressions::operator()(ast::fill_directive &fill) const {
+	bool compress_expressions::operator()(fill_directive &fill) const {
 		if (!evaluatable(fill.count)) {
 			throw invalid_argument("fill count expression can not be evaluated");
 		}
@@ -186,6 +186,19 @@ namespace dcpu { namespace compiler {
 		if (fill.cached_size != count) {
 			table.update_after(pc, count - fill.cached_size);
 			fill.cached_size = count;
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool compress_expressions::operator()(align_directive &align) const {
+		uint16_t new_size = output_size(statement(align), pc);
+
+		if (new_size != align.cached_size) {
+			table.update_after(pc, new_size - align.cached_size);
+			align.cached_size = new_size;
 
 			return true;
 		}
@@ -383,6 +396,12 @@ namespace dcpu { namespace compiler {
 		}
 	}
 
+	void statement_compiler::operator()(const ast::align_directive &align) const {
+		for (int i = 0; i < align.cached_size; i++) {
+			output.push_back(0x0001); // SET A, A
+		}
+	}
+
 	/*************************************************************************
 	 *
 	 * compiler
@@ -453,7 +472,7 @@ namespace dcpu { namespace compiler {
 			pc = 0;
 			for (auto& stmt : statements) {
 				updated |= apply_visitor(compress_expressions(table, logger, pc), stmt);
-				pc += output_size(stmt);
+				pc += output_size(stmt, pc);
 			}
 		}
 

@@ -128,6 +128,18 @@ namespace dcpu { namespace ast {
 
 	/*************************************************************************
 	 *
+	 * align_directive
+	 *
+	 *************************************************************************/
+	align_directive::align_directive(const lexer::location_ptr &location, uint16_t alignment)
+		: locatable(location), alignment(alignment), cached_size(alignment-1) {}
+
+	bool align_directive::operator==(const align_directive &other) const {
+		return alignment == other.alignment;
+	}
+
+	/*************************************************************************
+	 *
 	 * calculate_size_expression
 	 *
 	 *************************************************************************/
@@ -157,6 +169,7 @@ namespace dcpu { namespace ast {
 	 * calculate_size
 	 *
 	 *************************************************************************/
+	calculate_size::calculate_size(boost::optional<uint16_t> pc) : pc(pc) {}
 
 	uint16_t calculate_size::operator()(const stack_argument& arg) const {
 		return 0;
@@ -208,18 +221,31 @@ namespace dcpu { namespace ast {
 		return *evaled_expr.value;
 	}
 
+	uint16_t calculate_size::operator()(const align_directive &align) const {
+		if (pc) {
+			uint16_t padding =  align.alignment - (*pc % align.alignment);
+			if (padding == align.alignment) {
+				return 0;
+			} else {
+				return padding;
+			}
+		} else {
+			return align.cached_size;
+		}
+	}
+
 	/*************************************************************************
 	 *
 	 * output_size functions
 	 *
 	 *************************************************************************/
 
-	uint16_t output_size(const statement &statement) {
-		return apply_visitor(calculate_size(), statement);
+	uint16_t output_size(const statement &statement, boost::optional<uint16_t> pc) {
+		return apply_visitor(calculate_size(pc), statement);
 	}
 
-	uint16_t output_size(const argument &arg) {
-		return apply_visitor(calculate_size(), arg);
+	uint16_t output_size(const argument &arg, boost::optional<uint16_t> pc) {
+		return apply_visitor(calculate_size(pc), arg);
 	}
 
 	uint16_t output_size(const expression_argument &arg, const expression &expr) {
@@ -298,5 +324,9 @@ namespace dcpu { namespace ast {
 
 	ostream& operator<< (ostream& stream, const equ_directive &equ) {
 		return stream << ".EQU " << equ.value;
+	}
+
+	ostream& operator<< (ostream& stream, const align_directive &align) {
+		return stream << ".ALIGN " << align.alignment;
 	}
 }}

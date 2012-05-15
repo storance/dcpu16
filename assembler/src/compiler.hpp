@@ -93,6 +93,7 @@ namespace dcpu { namespace compiler {
 		void operator()(const ast::instruction &instruction) const;
 		void operator()(const ast::data_directive &data) const;
 		void operator()(const ast::fill_directive &fill) const;
+		void operator()(const ast::align_directive &align) const;
 		template <typename T> void operator()(const T&) const;
 	};
 
@@ -165,6 +166,7 @@ namespace dcpu { namespace compiler {
 		bool operator()(ast::expression_argument &arg) const;
 		bool operator()(ast::instruction &instruction) const;
 		bool operator()(ast::fill_directive &fill) const;
+		bool operator()(ast::align_directive &align) const;
 		template <typename T>bool operator()( T &) const { return false; }
 	};
 

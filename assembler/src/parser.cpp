@@ -137,6 +137,9 @@ namespace dcpu { namespace parser {
 		case directives::FILL:
 			result = statement(parse_fill(current_token));
 			break;
+		case directives::ALIGN:
+			result = statement(parse_align(current_token));
+			break;
 		default:
 			logger.warning(current_token.location, boost::format("directive '%s' is not yet supported")
 					% directive);
@@ -219,15 +222,15 @@ namespace dcpu { namespace parser {
 			logger.error(current_token.location, ".ORG must occur before all labels and instructions");
 		}
 
-		auto next_tkn = next_token();
-		if (!next_tkn.is_integer()) {
-			logger.unexpected_token(next_tkn, "an integer constant");
+		auto expr = parse_expression(next_token(), expression_parser::SCALAR);
+		if (!evaluated(expr)) {
+			// the only way this can happen is if we failed to parse the expression
 			return org_directive(current_token.location, 0);
 		}
 
-		uint32_t value = next_tkn.get_integer();
-		if (value > UINT16_MAX) {
-			logger.warning(current_token.location, "overflow in converting to 16-bit integer");
+		int32_t value = evaluated_value(expr);
+		if (value < 0) {
+			logger.error(current_token.location, "negative org value");
 		}
 
 		return org_directive(current_token.location, value);
@@ -257,6 +260,23 @@ namespace dcpu { namespace parser {
 			logger.unexpected_token(next_tkn, "',' or 'newline'");
 			return fill_directive(current_token.location, count_expr, invalid_expression(next_tkn.location));
 		}
+	}
+
+	align_directive parser::parse_align(const lexer::token &current_token) {
+		auto expr = parse_expression(next_token(), expression_parser::SCALAR);
+		if (!evaluated(expr)) {
+			// the only way this can happen is if we failed to parse the expression
+			return align_directive(current_token.location, 1);
+		}
+
+		int32_t value = evaluated_value(expr);
+		if (value <= 0) {
+			logger.error(current_token.location, "align boundary must be greater than zero");
+		} else if (value == 1) {
+			logger.warning(current_token.location, "align boundary of one has no effect");
+		}
+
+		return align_directive(current_token.location, value);
 	}
 
 	optional_argument parser::parse_argument(const token& current_token, argument_position position) {

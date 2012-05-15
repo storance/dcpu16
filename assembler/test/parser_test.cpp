@@ -133,10 +133,10 @@ TEST(Parser, OrgDirective) {
 	location_ptr _location = make_shared<location>("<Test>", 1, 1);
 	statement_list statements;
 
-	ASSERT_NO_FATAL_FAILURE(run_parser(".org 0x1000\n", 1, statements));
+	ASSERT_NO_FATAL_FAILURE(run_parser(".org 0x1000+1\n", 1, statements));
 
 	auto it = statements.begin();
-	EXPECT_EQ(*it++, statement(org_directive(_location, 0x1000)));
+	EXPECT_EQ(*it++, statement(org_directive(_location, 0x1001)));
 }
 
 TEST(Parser, PackedData) {
@@ -190,6 +190,17 @@ TEST(Parser, FillDirective) {
 					current_position_operand(_location),
 					literal_operand(_location, 10)
 			),evaluated_expression(_location, 11))));
+}
+
+TEST(Parser, AlignDirective) {
+	location_ptr _location = make_shared<location>("<Test>", 1, 1);
+	statement_list statements;
+
+	ASSERT_NO_FATAL_FAILURE(run_parser(".align 4\n.align 4*2", 2, statements));
+
+	auto it = statements.begin();
+	EXPECT_EQ(*it++, statement(align_directive(_location, 4)));
+	EXPECT_EQ(*it++, statement(align_directive(_location, 8)));
 }
 
 TEST(Parser, Register) {
