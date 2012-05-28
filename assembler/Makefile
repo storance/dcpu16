@@ -1,6 +1,6 @@
-CXX=g++
-CXX_FLAGS=-std=c++0x -Wall
-TEST_CXX_FLAGS=-I./src
+CXX=clang++
+CXX_FLAGS=-std=c++11 -Wall -stdlib=libc++
+TEST_CXX_FLAGS=-I./src -DGTEST_USE_OWN_TR1_TUPLE
 
 DEBUG ?= 1
 ifeq ($(DEBUG), 1)

@@ -2,6 +2,7 @@
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
+#include <climits>
 #include <functional>
 #include <iostream>
 #include <iterator>
@@ -191,9 +192,9 @@ namespace dcpu { namespace parser {
 				copy (current_token.content.begin(), current_token.content.end(), back_inserter(output));
 			} else if (current_token.is_integer()) {
 				uint32_t value = current_token.get_integer();
-				if (!packed && value > UINT16_MAX) {
+				if (!packed && value > numeric_limits<uint16_t>::max()) {
 					logger.warning(current_token.location, "overflow in converting to 16-bit integer");
-				} else if (packed && value > UINT8_MAX) {
+				} else if (packed && value > numeric_limits<uint8_t>::max()) {
 					logger.warning(current_token.location, "overflow in converting to 8-bit integer");
 				}
 
@@ -341,9 +342,9 @@ namespace dcpu { namespace parser {
 			auto evaled_expr = evaluate(logger, expr);
 
 			if (evaled_expr.value) {
-				if (evaled_expr.value > UINT16_MAX) {
+				if (evaled_expr.value > (int32_t)numeric_limits<uint16_t>::max()) {
 					logger.warning(evaled_expr.location, "overflow in converting to 16-bit integer");
-				} else if (evaled_expr.value < INT16_MIN) {
+				} else if (evaled_expr.value < (int32_t)numeric_limits<int16_t>::min()) {
 					logger.warning(evaled_expr.location, "underflow in converting to 16-bit integer");
 				}
 			}

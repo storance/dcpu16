@@ -482,7 +482,7 @@ namespace dcpu { namespace compiler {
 					"after 1000 iterations");
 		}
 
-		if (pc > UINT16_MAX) {
+		if (pc > numeric_limits<uint16_t>::max()) {
 			logger.error(get_location(statements.back()), "output exceeds 65,535 words");
 		}
 	}

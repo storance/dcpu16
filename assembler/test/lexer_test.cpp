@@ -10,15 +10,15 @@ using namespace dcpu::lexer;
 
 static logging::log default_logger;
 
-shared_ptr<lexer::lexer> run_lexer(const string &content, logging::log &logger=default_logger) {
-	shared_ptr<lexer::lexer> lexer = make_shared<lexer::lexer>(content, "<Test>", logger);
+shared_ptr<dcpu::lexer::lexer> run_lexer(const string &content, logging::log &logger=default_logger) {
+	shared_ptr<dcpu::lexer::lexer> lexer = make_shared<dcpu::lexer::lexer>(content, "<Test>", logger);
 	lexer->parse();
 
 	return lexer;
 }
 
 TEST(Lexer, SymbolStartsUnderscore) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("_a1_?.$#@");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("_a1_?.$#@");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -31,7 +31,7 @@ TEST(Lexer, SymbolStartsUnderscore) {
 }
 
 TEST(Lexer, SymbolStartsPeriod) {
-	shared_ptr<lexer::lexer> lexer = run_lexer(".aaa111");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer(".aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -44,7 +44,7 @@ TEST(Lexer, SymbolStartsPeriod) {
 }
 
 TEST(Lexer, SymbolStartsQuestion) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("?aaa111");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("?aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -57,7 +57,7 @@ TEST(Lexer, SymbolStartsQuestion) {
 }
 
 TEST(Lexer, SymbolStartsLetter) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("aaa111");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("aaa111");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -70,7 +70,7 @@ TEST(Lexer, SymbolStartsLetter) {
 }
 
 TEST(Lexer, ExplicitSymbol) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("$pc");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("$pc");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -83,7 +83,7 @@ TEST(Lexer, ExplicitSymbol) {
 }
 
 TEST(Lexer, QuotedString) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("\"hello, world!\"");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("\"hello, world!\"");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -97,7 +97,7 @@ TEST(Lexer, QuotedString) {
 }
 
 TEST(Lexer, LabelColonSuffix) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("_a1_?.$#@:");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("_a1_?.$#@:");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -110,7 +110,7 @@ TEST(Lexer, LabelColonSuffix) {
 }
 
 TEST(Lexer, LabelColonPrefix) {
-	shared_ptr<lexer::lexer> lexer = run_lexer(":_a1_?.$#@");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer(":_a1_?.$#@");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -123,7 +123,7 @@ TEST(Lexer, LabelColonPrefix) {
 }
 
 TEST(Lexer, Register) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("A B C X Y Z I J PC SP EX");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("A B C X Y Z I J PC SP EX");
 	ASSERT_EQ(12, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -145,7 +145,7 @@ TEST(Lexer, Register) {
 }
 
 TEST(Lexer, Directive) {
-	shared_ptr<lexer::lexer> lexer = run_lexer(".DW .DAT DAT .DB .DP .INCLUDE .INCBIN .FILL .ALIGN .EQU .ORG");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer(".DW .DAT DAT .DB .DP .INCLUDE .INCBIN .FILL .ALIGN .EQU .ORG");
 	ASSERT_EQ(12, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -167,7 +167,7 @@ TEST(Lexer, Directive) {
 }
 
 TEST(Lexer, Instruction) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("SET ADD SUB MUL MLI DIV DVI MOD MDI AND BOR XOR SHR ASR SHL IFB IFC "
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("SET ADD SUB MUL MLI DIV DVI MOD MDI AND BOR XOR SHR ASR SHL IFB IFC "
 			"IFE IFN IFG IFA IFL IFU ADX SBX STI STD JSR HCF INT IAG IAS RFI IAQ HWN HWQ HWI JMP");
 	ASSERT_EQ(39, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
@@ -217,7 +217,7 @@ TEST(Lexer, Instruction) {
 }
 
 TEST(Lexer, StackOperation) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("PUSH POP PEEK PICK [  SP] [  --     SP    ] [SP++]");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("PUSH POP PEEK PICK [  SP] [  --     SP    ] [SP++]");
 	ASSERT_EQ(8, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -235,7 +235,7 @@ TEST(Lexer, StackOperation) {
 }
 
 TEST(Lexer, DecimalNumber) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("100");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("100");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -248,7 +248,7 @@ TEST(Lexer, DecimalNumber) {
 }
 
 TEST(Lexer, HexNumberLowercase) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0xff");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0xff");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -261,7 +261,7 @@ TEST(Lexer, HexNumberLowercase) {
 }
 
 TEST(Lexer, HexNumberUppercase) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0X1D");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0X1D");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -274,7 +274,7 @@ TEST(Lexer, HexNumberUppercase) {
 }
 
 TEST(Lexer, BinaryNumberLowercase) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0b1011");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0b1011");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -287,7 +287,7 @@ TEST(Lexer, BinaryNumberLowercase) {
 }
 
 TEST(Lexer, BinaryNumberUppercase) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0B10001011");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0B10001011");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -300,7 +300,7 @@ TEST(Lexer, BinaryNumberUppercase) {
 }
 
 TEST(Lexer, OctalNumberLowercase) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0o32");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0o32");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -313,7 +313,7 @@ TEST(Lexer, OctalNumberLowercase) {
 }
 
 TEST(Lexer, OctalNumberUppercase) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0O27");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0O27");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -326,7 +326,7 @@ TEST(Lexer, OctalNumberUppercase) {
 }
 
 TEST(Lexer, InvalidDecimalNumber) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("100a3");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("100a3");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -339,7 +339,7 @@ TEST(Lexer, InvalidDecimalNumber) {
 }
 
 TEST(Lexer, InvalidHexNumber) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0X100Z3");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0X100Z3");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -352,7 +352,7 @@ TEST(Lexer, InvalidHexNumber) {
 }
 
 TEST(Lexer, OctalWithInvalidNumber) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0o10093");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0o10093");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -365,7 +365,7 @@ TEST(Lexer, OctalWithInvalidNumber) {
 }
 
 TEST(Lexer, OctalWithInvalidLetter) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0o100a3");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0o100a3");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -378,7 +378,7 @@ TEST(Lexer, OctalWithInvalidLetter) {
 }
 
 TEST(Lexer, BinaryWithInvalidNumber) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0b1113");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0b1113");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -391,7 +391,7 @@ TEST(Lexer, BinaryWithInvalidNumber) {
 }
 
 TEST(Lexer, BinaryWithInvalidLetter) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("0B111a");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("0B111a");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -407,14 +407,14 @@ TEST(Lexer, OverflowNumber) {
 	stringstream out;
 	logging::log capturing_logger(out);
 
-	shared_ptr<lexer::lexer> lexer = run_lexer("4294967296", capturing_logger);
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("4294967296", capturing_logger);
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_TRUE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
-	EXPECT_EQ(UINT32_MAX, it++->get_integer());
+	EXPECT_EQ(numeric_limits<uint32_t>::max(), it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 
@@ -422,20 +422,20 @@ TEST(Lexer, OverflowNumber) {
 }
 
 TEST(Lexer, DecimalNumberAtUint32Max) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("4294967295");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("4294967295");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
 
 	auto it = lexer->tokens.begin();
 	ASSERT_TRUE(it->is_integer());
-	EXPECT_EQ(UINT32_MAX, it++->get_integer());
+	EXPECT_EQ(numeric_limits<uint32_t>::max(), it++->get_integer());
 
 	EXPECT_TRUE(it->is_eoi());
 }
 
 TEST(Lexer, Operator) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("<< >> && || == != <> <= >=");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("<< >> && || == != <> <= >=");
 	ASSERT_EQ(10, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -455,7 +455,7 @@ TEST(Lexer, Operator) {
 }
 
 TEST(Lexer, Newline) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("\n");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("\n");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -467,7 +467,7 @@ TEST(Lexer, Newline) {
 }
 
 TEST(Lexer, SingleCharacters) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("@");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("@");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -550,7 +550,7 @@ TEST(Lexer, SingleCharacters) {
 }
 
 TEST(Lexer, CharacterLiterals) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("'a'");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("'a'");
 	ASSERT_EQ(2, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());
@@ -596,7 +596,7 @@ location_ptr makeLocation(uint32_t line, uint32_t column) {
 }
 
 TEST(Lexer, MultipleTokens) {
-	shared_ptr<lexer::lexer> lexer = run_lexer("set A, b\n  set [J], 0x400\n;a test comment\nlabel: JSR label+4\n");
+	shared_ptr<dcpu::lexer::lexer> lexer = run_lexer("set A, b\n  set [J], 0x400\n;a test comment\nlabel: JSR label+4\n");
 	ASSERT_EQ(20, lexer->tokens.size());
 	EXPECT_FALSE(lexer->logger.has_errors());
 	EXPECT_FALSE(lexer->logger.has_warnings());

@@ -167,7 +167,7 @@ TEST(SymbolTable, BuildResolve) {
 	statements.push_back(create_no_op(33));
 
 	symbol_table table;
-	compiler::compiler _compiler(logger, table, statements);
+	dcpu::compiler::compiler _compiler(logger, table, statements);
 	_compiler.compile(cout, compiler_mode::SYNTAX_ONLY);
 
 	EXPECT_EQ(9, table.lookup("label1", 0)->offset);
@@ -190,7 +190,7 @@ TEST(SymbolTable, ShortLongOscillate) {
 	statements.push_back(create_label(3, "label2"));
 
 	symbol_table table;
-	compiler::compiler _compiler(logger, table, statements);
+	dcpu::compiler::compiler _compiler(logger, table, statements);
 	_compiler.compile(cout, compiler_mode::SYNTAX_ONLY);
 
 	EXPECT_EQ(0, table.lookup("label1", 0)->offset);

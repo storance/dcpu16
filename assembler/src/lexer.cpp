@@ -397,7 +397,7 @@ namespace dcpu { namespace lexer {
 				return token(start, token_type::INVALID_INTEGER, value);
 			}
 
-			if (parsed_value > UINT32_MAX) {
+			if (parsed_value > numeric_limits<uint32_t>::max()) {
 				throw out_of_range(value);
 			}
 
@@ -407,7 +407,7 @@ namespace dcpu { namespace lexer {
 		} catch (out_of_range &oor) {
 			logger.warning(start, format("overflow converting '%s' to a 32-bit integer") % value);
 
-			return token(start, token_type::INTEGER, value, UINT32_MAX);
+			return token(start, token_type::INTEGER, value, numeric_limits<uint32_t>::max());
 		}
 	}
 }}

@@ -14,11 +14,11 @@ using namespace dcpu::lexer;
 
 void run_parser(const string &content, int expected_statements, statement_list &statements) {
 	logging::log logger;
-	lexer::lexer lex(content, "<Test>", logger);
+	dcpu::lexer::lexer lex(content, "<Test>", logger);
 	lex.parse();
 
 	statements.clear();
-	parser::parser _parser(lex, statements);
+	dcpu::parser::parser _parser(lex, statements);
 	_parser.parse();
 
 	ASSERT_EQ(expected_statements, statements.size());

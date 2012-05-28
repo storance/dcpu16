@@ -15,7 +15,7 @@ using namespace dcpu::lexer;
 
 expression run_expression_parser(const string &content, uint32_t flags) {
 	logging::log logger;
-	lexer::lexer lex(content, "<Test>", logger);
+	dcpu::lexer::lexer lex(content, "<Test>", logger);
 	lex.parse();
 
 	auto begin = lex.tokens.begin();
