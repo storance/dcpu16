@@ -1,5 +1,5 @@
-CXX=clang++
-CXX_FLAGS=-std=c++11 -Wall -stdlib=libc++
+CXX=g++
+CXX_FLAGS=-std=c++0x -Wall
 TEST_CXX_FLAGS=-I./src -DGTEST_USE_OWN_TR1_TUPLE
 
 DEBUG ?= 1
@@ -20,7 +20,8 @@ OBJECTS = $(OUTPUT_DIR)/lexer.o \
 		  $(OUTPUT_DIR)/expression.o \
 		  $(OUTPUT_DIR)/statement.o \
 		  $(OUTPUT_DIR)/expression_parser.o \
-		  $(OUTPUT_DIR)/parser.o
+		  $(OUTPUT_DIR)/parser.o \
+		  $(OUTPUT_DIR)/location.o
 
 TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/lexer_test.o \
@@ -31,10 +32,11 @@ TEST_OBJECTS = $(OBJECTS) \
 			   $(OUTPUT_DIR)/parser_test.o
 
 MNEMONICS_DEP=src/mnemonics.hpp
-TOKEN_DEPS=$(sort src/token.hpp $(MNEMONICS_DEP))
+LOCATION_DEPS=src/location.hpp
+TOKEN_DEPS=$(sort src/token.hpp $(MNEMONICS_DEP) $(LOCATION_DEPS))
 LOG_DEPS=$(sort src/log.hpp $(TOKEN_DEPS))
 LEXER_DEPS=$(sort src/lexer.hpp $(LOG_DEPS))
-EXPRESSION_DEPS=$(sort src/expression.hpp src/symbol_table.hpp $(TOKEN_DEPS))
+EXPRESSION_DEPS=$(sort src/expression.hpp src/symbol_table.hpp $(LOCATION_DEPS))
 STATEMENT_DEPS=$(sort src/statement.hpp $(EXPRESSION_DEPS))
 EXPRESSION_PARSER_DEPS=$(sort src/expression_parser.hpp $(LOG_DEPS) $(EXPRESSION_DEPS))
 PARSER_DEPS=$(sort src/parser.hpp $(EXPRESSION_PARSER_DEPS) $(STATEMENT_DEPS) $(LEXER_DEPS))
@@ -77,6 +79,9 @@ $(OUTPUT_DIR)/symbol_table.o: src/symbol_table.cpp $(SYMBOL_TABLE_DEPS) | $(OUTP
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/compiler.o: src/compiler.cpp $(COMPILER_DEPS) | $(OUTPUT_DIR)
+	$(CXX) $(CXX_FLAGS) -c -o $@ $<
+	
+$(OUTPUT_DIR)/location.o: src/location.cpp $(LOCATION_DEPS) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/assembler.o: src/assembler.cpp $(ASSEMBLER_DEPS) | $(OUTPUT_DIR)

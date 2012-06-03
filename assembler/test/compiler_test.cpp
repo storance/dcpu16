@@ -8,12 +8,9 @@
 #include <compiler.hpp>
 
 using namespace std;
-using namespace dcpu;
-using namespace dcpu::compiler;
-using namespace dcpu::ast;
-using namespace dcpu::lexer;
+using namespace dcpu::assembler;
 
-static logging::log logger;
+static dcpu::assembler::log logger;
 static location_ptr test_location = make_shared<location>("<Test>", 1, 1);
 
 TEST(ArgumentCompile, RegisterA) {

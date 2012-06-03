@@ -8,34 +8,34 @@
 #include "statement.hpp"
 #include "expression_parser.hpp"
 
-namespace dcpu { namespace parser {
+namespace dcpu { namespace assembler {
 	class parser {
 	protected:
-		lexer::token_iterator current, end;
-		logging::log& logger;
-		ast::statement_list &statements;
+		token_iterator current, end;
+		log& logger;
+		statement_list &statements;
 		uint32_t instructions_found, labels_found;
 
-		boost::optional<ast::statement> parse_label(const lexer::token&);
-		boost::optional<ast::statement> parse_instruction(const lexer::token&);
-		boost::optional<ast::statement> parse_directive(const lexer::token& );
-		ast::data_directive parse_data_word(const lexer::token&);
-		ast::data_directive parse_data_byte(const lexer::token&);
-		void parse_data(const lexer::token& current_token, std::vector<std::uint16_t> &output, bool packed);
-		ast::org_directive parse_org(const lexer::token&);
-		ast::equ_directive parse_equ(const lexer::token&);
-		ast::fill_directive parse_fill(const lexer::token&);
-		ast::align_directive parse_align(const lexer::token&);
-		ast::optional_argument parse_argument(const lexer::token&, ast::argument_position);
-		ast::optional_argument parse_indirect_argument(const lexer::token&, ast::argument_position);
-		ast::optional_argument parse_stack_argument(const lexer::token&, ast::argument_position);
-		ast::expression parse_expression(const lexer::token&, uint32_t flags);
+		boost::optional<statement> parse_label(const token&);
+		boost::optional<statement> parse_instruction(const token&);
+		boost::optional<statement> parse_directive(const token& );
+		data_directive parse_data_word(const token&);
+		data_directive parse_data_byte(const token&);
+		void parse_data(const token& current_token, std::vector<std::uint16_t> &output, bool packed);
+		org_directive parse_org(const token&);
+		equ_directive parse_equ(const token&);
+		fill_directive parse_fill(const token&);
+		align_directive parse_align(const token&);
+		optional_argument parse_argument(const token&, argument_position);
+		optional_argument parse_indirect_argument(const token&, argument_position);
+		optional_argument parse_stack_argument(const token&, argument_position);
+		expression parse_expression(const token&, uint32_t flags);
 
-		lexer::token& next_token();
+		token& next_token();
 		void move_back();
-		void advance_until(std::function<bool (const lexer::token&)>);
+		void advance_until(std::function<bool (const token&)>);
 	public:
-		parser(lexer::lexer &lexer, ast::statement_list &statements);
+		parser(lexer &lexer, statement_list &statements);
 
 		void parse();
 	};

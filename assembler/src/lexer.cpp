@@ -12,8 +12,8 @@
 using namespace std;
 using namespace boost;
 
-namespace dcpu { namespace lexer {
-	lexer::lexer(const string &content, const string &source, logging::log &logger)
+namespace dcpu { namespace assembler {
+	lexer::lexer(const string &content, const string &source, log &logger)
 		: current(content.begin()),
 		  end(content.end()),
 		  source(source),

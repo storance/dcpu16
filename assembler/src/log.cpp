@@ -3,9 +3,8 @@
 #include "log.hpp"
 
 using namespace std;
-using namespace dcpu::lexer;
 
-namespace dcpu { namespace logging {
+namespace dcpu { namespace assembler {
 	log::log() : total_errors(0), total_warnings(0), out(cerr) {}
 
 	log::log(ostream &out) : total_errors(0), total_warnings(0), out(out) {}

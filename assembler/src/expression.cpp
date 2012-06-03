@@ -7,10 +7,9 @@
 #include "symbol_table.hpp"
 
 using namespace std;
-using namespace dcpu::lexer;
 using namespace boost;
 
-namespace dcpu { namespace ast {
+namespace dcpu { namespace assembler {
 	/*************************************************************************
 	 *
 	 * locatable
@@ -240,7 +239,7 @@ namespace dcpu { namespace ast {
 	 * expression_evaluator
 	 *
 	 *************************************************************************/
-	expression_evaluator::expression_evaluator(logging::log &logger, bool intermediary_evaluation)
+	expression_evaluator::expression_evaluator(log &logger, bool intermediary_evaluation)
 		: logger(logger), intermediary_evaluation(intermediary_evaluation) {}
 
 	evaluated_expression expression_evaluator::operator()(const evaluated_expression &expr) const {
@@ -458,7 +457,7 @@ namespace dcpu { namespace ast {
 		return apply_visitor(expression_evals_to_literal(), expr);
 	}
 
-	evaluated_expression evaluate(logging::log &logger, const expression &expr, bool intermediary) {
+	evaluated_expression evaluate(log &logger, const expression &expr, bool intermediary) {
 		return apply_visitor(expression_evaluator(logger, intermediary), expr);
 	}
 

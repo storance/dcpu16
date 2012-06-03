@@ -6,12 +6,11 @@
 #include "compiler.hpp"
 
 using namespace std;
-using namespace dcpu::ast;
 using namespace boost;
 
 const unsigned int MAX_COMPRESS_ITERATIONS = 1000;
 
-namespace dcpu { namespace compiler {
+namespace dcpu { namespace assembler {
 /*************************************************************************
 	 *
 	 * base_symbol_visitor
@@ -24,7 +23,7 @@ namespace dcpu { namespace compiler {
 	 * build_symbol_table
 	 *
 	 *************************************************************************/
-	build_symbol_table::build_symbol_table(symbol_table& table, logging::log &logger, uint32_t pc)
+	build_symbol_table::build_symbol_table(symbol_table& table, log &logger, uint32_t pc)
 			: base_symbol_visitor(table, pc), logger(logger) {}
 
 	void build_symbol_table::operator()(const label &label) const {
@@ -64,7 +63,7 @@ namespace dcpu { namespace compiler {
 		}
 	}
 
-	void build_symbol_table::operator()(ast::equ_directive &equ) const {
+	void build_symbol_table::operator()(equ_directive &equ) const {
 		table.equ(equ.value);
 	}
 
@@ -73,7 +72,7 @@ namespace dcpu { namespace compiler {
 	 * resolve_symbols
 	 *
 	 *************************************************************************/
-	resolve_symbols::resolve_symbols(symbol_table& table, logging::log &logger, uint32_t pc,
+	resolve_symbols::resolve_symbols(symbol_table& table, log &logger, uint32_t pc,
 			bool allow_forward_refs) : base_symbol_visitor(table, pc), logger(logger),
 			allow_forward_refs(allow_forward_refs) {}
 
@@ -123,12 +122,12 @@ namespace dcpu { namespace compiler {
 		}
 	}
 
-	void resolve_symbols::operator()(ast::equ_directive &equ) const {
+	void resolve_symbols::operator()(equ_directive &equ) const {
 		resolve_symbols resolver(table, logger, pc, true);
 		apply_visitor(resolver, equ.value);
 	}
 
-	void resolve_symbols::operator()(ast::fill_directive &fill) const {
+	void resolve_symbols::operator()(fill_directive &fill) const {
 		apply_visitor(resolve_symbols(table, logger, pc, false), fill.count);
 		apply_visitor(resolve_symbols(table, logger, pc, true), fill.value);
 	}
@@ -138,7 +137,7 @@ namespace dcpu { namespace compiler {
 	 * compress_expressions
 	 *
 	 *************************************************************************/
-	compress_expressions::compress_expressions(symbol_table& table, logging::log &logger, uint32_t pc)
+	compress_expressions::compress_expressions(symbol_table& table, log &logger, uint32_t pc)
 			: base_symbol_visitor(table, pc), logger(logger) {}
 
 	bool compress_expressions::operator()(expression_argument &arg) const {
@@ -241,7 +240,7 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 
-	expression_compiler::expression_compiler(logging::log &logger, const expression_argument &arg)
+	expression_compiler::expression_compiler(log &logger, const expression_argument &arg)
 			: logger(logger), position_a(arg.position == argument_position::A),
 			  inside_indirect(arg.indirect), force_next_word(arg.force_next_word) {}
 
@@ -311,7 +310,7 @@ namespace dcpu { namespace compiler {
 	 * argument_compiler
 	 *
 	 *************************************************************************/
-	argument_compiler::argument_compiler(logging::log &logger) : logger(logger) {}
+	argument_compiler::argument_compiler(log &logger) : logger(logger) {}
 
 	compile_result argument_compiler::operator()(const expression_argument &arg) const {
 		return apply_visitor(expression_compiler(logger, arg), arg.expr);
@@ -335,30 +334,30 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 
-	statement_compiler::statement_compiler(logging::log &logger, vector<uint16_t> &output)
+	statement_compiler::statement_compiler(log &logger, vector<uint16_t> &output)
 			: logger(logger), output(output) {}
 
 	template <typename T> void statement_compiler::operator()(const T&) const {
 
 	}
 
-	void statement_compiler::operator()(const instruction &instruction) const {
-		if (instruction.opcode == opcodes::JMP) {
-			expression_argument b(instruction.location, argument_position::B,
-					register_operand(instruction.location, registers::PC), false, false);
-			statement stmt(ast::instruction(instruction.location, opcodes::SET, instruction.a, argument(b)));
+	void statement_compiler::operator()(const instruction &instr) const {
+		if (instr.opcode == opcodes::JMP) {
+			expression_argument b(instr.location, argument_position::B,
+					register_operand(instr.location, registers::PC), false, false);
+			statement stmt(instruction(instr.location, opcodes::SET, instr.a, argument(b)));
 			apply_visitor(*this, stmt);
 			return;
 		}
 
 		compile_result a_result, b_result;
 
-		a_result = compile(logger, instruction.a);
-		if (instruction.b) {
-			b_result = compile(logger, *instruction.b);
+		a_result = compile(logger, instr.a);
+		if (instr.b) {
+			b_result = compile(logger, *instr.b);
 		}
 
-		uint16_t encoded_value = static_cast<uint16_t>(instruction.opcode)
+		uint16_t encoded_value = static_cast<uint16_t>(instr.opcode)
 						| (b_result.value & 0x1f) << 5
 						| (a_result.value & 0x3f) << 10;
 
@@ -376,7 +375,7 @@ namespace dcpu { namespace compiler {
 		copy (data.value.begin(), data.value.end(), back_inserter(output));
 	}
 
-	void statement_compiler::operator()(const ast::fill_directive &fill) const {
+	void statement_compiler::operator()(const fill_directive &fill) const {
 		auto evaled_count = evaluate(logger, fill.count);
 		auto evaled_value = evaluate(logger, fill.value);
 
@@ -396,7 +395,7 @@ namespace dcpu { namespace compiler {
 		}
 	}
 
-	void statement_compiler::operator()(const ast::align_directive &align) const {
+	void statement_compiler::operator()(const align_directive &align) const {
 		for (int i = 0; i < align.cached_size; i++) {
 			output.push_back(0x0001); // SET A, A
 		}
@@ -408,7 +407,7 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 
-	compiler::compiler(logging::log &logger, symbol_table& table, statement_list &statements)
+	compiler::compiler(log &logger, symbol_table& table, statement_list &statements)
 			: logger(logger), table(table), statements(statements) {}
 
 	void compiler::compile(std::ostream &out, compiler_mode mode, endianness format) {
@@ -507,11 +506,11 @@ namespace dcpu { namespace compiler {
 	    }
 	}
 
-	compile_result compile(logging::log &logger, const argument &arg) {
+	compile_result compile(log &logger, const argument &arg) {
 		return apply_visitor(argument_compiler(logger), arg);
 	}
 
-	void compile(logging::log &logger, vector<uint16_t> &output, const statement &stmt) {
+	void compile(log &logger, vector<uint16_t> &output, const statement &stmt) {
 		return apply_visitor(statement_compiler(logger, output), stmt);
 	}
 }}

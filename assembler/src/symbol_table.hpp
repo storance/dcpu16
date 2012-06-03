@@ -9,7 +9,7 @@
 #include "log.hpp"
 #include "statement.hpp"
 
-namespace dcpu {
+namespace dcpu { namespace assembler {
 	/*************************************************************************
 	 *
 	 * duplicate_symbol_error
@@ -18,7 +18,7 @@ namespace dcpu {
 	class duplicate_symbol_error : public std::exception {
 		std::string message;
 	public:
-		duplicate_symbol_error(const std::string &name, lexer::location_ptr &first_location);
+		duplicate_symbol_error(const std::string &name, location_ptr &first_location);
 		virtual ~duplicate_symbol_error() throw();
 
 		virtual const char *what() const throw();
@@ -52,25 +52,27 @@ namespace dcpu {
 		virtual const char *what() const throw();
 	};
 
-	enum class symbol_type {
-		GLOBAL_LABEL,
-		LOCAL_LABEL,
-		CURRENT_LOCATION,
-		EQU
-	};
+
 
 	/*************************************************************************
 	 *
 	 * symbol
 	 *
 	 *************************************************************************/
-	struct symbol : public ast::locatable {
+	struct symbol : public locatable {
+		enum class symbol_type {
+			GLOBAL_LABEL,
+			LOCAL_LABEL,
+			CURRENT_LOCATION,
+			EQU
+		};
+
 		symbol_type type;
 		std::string name;
 		uint16_t offset;
-		ast::expression *equ_expr;
+		expression *equ_expr;
 
-		symbol(const lexer::location_ptr &location, symbol_type type, const std::string name, uint16_t offset);
+		symbol(const location_ptr &location, symbol_type type, const std::string name, uint16_t offset);
 	};
 
 	/*************************************************************************
@@ -85,17 +87,17 @@ namespace dcpu {
 		symbol *last_global_before(uint16_t offset);
 
 		std::string full_name(const std::string &name, uint16_t offset);
-		std::string name_for_location(const lexer::location_ptr &location);
+		std::string name_for_location(const location_ptr &location);
 		void add_symbol(const symbol &_symbol);
 	public:
-		void add_label(const ast::label &label, uint16_t offset);
-		void add_location(const lexer::location_ptr &location, uint16_t offset);
-		void equ(ast::expression &expr);
+		void add_label(const label &label, uint16_t offset);
+		void add_location(const location_ptr &location, uint16_t offset);
+		void equ(expression &expr);
 
 		symbol *lookup(const std::string &name, uint16_t offset);
-		symbol *lookup(const lexer::location_ptr &location, uint16_t offset);
+		symbol *lookup(const location_ptr &location, uint16_t offset);
 
 		void update_after(uint16_t offset, int amount);
-		void dump(logging::log &logger, std::ostream &out);
+		void dump(log &logger, std::ostream &out);
 	};
-}
+}}

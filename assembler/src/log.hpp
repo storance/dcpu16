@@ -10,7 +10,7 @@
 
 #include "token.hpp"
 
-namespace dcpu { namespace logging {
+namespace dcpu { namespace assembler {
 	class log {
 	private:
 		unsigned int total_errors;
@@ -18,13 +18,13 @@ namespace dcpu { namespace logging {
 
 		std::ostream &out;
 	public:
-		void error(const lexer::location_ptr&, const std::string&);
-		void error(const lexer::location_ptr&, const boost::basic_format<char> &);
-		void warning(const lexer::location_ptr&, const std::string&);
-		void warning(const lexer::location_ptr&, const boost::basic_format<char> &);
+		void error(const location_ptr&, const std::string&);
+		void error(const location_ptr&, const boost::basic_format<char> &);
+		void warning(const location_ptr&, const std::string&);
+		void warning(const location_ptr&, const boost::basic_format<char> &);
 
-		void unexpected_token(const lexer::token& token, char c);
-		void unexpected_token(const lexer::token& token, const std::string &expected);
+		void unexpected_token(const token& token, char c);
+		void unexpected_token(const token& token, const std::string &expected);
 
 		bool has_warnings();
 		bool has_errors();

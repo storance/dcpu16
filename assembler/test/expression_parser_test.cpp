@@ -8,14 +8,11 @@
 
 using namespace std;
 using namespace std::placeholders;
-using namespace dcpu;
-using namespace dcpu::ast;
-using namespace dcpu::parser;
-using namespace dcpu::lexer;
+using namespace dcpu::assembler;
 
 expression run_expression_parser(const string &content, uint32_t flags) {
-	logging::log logger;
-	dcpu::lexer::lexer lex(content, "<Test>", logger);
+	dcpu::assembler::log logger;
+	lexer lex(content, "<Test>", logger);
 	lex.parse();
 
 	auto begin = lex.tokens.begin();

@@ -6,10 +6,8 @@
 
 using namespace std;
 using namespace std::placeholders;
-using namespace dcpu::ast;
-using namespace dcpu::lexer;
 
-namespace dcpu { namespace parser {
+namespace dcpu { namespace assembler {
 	operator_definition::operator_definition(binary_operator _operator, token_predicate is_operator,
 			bool left_literal, bool right_literal) : _operator(_operator), is_operator(is_operator),
 			left_literal(left_literal), right_literal(right_literal) {}
@@ -29,7 +27,7 @@ namespace dcpu { namespace parser {
 		: location(location), _register(_register) {}
 
 
-	expression_parser::expression_parser(token_iterator& current, token_iterator end, logging::log &logger,
+	expression_parser::expression_parser(token_iterator& current, token_iterator end, log &logger,
 		uint32_t allowed_flags)
 		: current(current), end(end), logger(logger), allowed_flags(allowed_flags), first_register() {}
 

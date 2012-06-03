@@ -8,13 +8,10 @@
 #include <symbol_table.hpp>
 
 using namespace std;
-using namespace dcpu;
-using namespace dcpu::compiler;
-using namespace dcpu::ast;
-using namespace dcpu::lexer;
+using namespace dcpu::assembler;
 using namespace boost;
 
-static logging::log logger;
+static dcpu::assembler::log logger;
 static location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
 bool compress(uint16_t pc, symbol_table &table, argument &arg) {
@@ -167,7 +164,7 @@ TEST(SymbolTable, BuildResolve) {
 	statements.push_back(create_no_op(33));
 
 	symbol_table table;
-	dcpu::compiler::compiler _compiler(logger, table, statements);
+	compiler _compiler(logger, table, statements);
 	_compiler.compile(cout, compiler_mode::SYNTAX_ONLY);
 
 	EXPECT_EQ(9, table.lookup("label1", 0)->offset);
@@ -190,7 +187,7 @@ TEST(SymbolTable, ShortLongOscillate) {
 	statements.push_back(create_label(3, "label2"));
 
 	symbol_table table;
-	dcpu::compiler::compiler _compiler(logger, table, statements);
+	compiler _compiler(logger, table, statements);
 	_compiler.compile(cout, compiler_mode::SYNTAX_ONLY);
 
 	EXPECT_EQ(0, table.lookup("label1", 0)->offset);

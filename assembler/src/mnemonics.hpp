@@ -5,7 +5,7 @@
 #include <map>
 #include <boost/optional/optional_fwd.hpp>
 
-namespace dcpu {
+namespace dcpu { namespace assembler {
 	enum class registers : std::uint8_t {
 		A, B, C, X, Y, Z, I, J, SP, PC, EX
 	};
@@ -88,4 +88,4 @@ namespace dcpu {
 	std::ostream& operator<< (std::ostream& stream, registers);
 	std::ostream& operator<< (std::ostream& stream, directives);
 	std::ostream& operator<< (std::ostream& stream, stack_operation operation);
-}
+}}

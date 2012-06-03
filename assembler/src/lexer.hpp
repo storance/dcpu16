@@ -7,7 +7,7 @@
 #include "token.hpp"
 #include "log.hpp"
 
-namespace dcpu { namespace lexer {
+namespace dcpu { namespace assembler {
 	class lexer {
 	protected:
 		typedef std::string::const_iterator iterator;
@@ -39,10 +39,10 @@ namespace dcpu { namespace lexer {
 		token parse_number(location_ptr&, const std::string&);
 		token parse_identifier(location_ptr&, const std::string&);
 	public:
-		logging::log &logger;
+		log &logger;
 		token_list tokens;
 
-		lexer(const std::string &content, const std::string &source, logging::log &logger);
+		lexer(const std::string &content, const std::string &source, log &logger);
 
 		void parse();
 	};

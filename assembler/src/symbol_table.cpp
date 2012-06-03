@@ -9,12 +9,10 @@
 #include <boost/format.hpp>
 
 using namespace std;
-using namespace dcpu::ast;
-using namespace dcpu::lexer;
 using namespace boost;
 using namespace boost::algorithm;
 
-namespace dcpu {
+namespace dcpu { namespace assembler {
 	/*************************************************************************
 	 *
 	 * duplicate_symbol_error
@@ -68,7 +66,7 @@ namespace dcpu {
 	 *
 	 *************************************************************************/
 
-	symbol::symbol(const location_ptr &location, symbol_type type, const string name, std::uint16_t offset)
+	symbol::symbol(const location_ptr &location, symbol::symbol_type type, const string name, std::uint16_t offset)
 		: locatable(location), type(type), name(name), offset(offset), equ_expr(nullptr) {}
 
 	/*************************************************************************
@@ -78,7 +76,7 @@ namespace dcpu {
 	 *************************************************************************/
 	symbol *symbol_table::last_global_before(uint16_t offset) {
 		for (auto it = symbols.rbegin(); it != symbols.rend(); it++) {
-			if (it->type == symbol_type::GLOBAL_LABEL && it->offset < offset) {
+			if (it->type == symbol::symbol_type::GLOBAL_LABEL && it->offset < offset) {
 				return &*it;
 			}
 		}
@@ -89,9 +87,9 @@ namespace dcpu {
 	void symbol_table::add_label(const label &label, uint16_t offset) {
 		string name = full_name(label.name, offset);
 
-		symbol_type type = symbol_type::GLOBAL_LABEL;
+		symbol::symbol_type type = symbol::symbol_type::GLOBAL_LABEL;
 		if (label.type == label_type::LOCAL) {
-			type = symbol_type::LOCAL_LABEL;
+			type = symbol::symbol_type::LOCAL_LABEL;
 		}
 
 		auto existing_symbol = lookup_table.find(name);
@@ -103,10 +101,10 @@ namespace dcpu {
 	}
 
 	void symbol_table::add_location(const location_ptr &location, uint16_t offset) {
-		add_symbol(symbol(location, symbol_type::CURRENT_LOCATION, name_for_location(location), offset));
+		add_symbol(symbol(location, symbol::symbol_type::CURRENT_LOCATION, name_for_location(location), offset));
 	}
 
-	string symbol_table::name_for_location(const lexer::location_ptr &location) {
+	string symbol_table::name_for_location(const location_ptr &location) {
 		return str(boost::format("#%s") % location);
 	}
 
@@ -127,7 +125,7 @@ namespace dcpu {
 		return &_symbol->second;
 	}
 
-	symbol *symbol_table::lookup(const lexer::location_ptr &location, std::uint16_t offset) {
+	symbol *symbol_table::lookup(const location_ptr &location, std::uint16_t offset) {
 		return lookup(name_for_location(location), offset);
 	}
 
@@ -149,17 +147,17 @@ namespace dcpu {
 		}
 	}
 
-	void symbol_table::dump(logging::log &logger, std::ostream &out) {
+	void symbol_table::dump(log &logger, std::ostream &out) {
 		out << " Value  | Symbol Name" << endl
 			 << "---------------------" << endl;
 		for (auto &symbol : symbols) {
 			// these are not really symbols, so don't display them
-			if (symbol.type == symbol_type::CURRENT_LOCATION) {
+			if (symbol.type == symbol::symbol_type::CURRENT_LOCATION) {
 				continue;
 			}
 
 			out << " ";
-			if (symbol.type == symbol_type::EQU) {
+			if (symbol.type == symbol::symbol_type::EQU) {
 				out << evaluate(logger, *symbol.equ_expr);
 			} else {
 				out << boost::format("%#06x") % symbol.offset;
@@ -168,4 +166,4 @@ namespace dcpu {
 			out << " | " << symbol.name << endl;
 		}
 	}
-}
+}}

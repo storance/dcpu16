@@ -6,7 +6,7 @@
 
 #include "expression.hpp"
 
-namespace dcpu { namespace ast {
+namespace dcpu { namespace assembler {
 	enum class argument_position : std::uint8_t {
 		A, B
 	};
@@ -18,13 +18,13 @@ namespace dcpu { namespace ast {
 	struct base_argument : public locatable {
 		argument_position position;
 
-		base_argument(const lexer::location_ptr &location, argument_position position);
+		base_argument(const location_ptr &location, argument_position position);
 	};
 
 	struct stack_argument : public base_argument {
 		stack_operation operation;
 
-		stack_argument(const lexer::location_ptr &location, argument_position position, stack_operation operation);
+		stack_argument(const location_ptr &location, argument_position position, stack_operation operation);
 
 		bool operator==(const stack_argument& other) const;
 	};
@@ -35,7 +35,7 @@ namespace dcpu { namespace ast {
 		uint8_t cached_size;
 		expression expr;
 
-		expression_argument(const lexer::location_ptr &location, argument_position position, const expression &expr,
+		expression_argument(const location_ptr &location, argument_position position, const expression &expr,
 			bool indirect, bool force_next_word);
 
 		bool operator==(const expression_argument& other) const;
@@ -49,7 +49,7 @@ namespace dcpu { namespace ast {
 		argument a;
 		optional_argument b;
 
-		instruction(const lexer::location_ptr& location, opcodes opcode, const argument &a, const optional_argument &b);
+		instruction(const location_ptr& location, opcodes opcode, const argument &a, const optional_argument &b);
 
 		bool operator==(const instruction& other) const;
 	};
@@ -58,8 +58,8 @@ namespace dcpu { namespace ast {
 		label_type type;
 		std::string name;
 
-		label(const lexer::location_ptr &location, const std::string& name);
-		label(const lexer::location_ptr &location, const std::string& name, label_type type);
+		label(const location_ptr &location, const std::string& name);
+		label(const location_ptr &location, const std::string& name, label_type type);
 
 		bool operator==(const label&) const;
 	};
@@ -67,8 +67,8 @@ namespace dcpu { namespace ast {
 	struct data_directive : public locatable {
 		std::vector<std::uint16_t> value;
 
-		data_directive(const lexer::location_ptr &location);
-		data_directive(const lexer::location_ptr &location, const std::vector<std::uint16_t> &value);
+		data_directive(const location_ptr &location);
+		data_directive(const location_ptr &location, const std::vector<std::uint16_t> &value);
 
 		bool operator==(const data_directive&) const;
 	};
@@ -76,7 +76,7 @@ namespace dcpu { namespace ast {
 	struct org_directive : public locatable {
 		std::uint16_t offset;
 
-		org_directive(const lexer::location_ptr &location, std::uint16_t offset);
+		org_directive(const location_ptr &location, std::uint16_t offset);
 		bool operator==(const org_directive&) const;
 	};
 
@@ -85,14 +85,14 @@ namespace dcpu { namespace ast {
 		expression value;
 		uint16_t cached_size;
 
-		fill_directive(const lexer::location_ptr &location, const expression &count, const expression &value);
+		fill_directive(const location_ptr &location, const expression &count, const expression &value);
 		bool operator==(const fill_directive&) const;
 	};
 
 	struct equ_directive : public locatable {
 		expression value;
 
-		equ_directive(const lexer::location_ptr &location, const expression &value);
+		equ_directive(const location_ptr &location, const expression &value);
 		bool operator==(const equ_directive&) const;
 	};
 
@@ -100,7 +100,7 @@ namespace dcpu { namespace ast {
 		uint16_t alignment;
 		uint16_t cached_size;
 
-		align_directive(const lexer::location_ptr &location, uint16_t alignment);
+		align_directive(const location_ptr &location, uint16_t alignment);
 		bool operator==(const align_directive&) const;
 	};
 

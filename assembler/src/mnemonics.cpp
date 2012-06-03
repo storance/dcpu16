@@ -7,7 +7,7 @@
 using namespace std;
 using namespace boost::algorithm;
 
-namespace dcpu {
+namespace dcpu { namespace assembler {
 	/*************************************************************************
 	 *
 	 * instruction_definition
@@ -304,4 +304,4 @@ namespace dcpu {
 			return stream << "<Unknown stack_operation " << static_cast<int>(operation) << ">";
 		}
 	}
-}
+}}

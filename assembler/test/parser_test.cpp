@@ -7,18 +7,15 @@
 #include <parser.hpp>
 
 using namespace std;
-using namespace dcpu;
-using namespace dcpu::ast;
-using namespace dcpu::parser;
-using namespace dcpu::lexer;
+using namespace dcpu::assembler;
 
 void run_parser(const string &content, int expected_statements, statement_list &statements) {
-	logging::log logger;
-	dcpu::lexer::lexer lex(content, "<Test>", logger);
+	dcpu::assembler::log logger;
+	lexer lex(content, "<Test>", logger);
 	lex.parse();
 
 	statements.clear();
-	dcpu::parser::parser _parser(lex, statements);
+	parser _parser(lex, statements);
 	_parser.parse();
 
 	ASSERT_EQ(expected_statements, statements.size());

@@ -12,11 +12,9 @@
 
 using namespace std;
 using namespace placeholders;
-using namespace dcpu::lexer;
-using namespace dcpu::ast;
 
-namespace dcpu { namespace parser {
-	parser::parser(lexer::lexer &lex, ast::statement_list &statements) : current(lex.tokens.begin()),
+namespace dcpu { namespace assembler {
+	parser::parser(lexer &lex, statement_list &statements) : current(lex.tokens.begin()),
 			end(lex.tokens.end()), logger(lex.logger), statements(statements),
 			instructions_found(0), labels_found(0) {}
 
@@ -237,7 +235,7 @@ namespace dcpu { namespace parser {
 		return org_directive(current_token.location, value);
 	}
 
-	equ_directive parser::parse_equ(const lexer::token &current_token) {
+	equ_directive parser::parse_equ(const token &current_token) {
 		auto expr = parse_expression(next_token(), expression_parser::CONSTANT);
 
 		if (statements.empty() || !boost::get<label>(&statements.front())) {
@@ -247,7 +245,7 @@ namespace dcpu { namespace parser {
 		return equ_directive(current_token.location, expr);
 	}
 
-	fill_directive parser::parse_fill(const lexer::token &current_token) {
+	fill_directive parser::parse_fill(const token &current_token) {
 		auto count_expr = parse_expression(next_token(), expression_parser::CONSTANT);
 
 		auto next_tkn = next_token();
@@ -263,7 +261,7 @@ namespace dcpu { namespace parser {
 		}
 	}
 
-	align_directive parser::parse_align(const lexer::token &current_token) {
+	align_directive parser::parse_align(const token &current_token) {
 		auto expr = parse_expression(next_token(), expression_parser::SCALAR);
 		if (!evaluated(expr)) {
 			// the only way this can happen is if we failed to parse the expression

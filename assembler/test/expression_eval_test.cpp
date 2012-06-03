@@ -4,11 +4,9 @@
 #include <expression.hpp>
 
 using namespace std;
-using namespace dcpu;
-using namespace dcpu::lexer;
-using namespace dcpu::ast;
+using namespace dcpu::assembler;
 
-static logging::log logger;
+static dcpu::assembler::log logger;
 static location_ptr _location = make_shared<location>("<Test>", 1, 1);
 
 TEST(ExpressionEval, Add) {
@@ -51,7 +49,7 @@ TEST(ExpressionEval, Divide) {
 
 TEST(ExpressionEval, DivideByZero) {
 	stringstream out;
-	logging::log capture_log(out);
+	dcpu::assembler::log capture_log(out);
 
 	auto expr = expression(binary_operation(_location, binary_operator::DIVIDE,
 		literal_operand(_location, 8),
@@ -64,7 +62,7 @@ TEST(ExpressionEval, DivideByZero) {
 
 TEST(ExpressionEval, ModuloByZero) {
 	stringstream out;
-	logging::log capture_log(out);
+	dcpu::assembler::log capture_log(out);
 
 	auto expr = expression(binary_operation(_location, binary_operator::MODULO,
 		literal_operand(_location, 8),

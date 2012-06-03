@@ -4,10 +4,9 @@
 #include "statement.hpp"
 
 using namespace std;
-using namespace dcpu::lexer;
 using namespace boost;
 
-namespace dcpu { namespace ast {
+namespace dcpu { namespace assembler {
 	/*************************************************************************
 	 *
 	 * base_argument
@@ -131,7 +130,7 @@ namespace dcpu { namespace ast {
 	 * align_directive
 	 *
 	 *************************************************************************/
-	align_directive::align_directive(const lexer::location_ptr &location, uint16_t alignment)
+	align_directive::align_directive(const location_ptr &location, uint16_t alignment)
 		: locatable(location), alignment(alignment), cached_size(alignment-1) {}
 
 	bool align_directive::operator==(const align_directive &other) const {

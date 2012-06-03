@@ -6,70 +6,70 @@
 #include "expression.hpp"
 #include "log.hpp"
 
-namespace dcpu { namespace parser {
-	typedef std::function<bool (const lexer::token*)> token_predicate;
+namespace dcpu { namespace assembler {
+	typedef std::function<bool (const token*)> token_predicate;
 
 	struct operator_definition {
-		ast::binary_operator _operator;
+		binary_operator _operator;
 		token_predicate is_operator;
 		bool left_literal;
 		bool right_literal;
 
-		operator_definition(ast::binary_operator _operator, token_predicate is_operator, bool left_literal=true,
+		operator_definition(binary_operator _operator, token_predicate is_operator, bool left_literal=true,
 				bool right_literal=true);
 
 		static boost::optional<operator_definition> lookup(const std::vector<operator_definition> &definitions,
-				const lexer::token &current_token);
+				const token &current_token);
 	};
 
 	class register_location {
 	public:
-		lexer::location_ptr location;
+		location_ptr location;
 		registers _register;
 
-		register_location(const lexer::location_ptr &location, registers _register);
+		register_location(const location_ptr &location, registers _register);
 	};
 
 	class expression_parser {
 	protected:
-		typedef ast::expression (expression_parser::*expr_parser_t)(const lexer::token&);
+		typedef expression (expression_parser::*expr_parser_t)(const token&);
 
-		lexer::token_iterator &current, end;
-		logging::log& logger;
+		token_iterator &current, end;
+		log& logger;
 		uint32_t allowed_flags;
 		boost::optional<register_location> first_register;
 
-		bool is_expression_valid(const operator_definition &defintion, const lexer::location_ptr &location,
-				ast::expression &left, ast::expression &right);
-		ast::expression parse_binary_operation(const lexer::token&, expr_parser_t,
+		bool is_expression_valid(const operator_definition &defintion, const location_ptr &location,
+				expression &left, expression &right);
+		expression parse_binary_operation(const token&, expr_parser_t,
 				const std::vector<operator_definition>&);
-		ast::expression parse_primary(const lexer::token&);
-		ast::expression parse_grouping(const lexer::token&);
-		ast::expression parse_register(const lexer::token&);
-		ast::expression parse_symbol(const lexer::token&);
-		ast::expression parse_literal(const lexer::token&);
-		ast::expression parse_unary(const lexer::token&);
-		ast::expression parse_multiply(const lexer::token&);
-		ast::expression parse_add(const lexer::token&);
-		ast::expression parse_bitwise_shift(const lexer::token&);
-		ast::expression parse_bitwise_and(const lexer::token&);
-		ast::expression parse_bitwise_xor(const lexer::token&);
-		ast::expression parse_bitwise_or(const lexer::token&);
-		ast::expression parse_relational_order(const lexer::token&);
-		ast::expression parse_relational_equals(const lexer::token&);
-		ast::expression parse_boolean_and(const lexer::token&);
-		ast::expression parse_boolean_or(const lexer::token&);
+		expression parse_primary(const token&);
+		expression parse_grouping(const token&);
+		expression parse_register(const token&);
+		expression parse_symbol(const token&);
+		expression parse_literal(const token&);
+		expression parse_unary(const token&);
+		expression parse_multiply(const token&);
+		expression parse_add(const token&);
+		expression parse_bitwise_shift(const token&);
+		expression parse_bitwise_and(const token&);
+		expression parse_bitwise_xor(const token&);
+		expression parse_bitwise_or(const token&);
+		expression parse_relational_order(const token&);
+		expression parse_relational_equals(const token&);
+		expression parse_boolean_and(const token&);
+		expression parse_boolean_or(const token&);
 
-		lexer::token& next_token();
+		token& next_token();
 
 		bool is_register_allowed(registers _register);
 		bool is_register_in_expressions_allowed();
 		bool is_symbols_allowed();
 		bool is_current_position_allowed();
 	public:
-		expression_parser(lexer::token_iterator&, lexer::token_iterator, logging::log&, uint32_t allowed_flags);
+		expression_parser(token_iterator&, token_iterator, log&, uint32_t allowed_flags);
 
-		ast::expression parse(const lexer::token&);
+		expression parse(const token&);
 
 		enum {
 			REGISTER_A=1 << 0,

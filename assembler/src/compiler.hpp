@@ -5,7 +5,7 @@
 
 #include "symbol_table.hpp"
 
-namespace dcpu { namespace compiler {
+namespace dcpu { namespace assembler {
 	/*************************************************************************
 	 *
 	 * endianness
@@ -52,16 +52,16 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 	class expression_compiler : public boost::static_visitor<compile_result> {
-		logging::log &logger;
+		log &logger;
 		bool position_a;
 		bool inside_indirect;
 		bool force_next_word;
 
 		compile_result compile_register(boost::optional<std::int32_t>, std::uint8_t, std::uint8_t, std::uint8_t) const;
 	public:
-		expression_compiler(logging::log &logger, const ast::expression_argument &arg);
+		expression_compiler(log &logger, const expression_argument &arg);
 
-		compile_result operator()(const ast::evaluated_expression& expr) const;
+		compile_result operator()(const evaluated_expression& expr) const;
 		template <typename T> compile_result operator()(const T& expr) const;
 	};
 
@@ -71,12 +71,12 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 	class argument_compiler : public boost::static_visitor<compile_result> {
-		logging::log &logger;
+		log &logger;
 	public:
-		argument_compiler(logging::log &logger);
+		argument_compiler(log &logger);
 
-		compile_result operator()(const ast::expression_argument &arg) const;
-		compile_result operator()(const ast::stack_argument &arg) const;
+		compile_result operator()(const expression_argument &arg) const;
+		compile_result operator()(const stack_argument &arg) const;
 	};
 
 	/*************************************************************************
@@ -85,15 +85,15 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 	class statement_compiler : public boost::static_visitor<> {
-		logging::log &logger;
+		log &logger;
 		std::vector<uint16_t> &output;
 	public:
-		statement_compiler(logging::log &logger, std::vector<uint16_t> &output);
+		statement_compiler(log &logger, std::vector<uint16_t> &output);
 
-		void operator()(const ast::instruction &instruction) const;
-		void operator()(const ast::data_directive &data) const;
-		void operator()(const ast::fill_directive &fill) const;
-		void operator()(const ast::align_directive &align) const;
+		void operator()(const instruction &instruction) const;
+		void operator()(const data_directive &data) const;
+		void operator()(const fill_directive &fill) const;
+		void operator()(const align_directive &align) const;
 		template <typename T> void operator()(const T&) const;
 	};
 
@@ -116,17 +116,17 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 	class build_symbol_table : public boost::static_visitor<>, public base_symbol_visitor {
-		logging::log& logger;
+		log& logger;
 	public:
-		build_symbol_table(symbol_table& table, logging::log &logger, uint32_t pc);
+		build_symbol_table(symbol_table& table, log &logger, uint32_t pc);
 
-		void operator()(const ast::label &label) const;
-		void operator()(const ast::binary_operation &expr) const;
-		void operator()(const ast::unary_operation &expr) const;
-		void operator()(const ast::current_position_operand &expr) const;
-		void operator()(const ast::expression_argument &arg) const;
-		void operator()(const ast::instruction &instruction) const;
-		void operator()(ast::equ_directive &equ) const;
+		void operator()(const label &label) const;
+		void operator()(const binary_operation &expr) const;
+		void operator()(const unary_operation &expr) const;
+		void operator()(const current_position_operand &expr) const;
+		void operator()(const expression_argument &arg) const;
+		void operator()(const instruction &instruction) const;
+		void operator()(equ_directive &equ) const;
 		template <typename T> void operator()(const T &) const {}
 	};
 
@@ -136,20 +136,20 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 	class resolve_symbols : public boost::static_visitor<>, public base_symbol_visitor {
-		logging::log& logger;
+		log& logger;
 		bool allow_forward_refs;
 	public:
-		resolve_symbols(symbol_table& table, logging::log &logger, uint32_t pc=0,
+		resolve_symbols(symbol_table& table, log &logger, uint32_t pc=0,
 				bool allow_forward_refs=true);
 
-		void operator()(ast::symbol_operand &expr) const;
-		void operator()(ast::binary_operation &expr) const;
-		void operator()(ast::unary_operation &expr) const;
-		void operator()(ast::current_position_operand &expr) const;
-		void operator()(ast::expression_argument &arg) const;
-		void operator()(ast::instruction &instruction) const;
-		void operator()(ast::equ_directive &equ) const;
-		void operator()(ast::fill_directive &fill) const;
+		void operator()(symbol_operand &expr) const;
+		void operator()(binary_operation &expr) const;
+		void operator()(unary_operation &expr) const;
+		void operator()(current_position_operand &expr) const;
+		void operator()(expression_argument &arg) const;
+		void operator()(instruction &instruction) const;
+		void operator()(equ_directive &equ) const;
+		void operator()(fill_directive &fill) const;
 		template <typename T> void operator()( T &) const {}
 	};
 
@@ -159,14 +159,14 @@ namespace dcpu { namespace compiler {
 	 *
 	 *************************************************************************/
 	class compress_expressions : public boost::static_visitor<bool>, public base_symbol_visitor  {
-		logging::log &logger;
+		log &logger;
 	public:
-		compress_expressions(symbol_table& symbol_table, logging::log &logger, uint32_t pc=0);
+		compress_expressions(symbol_table& symbol_table, log &logger, uint32_t pc=0);
 
-		bool operator()(ast::expression_argument &arg) const;
-		bool operator()(ast::instruction &instruction) const;
-		bool operator()(ast::fill_directive &fill) const;
-		bool operator()(ast::align_directive &align) const;
+		bool operator()(expression_argument &arg) const;
+		bool operator()(instruction &instruction) const;
+		bool operator()(fill_directive &fill) const;
+		bool operator()(align_directive &align) const;
 		template <typename T>bool operator()( T &) const { return false; }
 	};
 
@@ -177,9 +177,9 @@ namespace dcpu { namespace compiler {
 	 *************************************************************************/
 	class compiler {
 	private:
-		logging::log &logger;
+		log &logger;
 		symbol_table& table;
-		ast::statement_list &statements;
+		statement_list &statements;
 
 
 		void build();
@@ -187,11 +187,11 @@ namespace dcpu { namespace compiler {
 		void write(std::vector<uint16_t> &output, std::ostream &out, endianness format=endianness::BIG);
 		void print_ast(std::ostream &out);
 	public:
-		compiler(logging::log &logger, symbol_table& table, ast::statement_list &statement);
+		compiler(log &logger, symbol_table& table, statement_list &statement);
 
 		void compile(std::ostream &out, compiler_mode mode=compiler_mode::NORMAL, endianness format=endianness::BIG);
 	};
 
-	compile_result compile(logging::log &logger, const ast::argument &arg);
-	void compile(logging::log &logger, std::vector<uint16_t> &output, const ast::statement &stmt);
+	compile_result compile(log &logger, const argument &arg);
+	void compile(log &logger, std::vector<uint16_t> &output, const statement &stmt);
 }}

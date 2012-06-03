@@ -14,11 +14,7 @@
 #include "compiler.hpp"
 
 using namespace std;
-using namespace dcpu;
-using namespace dcpu::ast;
-using namespace dcpu::compiler;
-using namespace dcpu::lexer;
-using namespace dcpu::parser;
+using namespace dcpu::assembler;
 
 namespace po = boost::program_options;
 
@@ -39,14 +35,14 @@ void read_file(const string &filename, string &content) {
 	}
 }
 
-void parse_file(const string &filename, logging::log &logger, statement_list &statements) {
+void parse_file(const string &filename, dcpu::assembler::log &logger, statement_list &statements) {
 	string content;
 	read_file(filename, content);
 
-	lexer::lexer _lexer(content, filename, logger);
+	lexer _lexer(content, filename, logger);
 	_lexer.parse();
 
-	parser::parser _parser(_lexer, statements);
+	parser _parser(_lexer, statements);
 	_parser.parse();
 }
 
@@ -137,12 +133,12 @@ int main(int argc, char **argv) {
 	ostream &out = (output_file == "-" ? cout : fout);
 
 	try {
-		logging::log logger;
+		dcpu::assembler::log logger;
 		statement_list statements;
 		parse_file(input_file, logger, statements);
 
 		symbol_table table;
-		compiler::compiler _compiler(logger, table, statements);
+		compiler _compiler(logger, table, statements);
 		_compiler.compile(out, mode);
 
 		if (logger.has_errors()) {
