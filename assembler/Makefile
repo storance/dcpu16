@@ -1,6 +1,6 @@
-CXX=g++
-CXX_FLAGS=-std=c++0x -Wall
-TEST_CXX_FLAGS=-I./src -DGTEST_USE_OWN_TR1_TUPLE
+CXX=clang
+CXX_FLAGS=-std=c++11 -Wall -stdlib=libstdc++
+TEST_CXX_FLAGS=-I./src
 
 DEBUG ?= 1
 ifeq ($(DEBUG), 1)
@@ -49,7 +49,7 @@ TEST_FILTER = *
 all: test assembler
 
 assembler: $(OUTPUT_DIR)/assembler.o $(OBJECTS)
-	$(CXX) $(CXX_FLAGS) $^ -lboost_program_options -o $@
+	$(CXX) $(CXX_FLAGS) $^ -lstdc++ -lboost_program_options -o $@
 	
 $(OUTPUT_DIR)/mnemonics.o: src/mnemonics.cpp $(MNEMONICS_DEP) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
@@ -110,7 +110,7 @@ $(OUTPUT_DIR)/resolve_symbols_test.o: test/resolve_symbols_test.cpp $(SYMBOL_TAB
 	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 unittest: $(TEST_OBJECTS)
-	$(CXX) $(CXX_FLAGS) $^ -lpthread -lgtest -lgtest_main -o $@
+	$(CXX) $(CXX_FLAGS) $^ -lstdc++ -lpthread -lgtest -lgtest_main -o $@
 
 test: unittest
 	./unittest --gtest_filter=$(TEST_FILTER)
