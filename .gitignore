@@ -8,7 +8,6 @@
 */target/*
 
 core
-emulator
 disassembler
 assembler/assembler
 assembler/unittest
