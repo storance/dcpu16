@@ -40,17 +40,80 @@ namespace dcpu { namespace emulator {
 
 	}
 
-	writable_argument::writable_argument(uint16_t* value) : value(value) {
+    writable_argument::writable_argument() : address(nullptr) {
+
+    }
+
+	writable_argument::writable_argument(uint16_t* address) : address(address) {
 
 	}
 
 	uint16_t writable_argument::get() {
-		return *value;
+        assert address;
+
+		return *address;
 	}
 
 	void writable_argument::set(uint16_t value) {
-		*this->value = value;
+        assert address;
+
+		*this->address = address;
 	}
+
+    
+    register_argument::register_argument(dcpu &cpu, registers _register) 
+        : writable_argument(), _register(_register) {
+        set_address(cpu->registers + static_cast<uint16_t>(_register));
+    }
+
+    
+    register_indirect_argument::register_indirect_argument(dcpu &cpu, registers _register)
+        : writable_argument(), _register(_register), offset() {
+        uint16_t register_value = cpu->read_register(_register);
+        set_address(cpu->memory + register_value);
+    }
+
+    register_indirect_argument::register_indirect_argument(dcpu &cpu, registers _register, uint16_t offset)
+        : writable_argument(), _register(_register), offset(offset) {
+
+        uint16_t register_value = cpu->read_register(_register);
+        set_address(cpu->memory + register_value + offset);
+    }
+
+    
+    stack_push_argument::stack_push_argument(dcpu &cpu) : writable_argument(cpu->memory + cpu->sp++) {
+
+    }
+
+    stack_pop_argument::stack_pop_argument(dcpu &cpu) : writable_argument(cpu->memory + --cpu->sp) {
+
+    }
+    
+    stack_peek_argument::stack_push_argument(dcpu &cpu) : writable_argument(cpu->memory + cpu->sp) {
+
+    }
+    
+    stack_push_argument::stack_pick_argument(dcpu &cpu, uint16_t offset) 
+        : writable_argument(cpu->memory + cpu->sp + offset), offset(offset)  {
+
+    }
+
+    indirect_next_word_argument::indirect_next_word_argument(dcpu &cpu) 
+        : writable_argument(), next_word(cpu->get_next_word()) {
+        set_address(cpu->memory + next_word);
+    }
+    
+    next_word_argument::next_word_argument(dcpu &cpu) 
+        : next_word(cpu->get_next_word()) {
+    }
+
+    uint16_t next_word_argument::get() {
+        return next_word;
+    }
+
+    void next_word_argument::set(uint16_t value) {
+        // no-op
+    }
 
 	literal_argument::literal_argument(uint16_t value) : value(value) {
 
