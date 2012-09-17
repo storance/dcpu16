@@ -1,44 +1,46 @@
 #include "argument.hpp"
+#include <cassert>
+
+using namespace std;
 
 namespace dcpu { namespace emulator {
-	std::unique_ptr<argument>&& argument::parse(dcpu &cpu, uint8_t code, bool isA) {
-		if (code >= ARG_REGISTER_START && code <= ARG_REGISTER_END) {
-			return new writable_argument(cpu->registers + code);
-		} else if (code >= ARG_INDIRECT_REGISTER_START && code <= ARG_INDIRECT_REGISTER_END) {
-			uint16_t offset = cpu->registers[code- ARG_INDIRECT_REGISTER_START];
-			return new writable_argument(cpu->memory + offset);
-		} else if (code >= ARG_INDIRECT_OFFSET_REGISTER_START && code <= ARG_INDIRECT_OFFSET_REGISTER_END) {
-			uint16_t offset = cpu->registers[code - ARG_INDIRECT_OFFSET_REGISTER_START];
-			return new writable_argument(cpu->memory + offset);
-		} else if (code == ARG_PUSH_POP && isA) {
-			return new writable_argument(cpu->memory + dcpu->sp++);
-		} else if (code == ARG_PUSH_POP && !isA) {
-			return new writable_argument(cpu->memory + --dcpu->sp);
-		} else if (code == ARG_PEEK) {
-			return new writable_argument(cpu->memory + dcpu->sp);
-		} else if (code == ARG_PICK) {
-			uint16_t offset = dcpu->sp + cpu->get_next_word();
-			return new writable_argument(cpu->memory + offset);
-		} else if (code == ARG_SP) {
-			return new writable_argument(&cpu->sp);
-		} else if (code == ARG_PC) {
-			return new writable_argument(&cpu->pc);
-		} else if (code == ARG_EX) {
-			return new writable_argument(&cpu->ex);
-		} else if (code == ARG_INDIRECT_NEXT_WORD) {
-			return new writable_argument(cpu->memory + cpu->get_next_word());
-		} else if (code == ARG_NEXT_WORD) {
-			return new literal_argument(cpu->get_next_word());
-		} else if (code >= ARG_LITERAL_START && code <= ARG_LITERAL_END && isA) {
-			return new literal_argument(code - ARG_LITERAL_START - 1);
-		}
+    vector<argument_parser> argument::parsers = {
+        ARG_PARSER(register_argument),
+        ARG_PARSER(register_indirect_argument),
+        ARG_PARSER(register_indirect_offset_argument),
+        ARG_PARSER(stack_push_argument),
+        ARG_PARSER(stack_pop_argument),
+        ARG_PARSER(stack_peek_argument),
+        ARG_PARSER(stack_pick_argument),
+        ARG_PARSER(indirect_next_word_argument),
+        ARG_PARSER(literal_argument)
+    };
 
-		// TODO: throw exception
+    /*************************************************************************
+     *
+     * argument
+     *
+     *************************************************************************/
+
+	unique_ptr<argument> argument::parse(dcpu &cpu, uint8_t code, bool isA) {
+        for (auto parser : parsers) {
+            if (parser.matches(code, isA)) {
+                return parser.create(cpu, code, isA);
+            }
+        }
+
+        // throw exception
 	}
 
 	argument::~argument() {
 
 	}
+
+    /*************************************************************************
+     *
+     * writable_argument
+     *
+     *************************************************************************/
 
     writable_argument::writable_argument() : address(nullptr) {
 
@@ -49,71 +51,191 @@ namespace dcpu { namespace emulator {
 	}
 
 	uint16_t writable_argument::get() {
-        assert address;
+        assert(address);
 
 		return *address;
 	}
 
 	void writable_argument::set(uint16_t value) {
-        assert address;
+        assert(address);
 
-		*this->address = address;
+		*this->address = value;
 	}
 
+    void writable_argument::set_address(uint16_t* address) {
+        this->address = address;
+    }
+
+    /*************************************************************************
+     *
+     * register_argument
+     *
+     *************************************************************************/
     
     register_argument::register_argument(dcpu &cpu, registers _register) 
         : writable_argument(), _register(_register) {
-        set_address(cpu->registers + static_cast<uint16_t>(_register));
+        set_address(cpu.registers + static_cast<uint16_t>(_register));
     }
 
+    bool register_argument::matches(uint8_t code, bool isA) {
+        return (code >= START && code <= END) || code == PC || code == EX || code == SP;
+    }
+
+    unique_ptr<argument> register_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+        registers reg;
+        if (code >= START && code <= END) {
+            reg =  static_cast<registers>(code - START);
+        } else if (code == SP) {
+            reg = registers::SP;
+        } else if (code == PC) {
+            reg = registers::PC;
+        } else if (code == EX) {
+            reg = registers::EX;
+        } else {
+            // invalid arg
+        }
+
+        return unique_ptr<argument>(new register_argument(cpu, reg));
+    }
+
+    /*************************************************************************
+     *
+     * register_indirect_argument
+     *
+     *************************************************************************/
     
     register_indirect_argument::register_indirect_argument(dcpu &cpu, registers _register)
-        : writable_argument(), _register(_register), offset() {
-        uint16_t register_value = cpu->read_register(_register);
-        set_address(cpu->memory + register_value);
+        : writable_argument(), _register(_register) {
+        uint16_t register_value = cpu.read_register(_register);
+        set_address(cpu.memory + register_value);
     }
-
-    register_indirect_argument::register_indirect_argument(dcpu &cpu, registers _register, uint16_t offset)
-        : writable_argument(), _register(_register), offset(offset) {
-
-        uint16_t register_value = cpu->read_register(_register);
-        set_address(cpu->memory + register_value + offset);
-    }
-
-    
-    stack_push_argument::stack_push_argument(dcpu &cpu) : writable_argument(cpu->memory + cpu->sp++) {
-
-    }
-
-    stack_pop_argument::stack_pop_argument(dcpu &cpu) : writable_argument(cpu->memory + --cpu->sp) {
-
+ 
+    bool register_indirect_argument::matches(uint8_t code, bool isA) {
+        return (code >= START && code <= END);
     }
     
-    stack_peek_argument::stack_push_argument(dcpu &cpu) : writable_argument(cpu->memory + cpu->sp) {
+    unique_ptr<argument> register_indirect_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+        registers reg = static_cast<registers>(code - START);
+        
+        return unique_ptr<argument>(new register_indirect_argument(cpu, reg));
+    }
 
+    /*************************************************************************
+     *
+     * register_indirect_offset_argument
+     *
+     *************************************************************************/
+
+    register_indirect_offset_argument::register_indirect_offset_argument(dcpu &cpu, registers _register,
+            uint16_t offset) : writable_argument(), _register(_register), offset(offset) {
+
+        uint16_t register_value = cpu.read_register(_register);
+        set_address(cpu.memory + register_value + offset);
+    }
+
+    bool register_indirect_offset_argument::matches(uint8_t code, bool isA) {
+        return (code >= START && code <= END);
     }
     
-    stack_push_argument::stack_pick_argument(dcpu &cpu, uint16_t offset) 
-        : writable_argument(cpu->memory + cpu->sp + offset), offset(offset)  {
+    unique_ptr<argument> register_indirect_offset_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+        registers reg = static_cast<registers>(code - START);
+        
+        return unique_ptr<argument>(new register_indirect_offset_argument(cpu, reg, cpu.get_next_word()));
+    }
+
+    /*************************************************************************
+     *
+     * stack_push_argument
+     *
+     *************************************************************************/
+    
+    stack_push_argument::stack_push_argument(dcpu &cpu) : writable_argument(cpu.memory + cpu.sp++) {
 
     }
 
+    bool stack_push_argument::matches(uint8_t code, bool isA) {
+        return !isA && code == VALUE;
+    }
+    
+    unique_ptr<argument> stack_push_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+        return unique_ptr<argument>(new stack_push_argument(cpu));
+    }
+
+    /*************************************************************************
+     *
+     * stack_pop_argument
+     *
+     *************************************************************************/
+    stack_pop_argument::stack_pop_argument(dcpu &cpu) : writable_argument(cpu.memory + --cpu.sp) {
+
+    }
+
+    bool stack_pop_argument::matches(uint8_t code, bool isA) {
+        return isA && code == VALUE;
+    }
+    
+    unique_ptr<argument> stack_pop_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+        return unique_ptr<argument>(new stack_pop_argument(cpu));
+    }
+    
+    /*************************************************************************
+     *
+     * stack_peek_argument
+     *
+     *************************************************************************/
+    stack_peek_argument::stack_peek_argument(dcpu &cpu) : writable_argument(cpu.memory + cpu.sp) {
+
+    }
+
+    bool stack_peek_argument::matches(uint8_t code, bool isA) {
+        return code == VALUE;
+    }
+    
+    unique_ptr<argument> stack_peek_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+        return unique_ptr<argument>(new stack_peek_argument(cpu));
+    }
+    
+    /*************************************************************************
+     *
+     * stack_pick_argument
+     *
+     *************************************************************************/
+    stack_pick_argument::stack_pick_argument(dcpu &cpu, uint16_t offset) 
+        : writable_argument(cpu.memory + cpu.sp + offset), offset(offset)  {
+
+    }
+
+    bool stack_pick_argument::matches(uint8_t code, bool isA) {
+        return code == VALUE;
+    }
+    
+    unique_ptr<argument> stack_pick_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+        return unique_ptr<argument>(new stack_pick_argument(cpu, cpu.get_next_word()));
+    }
+
+    /*************************************************************************
+     *
+     * indirect_next_word_argument
+     *
+     *************************************************************************/
     indirect_next_word_argument::indirect_next_word_argument(dcpu &cpu) 
-        : writable_argument(), next_word(cpu->get_next_word()) {
-        set_address(cpu->memory + next_word);
+        : writable_argument(), next_word(cpu.get_next_word()) {
+        set_address(cpu.memory + next_word);
+    }
+
+    bool indirect_next_word_argument::matches(uint8_t code, bool isA) {
+        return code == VALUE;
     }
     
-    next_word_argument::next_word_argument(dcpu &cpu) 
-        : next_word(cpu->get_next_word()) {
+    unique_ptr<argument> indirect_next_word_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+        return unique_ptr<argument>(new indirect_next_word_argument(cpu));
     }
-
-    uint16_t next_word_argument::get() {
-        return next_word;
-    }
-
-    void next_word_argument::set(uint16_t value) {
-        // no-op
-    }
+    
+    /*************************************************************************
+     *
+     * literal_argument
+     *
+     *************************************************************************/
 
 	literal_argument::literal_argument(uint16_t value) : value(value) {
 
@@ -126,4 +248,19 @@ namespace dcpu { namespace emulator {
 	void literal_argument::set(uint16_t value) {
 		// no-op
 	}
+
+    bool literal_argument::matches(uint8_t code, bool isA) {
+        return code == NEXT_WORD || (code >= START && code <= END);
+    }
+    
+    unique_ptr<argument> literal_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+        uint16_t value = 0;
+        if (code == NEXT_WORD) {
+            value = cpu.get_next_word();
+        } else {
+            value = code - START - 1;
+        }
+
+        return unique_ptr<argument>(new literal_argument(value));
+    }
 }}

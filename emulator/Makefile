@@ -1,6 +1,6 @@
 CXX=clang
-CXX_FLAGS:=-std=c++11 -Wall -stdlib=libstdc++ `wx-config --cxxflags`
-LIBS:=`wx-config --libs` -lstdc++ -lboost_program_options
+CXX_FLAGS=-std=c++11 -Wall -stdlib=libstdc++ `wx-config --cxxflags`
+LIBS=`wx-config --libs` -lstdc++ -lboost_program_options
 TEST_CXX_FLAGS=-I./src
 
 DEBUG ?= 1
@@ -12,13 +12,17 @@ else
 	OUTPUT_DIR = target/release
 endif
 
-OBJECTS = $(OUTPUT_DIR)/emulator.o
+OBJECTS = $(OUTPUT_DIR)/dcpu.o \
+	$(OUTPUT_DIR)/hardware.o \
+	$(OUTPUT_DIR)/opcodes.o \
+	$(OUTPUT_DIR)/argument.o
 
-TEST_OBJECTS = $(OBJECTS)
+TEST_OBJECTS = $(OBJECTS) \
+	$(OUTPUT_DIR)/opcodes_test.o
 
 TEST_FILTER = *
 
-all: emulator
+all: emulator test
 
 emulator: $(OUTPUT_DIR)/emulator.o $(OBJECTS)
 	$(CXX) $(CXX_FLAGS) $^ $(LIBS) -o $@
@@ -26,25 +30,22 @@ emulator: $(OUTPUT_DIR)/emulator.o $(OBJECTS)
 $(OUTPUT_DIR)/emulator.o: src/emulator.cpp src/emulator.h | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 
+$(OUTPUT_DIR)/hardware.o: src/hardware.cpp src/hardware.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/dcpu.o: src/dcpu.cpp src/dcpu.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/opcodes.o: src/opcodes.cpp src/opcodes.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/argument.o: src/argument.cpp src/argument.hpp | $(OUTPUT_DIR)
+	$(CXX) $(CXX_FLAGS) -c -o $@ $<
+
 $(OUTPUT_DIR):
 	mkdir -p $@
 
-$(OUTPUT_DIR)/lexer_test.o: test/lexer_test.cpp $(LEXER_DEPS) | $(OUTPUT_DIR)
-	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
-	
-$(OUTPUT_DIR)/expression_eval_test.o: test/expression_eval_test.cpp $(EXPRESSION_DEPS) | $(OUTPUT_DIR)
-	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
-
-$(OUTPUT_DIR)/parser_test.o: test/parser_test.cpp $(PARSER_DEPS) | $(OUTPUT_DIR)
-	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
-
-$(OUTPUT_DIR)/expression_parser_test.o: test/expression_parser_test.cpp $(EXPRESSION_PARSER_DEPS) | $(OUTPUT_DIR)
-	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
-
-$(OUTPUT_DIR)/compiler_test.o: test/compiler_test.cpp $(COMPILER_DEPS) | $(OUTPUT_DIR)
-	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
-
-$(OUTPUT_DIR)/resolve_symbols_test.o: test/resolve_symbols_test.cpp $(SYMBOL_TABLE_DEPS) | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/opcodes_test.o: test/opcodes_test.cpp $(LEXER_DEPS) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 unittest: $(TEST_OBJECTS)

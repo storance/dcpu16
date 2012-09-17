@@ -3,11 +3,11 @@
 using namespace std;
 
 namespace dcpu { namespace emulator {
-	uint16_t dcpu::read_register(registers reg) {
+	uint16_t dcpu::read_register(enum registers reg) {
 		return this->registers[static_cast<uint8_t>(reg)];
 	}
 
-	void dcpu::write_register(registers reg, uint16_t value) {
+	void dcpu::write_register(enum registers reg, uint16_t value) {
 		this->registers[static_cast<uint8_t>(reg)] = value;
 	}
 
