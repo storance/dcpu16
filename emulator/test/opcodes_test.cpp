@@ -4,6 +4,8 @@
 #include <argument.hpp>
 #include <opcodes.hpp>
 
+#include <iostream>
+
 using namespace std;
 
 using dcpu::emulator::argument;
@@ -142,4 +144,95 @@ TEST(Opcodes, MliWithOverflow) {
 
 	EXPECT_EQ(4, cpu.ex);
 	EXPECT_EQ(0, result);
+}
+
+TEST(Opcodes, Div) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = 80;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(2));
+
+	EXECUTE_OPCODE(div, cpu, a, b)
+
+	EXPECT_EQ(0, cpu.ex);
+	EXPECT_EQ(40, result);
+}
+
+TEST(Opcodes, DivByZero) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = 80;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(0));
+
+	EXECUTE_OPCODE(div, cpu, a, b)
+
+	EXPECT_EQ(0, cpu.ex);
+	EXPECT_EQ(0, result);
+}
+
+TEST(Opcodes, DivWithAZero) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = 80;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(0));
+
+	EXECUTE_OPCODE(div, cpu, a, b)
+
+	EXPECT_EQ(0, cpu.ex);
+	EXPECT_EQ(0, result);
+}
+
+TEST(Opcodes, DivWithFractionalPart) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = 0xffff;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(0xd));
+
+	EXECUTE_OPCODE(div, cpu, a, b)
+
+	EXPECT_EQ(0x2762, cpu.ex);
+	EXPECT_EQ(0x13b1, result);
+}
+
+TEST(Opcodes, Dvi) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = -80;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(2));
+
+	EXECUTE_OPCODE(dvi, cpu, a, b)
+
+	EXPECT_EQ(0, cpu.ex);
+	EXPECT_EQ((uint16_t)-40, result);
+}
+
+TEST(Opcodes, DviByZero) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = 80;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(0));
+
+	EXECUTE_OPCODE(dvi, cpu, a, b)
+
+	EXPECT_EQ(0, cpu.ex);
+	EXPECT_EQ(0, result);
+}
+
+TEST(Opcodes, DviWithFractionalPart) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = 0x8001;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(0x2));
+
+	EXECUTE_OPCODE(dvi, cpu, a, b)
+
+	EXPECT_EQ(0x8000, cpu.ex);
+	EXPECT_EQ(0xc000, result);
 }
