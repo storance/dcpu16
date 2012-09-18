@@ -20,12 +20,10 @@ namespace dcpu { namespace emulator {
 		unique_ptr<argument> arg_b = argument::parse(cpu, b, false);
 
 		switch (o) {
-		case set_opcode::OPCODE:
-			return unique_ptr<opcode>(new set_opcode(cpu, move(arg_a), move(arg_b)));
-		case add_opcode::OPCODE:
-			return unique_ptr<opcode>(new add_opcode(cpu, move(arg_a), move(arg_b)));
-		case sub_opcode::OPCODE:
-			return unique_ptr<opcode>(new sub_opcode(cpu, move(arg_a), move(arg_b)));
+		BASIC_OPCODE_CASE(set, cpu, arg_a, arg_b)
+		BASIC_OPCODE_CASE(add, cpu, arg_a, arg_b)
+		BASIC_OPCODE_CASE(sub, cpu, arg_a, arg_b)
+		BASIC_OPCODE_CASE(mul, cpu, arg_a, arg_b)
 		default:
 			// throw not supported
             break;
@@ -36,7 +34,7 @@ namespace dcpu { namespace emulator {
 		uint8_t o = (instruction >> 5) & 0x1f;
 		uint8_t a = (instruction >> 10) & 0x3f;
 
-		unique_ptr<argument> arg_a = argument::parse(cpu, move(a), true);
+		unique_ptr<argument> arg_a = argument::parse(cpu, a, true);
 		
 		switch (o) {
 		default:
@@ -45,11 +43,11 @@ namespace dcpu { namespace emulator {
 		}
 	}
 
-	opcode::opcode(dcpu &cpu, unique_ptr<argument> &&a, std::unique_ptr<argument> &&b) : cpu(cpu), a(move(a)), b(move(b)) {
+	opcode::opcode(dcpu &cpu, unique_ptr<argument> &a, std::unique_ptr<argument> &b) : cpu(cpu), a(move(a)), b(move(b)) {
 
 	}
 
-	opcode::opcode(dcpu &cpu, unique_ptr<argument> &&a) : cpu(cpu), a(move(a)), b() {
+	opcode::opcode(dcpu &cpu, unique_ptr<argument> &a) : cpu(cpu), a(move(a)), b() {
 
 	}
 
@@ -57,16 +55,10 @@ namespace dcpu { namespace emulator {
 
 	}
 
-	set_opcode::set_opcode(dcpu &cpu, unique_ptr<argument> &&a, std::unique_ptr<argument> &&b) : opcode(cpu, move(a), move(b)) {
-
-	}
-
 	uint16_t set_opcode::execute() {
 		b->set(a->get());
-	}
 
-	add_opcode::add_opcode(dcpu &cpu, unique_ptr<argument> &&a, std::unique_ptr<argument> &&b) : opcode(cpu, move(a), move(b)) {
-		
+		return 1;
 	}
 
 	uint16_t add_opcode::execute() {
@@ -74,10 +66,8 @@ namespace dcpu { namespace emulator {
 		b->set(result);
 
 		cpu.ex = result >> 16;
-	}
 
-	sub_opcode::sub_opcode(dcpu &cpu, unique_ptr<argument> &&a, std::unique_ptr<argument> &&b) : opcode(cpu, move(a), move(b)) {
-		
+		return 2;
 	}
 
 	uint16_t sub_opcode::execute() {
@@ -85,5 +75,28 @@ namespace dcpu { namespace emulator {
 		b->set(result);
 
 		cpu.ex = result >> 16;
+
+		return 2;
+	}
+
+	uint16_t mul_opcode::execute() {
+		uint32_t result = b->get() * a->get();
+		b->set(result);
+
+		cpu.ex = (result >> 16) & 0xffff;
+
+		return 2;
+	}
+
+	uint16_t mli_opcode::execute() {
+		int16_t signedA = a->get();
+		int16_t signedB = b->get();
+
+		int32_t result = signedA * signedB;
+		b->set(result);
+
+		cpu.ex = (result >> 16) & 0xffff;
+
+		return 2;
 	}
 }}

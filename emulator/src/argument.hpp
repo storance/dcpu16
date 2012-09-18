@@ -5,18 +5,12 @@
 #include <vector>
 #include <functional>
 
-#define ARG_PARSER(type) { type::matches, type::create }
+#define HANDLE_ARGUMENT(arg, cpu, code, isA) if (arg::matches(code, isA)) { \
+    return arg::create(cpu, code, isA); \
+}
 
 namespace dcpu { namespace emulator {
-    class argument;
-
-    struct argument_parser {
-        std::function<bool (uint8_t code, bool isA)> matches;
-        std::function<std::unique_ptr<argument> (dcpu &cpu, uint8_t code, bool isA)> create;
-    };
-
 	class argument {
-        static std::vector<argument_parser> parsers;
 	public:
 		static std::unique_ptr<argument> parse(dcpu &cpu, uint8_t code, bool isA);
 

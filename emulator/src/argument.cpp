@@ -4,18 +4,6 @@
 using namespace std;
 
 namespace dcpu { namespace emulator {
-    vector<argument_parser> argument::parsers = {
-        ARG_PARSER(register_argument),
-        ARG_PARSER(register_indirect_argument),
-        ARG_PARSER(register_indirect_offset_argument),
-        ARG_PARSER(stack_push_argument),
-        ARG_PARSER(stack_pop_argument),
-        ARG_PARSER(stack_peek_argument),
-        ARG_PARSER(stack_pick_argument),
-        ARG_PARSER(indirect_next_word_argument),
-        ARG_PARSER(literal_argument)
-    };
-
     /*************************************************************************
      *
      * argument
@@ -23,11 +11,15 @@ namespace dcpu { namespace emulator {
      *************************************************************************/
 
 	unique_ptr<argument> argument::parse(dcpu &cpu, uint8_t code, bool isA) {
-        for (auto parser : parsers) {
-            if (parser.matches(code, isA)) {
-                return parser.create(cpu, code, isA);
-            }
-        }
+        HANDLE_ARGUMENT(register_argument, cpu, code, isA)
+        HANDLE_ARGUMENT(register_indirect_argument, cpu, code, isA)
+        HANDLE_ARGUMENT(register_indirect_offset_argument, cpu, code, isA)
+        HANDLE_ARGUMENT(stack_push_argument, cpu, code, isA)
+        HANDLE_ARGUMENT(stack_pop_argument, cpu, code, isA)
+        HANDLE_ARGUMENT(stack_peek_argument, cpu, code, isA)
+        HANDLE_ARGUMENT(stack_pick_argument, cpu, code, isA)
+        HANDLE_ARGUMENT(indirect_next_word_argument, cpu, code, isA)
+        HANDLE_ARGUMENT(literal_argument, cpu, code, isA)
 
         // throw exception
 	}
