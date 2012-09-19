@@ -156,4 +156,22 @@ namespace dcpu { namespace emulator {
 
         return CYCLES;
     }
+
+    uint16_t and_opcode::execute() {
+        b->set(b->get() & a->get());
+
+        return CYCLES;
+    }
+
+    uint16_t bor_opcode::execute() {
+        b->set(b->get() | a->get());
+
+        return CYCLES;
+    }
+
+    uint16_t xor_opcode::execute() {
+        b->set(b->get() ^ a->get());
+
+        return CYCLES;
+    }
 }}

@@ -51,4 +51,7 @@ namespace dcpu { namespace emulator {
 	DECLARE_BASIC_OPCODE(dvi, 0x7, 3)
 	DECLARE_BASIC_OPCODE(mod, 0x8, 3)
 	DECLARE_BASIC_OPCODE(mdi, 0x9, 3)
+	DECLARE_BASIC_OPCODE(and, 0xa, 1)
+	DECLARE_BASIC_OPCODE(bor, 0xb, 1)
+	DECLARE_BASIC_OPCODE(xor, 0xc, 1)
 }}

@@ -260,3 +260,39 @@ TEST(Opcodes, Mdi) {
 
 	EXPECT_EQ((uint16_t)-7, result);
 }
+
+TEST(Opcodes, And) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = 0xf0f0;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(0x7031));
+
+	EXECUTE_OPCODE(and, cpu, a, b)
+
+	EXPECT_EQ(0x7030, result);
+}
+
+TEST(Opcodes, Bor) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = 0xf0f0;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(0x0f0f));
+
+	EXECUTE_OPCODE(bor, cpu, a, b)
+
+	EXPECT_EQ(0xffff, result);
+}
+
+TEST(Opcodes, Xor) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = 0xff0f;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(0xf0f0));
+
+	EXECUTE_OPCODE(xor, cpu, a, b)
+
+	EXPECT_EQ(0x0fff, result);
+}
