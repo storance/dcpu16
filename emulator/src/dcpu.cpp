@@ -1,14 +1,13 @@
 #include "dcpu.hpp"
+#include "hardware.hpp"
+#include <cstring>
 
 using namespace std;
 
 namespace dcpu { namespace emulator {
-	uint16_t dcpu::read_register(enum registers reg) {
-		return this->registers[static_cast<uint8_t>(reg)];
-	}
-
-	void dcpu::write_register(enum registers reg, uint16_t value) {
-		this->registers[static_cast<uint8_t>(reg)] = value;
+	dcpu::dcpu() : skipNext(false), cycles(0), registered_hardware() {
+		memset(memory, 0, TOTAL_MEMORY);
+		memset(registers, 0, TOTAL_REGISTERS);
 	}
 
 	void dcpu::read_memory(uint16_t address, uint16_t *buf, uint16_t buflen) {
@@ -52,12 +51,8 @@ namespace dcpu { namespace emulator {
 		return memory[pc++];
 	}
 
-	void dcpu::add_cycles(uint16_t cycles) {
-		if (cycles < 0) {
-
-		}
-
-		this->cycles += cycles;
+	bool dcpu::is_skip_next() {
+		return skipNext;
 	}
 
 }}

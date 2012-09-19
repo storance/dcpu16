@@ -24,6 +24,29 @@ namespace dcpu { namespace emulator {
         BASIC_OPCODE_CASE(add, cpu, arg_a, arg_b)
         BASIC_OPCODE_CASE(sub, cpu, arg_a, arg_b)
         BASIC_OPCODE_CASE(mul, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(mli, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(div, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(dvi, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(mod, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(mdi, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(and, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(bor, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(xor, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(shr, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(asr, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(shl, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(ifb, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(ifc, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(ife, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(ifn, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(ifg, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(ifa, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(ifl, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(ifu, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(adx, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(sbx, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(sti, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(std, cpu, arg_a, arg_b)
         default:
             // throw not supported
             break;
@@ -37,6 +60,16 @@ namespace dcpu { namespace emulator {
         unique_ptr<argument> arg_a = argument::parse(cpu, a, true);
         
         switch (o) {
+        SPECIAL_OPCODE_CASE(jsr, cpu, arg_a)
+        SPECIAL_OPCODE_CASE(hcf, cpu, arg_a)
+        SPECIAL_OPCODE_CASE(int, cpu, arg_a)
+        SPECIAL_OPCODE_CASE(iag, cpu, arg_a)
+        SPECIAL_OPCODE_CASE(ias, cpu, arg_a)
+        SPECIAL_OPCODE_CASE(rfi, cpu, arg_a)
+        SPECIAL_OPCODE_CASE(iaq, cpu, arg_a)
+        SPECIAL_OPCODE_CASE(hwn, cpu, arg_a)
+        SPECIAL_OPCODE_CASE(hwq, cpu, arg_a)
+        SPECIAL_OPCODE_CASE(hwi, cpu, arg_a)
         default:
             // throw not supported
             break;
@@ -172,6 +205,106 @@ namespace dcpu { namespace emulator {
     uint16_t xor_opcode::execute() {
         b->set(b->get() ^ a->get());
 
+        return CYCLES;
+    }
+
+    uint16_t shr_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t asr_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t shl_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t ifb_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t ifc_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t ife_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t ifn_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t ifg_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t ifa_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t ifl_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t ifu_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t adx_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t sbx_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t sti_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t std_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t jsr_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t hcf_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t int_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t iag_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t ias_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t rfi_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t iaq_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t hwn_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t hwq_opcode::execute() {
+        return CYCLES;
+    }
+
+    uint16_t hwi_opcode::execute() {
         return CYCLES;
     }
 }}

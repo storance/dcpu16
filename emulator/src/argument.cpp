@@ -66,7 +66,7 @@ namespace dcpu { namespace emulator {
     
     register_argument::register_argument(dcpu &cpu, registers _register) 
         : writable_argument(), _register(_register) {
-        set_address(cpu.registers + static_cast<uint16_t>(_register));
+        set_address(cpu.registers + static_cast<uint8_t>(_register));
     }
 
     bool register_argument::matches(uint8_t code, bool isA) {
@@ -98,7 +98,7 @@ namespace dcpu { namespace emulator {
     
     register_indirect_argument::register_indirect_argument(dcpu &cpu, registers _register)
         : writable_argument(), _register(_register) {
-        uint16_t register_value = cpu.read_register(_register);
+        uint16_t register_value = cpu.registers[static_cast<uint8_t>(_register)];
         set_address(cpu.memory + register_value);
     }
  
@@ -121,7 +121,7 @@ namespace dcpu { namespace emulator {
     register_indirect_offset_argument::register_indirect_offset_argument(dcpu &cpu, registers _register,
             uint16_t offset) : writable_argument(), _register(_register), offset(offset) {
 
-        uint16_t register_value = cpu.read_register(_register);
+        uint16_t register_value = cpu.registers[static_cast<uint8_t>(_register)];
         set_address(cpu.memory + register_value + offset);
     }
 

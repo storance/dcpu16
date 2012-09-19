@@ -15,6 +15,7 @@ namespace dcpu { namespace emulator {
 
 	class dcpu {
 	private:
+		bool skipNext;
 		std::uint64_t cycles;
 		std::vector<hardware_device> registered_hardware;
 
@@ -27,8 +28,7 @@ namespace dcpu { namespace emulator {
 			};
 		};
 
-		std::uint16_t read_register(enum registers reg);
-		void write_register(enum registers reg, std::uint16_t value);
+		dcpu();
 
 		void read_memory(std::uint16_t address, std::uint16_t *buf, std::uint16_t buflen);
 		void write_memory(std::uint16_t address, std::uint16_t *src, std::uint16_t srclen);
@@ -39,7 +39,7 @@ namespace dcpu { namespace emulator {
 
 		std::uint16_t get_next_word();
 
-		void add_cycles(std::uint16_t cycles);
+		bool is_skip_next();
 	};
 
 }}
