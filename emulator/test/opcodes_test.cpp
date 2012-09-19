@@ -236,3 +236,27 @@ TEST(Opcodes, DviWithFractionalPart) {
 	EXPECT_EQ(0x8000, cpu.ex);
 	EXPECT_EQ(0xc000, result);
 }
+
+TEST(Opcodes, Mod) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = 21;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(16));
+
+	EXECUTE_OPCODE(mod, cpu, a, b)
+
+	EXPECT_EQ(5, result);
+}
+
+TEST(Opcodes, Mdi) {
+	dcpu::emulator::dcpu cpu;
+
+	uint16_t result = -7;
+	unique_ptr<argument> b(new writable_argument(&result));
+	unique_ptr<argument> a(new literal_argument(16));
+
+	EXECUTE_OPCODE(mdi, cpu, a, b)
+
+	EXPECT_EQ((uint16_t)-7, result);
+}

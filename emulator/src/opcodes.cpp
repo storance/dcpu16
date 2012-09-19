@@ -131,4 +131,29 @@ namespace dcpu { namespace emulator {
 
         return CYCLES;
     }
+
+    uint16_t mod_opcode::execute() {
+        if (a->get() == 0) {
+            cpu.ex = 0;
+            b->set(0);
+        } else {
+            b->set(b->get() % a->get());
+        } 
+
+        return CYCLES;
+    }
+
+    uint16_t mdi_opcode::execute() {
+        int16_t signedA = (int16_t)a->get();
+        int16_t signedB = (int16_t)b->get();
+
+        if (signedA == 0) {
+            cpu.ex = 0;
+            b->set(0);
+        } else {
+            b->set(signedB % signedA);
+        } 
+
+        return CYCLES;
+    }
 }}
