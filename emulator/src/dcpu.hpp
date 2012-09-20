@@ -15,7 +15,7 @@ namespace dcpu { namespace emulator {
 
 	class dcpu {
 	private:
-		bool skipNext;
+		bool skip_next;
 		std::uint64_t cycles;
 		std::vector<hardware_device> registered_hardware;
 
@@ -40,6 +40,7 @@ namespace dcpu { namespace emulator {
 		std::uint16_t get_next_word();
 
 		bool is_skip_next();
+		void skip_next_instruction();
 	};
 
 }}

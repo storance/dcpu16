@@ -5,7 +5,7 @@
 using namespace std;
 
 namespace dcpu { namespace emulator {
-	dcpu::dcpu() : skipNext(false), cycles(0), registered_hardware() {
+	dcpu::dcpu() : skip_next(false), cycles(0), registered_hardware() {
 		memset(memory, 0, TOTAL_MEMORY);
 		memset(registers, 0, TOTAL_REGISTERS);
 	}
@@ -52,7 +52,11 @@ namespace dcpu { namespace emulator {
 	}
 
 	bool dcpu::is_skip_next() {
-		return skipNext;
+		return skip_next;
+	}
+
+	void dcpu::skip_next_instruction() {
+		skip_next = true;
 	}
 
 }}

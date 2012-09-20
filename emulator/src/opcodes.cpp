@@ -209,66 +209,147 @@ namespace dcpu { namespace emulator {
     }
 
     uint16_t shr_opcode::execute() {
+        uint16_t unsignedA = a->get();
+        uint16_t unsignedB = b->get();
+
+        b->set(unsignedB >> unsignedA);
+        cpu.ex = ((unsignedB << 16) >> unsignedA) & 0xffff;
+
         return CYCLES;
     }
 
     uint16_t asr_opcode::execute() {
+        uint16_t unsignedA = a->get();
+        int16_t signedB = b->get();
+
+        b->set(signedB >> unsignedA);
+        cpu.ex = ((signedB << 16) >> unsignedA) & 0xffff;
+
         return CYCLES;
     }
 
     uint16_t shl_opcode::execute() {
+        uint16_t unsignedA = a->get();
+        uint16_t unsignedB = b->get();
+
+        uint32_t result = unsignedB << unsignedA;
+        b->set(result);
+        cpu.ex = (result >> 16) & 0xffff;
+
         return CYCLES;
     }
 
     uint16_t ifb_opcode::execute() {
+        if ((b->get() & a->get()) == 0) {
+            cpu.skip_next_instruction();
+        }
+
         return CYCLES;
     }
 
     uint16_t ifc_opcode::execute() {
+        if ((b->get() & a->get()) != 0) {
+            cpu.skip_next_instruction();
+        }
+
         return CYCLES;
     }
 
     uint16_t ife_opcode::execute() {
+        if (b->get() != a->get()) {
+            cpu.skip_next_instruction();
+        }
+
         return CYCLES;
     }
 
     uint16_t ifn_opcode::execute() {
+        if (b->get() == a->get()) {
+            cpu.skip_next_instruction();
+        }
+
         return CYCLES;
     }
 
     uint16_t ifg_opcode::execute() {
+        if (b->get() <= a->get()) {
+            cpu.skip_next_instruction();
+        }
+
         return CYCLES;
     }
 
     uint16_t ifa_opcode::execute() {
+        int16_t signedB = b->get();
+        int16_t signedA = a->get();
+
+        if (signedB <= signedA) {
+            cpu.skip_next_instruction();
+        }
+
         return CYCLES;
     }
 
     uint16_t ifl_opcode::execute() {
+        if (b->get() >= a->get()) {
+            cpu.skip_next_instruction();
+        }
+
         return CYCLES;
     }
 
     uint16_t ifu_opcode::execute() {
+        int16_t signedB = b->get();
+        int16_t signedA = a->get();
+
+        if (signedB >= signedA) {
+            cpu.skip_next_instruction();
+        }
+
+        return CYCLES;
         return CYCLES;
     }
 
     uint16_t adx_opcode::execute() {
+        uint32_t result = b->get() + a->get() + cpu.ex;
+
+        b->set(result);
+        cpu.ex = result >> 16;
+
         return CYCLES;
     }
 
     uint16_t sbx_opcode::execute() {
+        uint32_t result = b->get() - a->get() + cpu.ex;
+        b->set(result);
+
+        cpu.ex = result >> 16;
+
         return CYCLES;
     }
 
     uint16_t sti_opcode::execute() {
+        b->set(a->get());
+
+        ++cpu.i;
+        ++cpu.j;
+
         return CYCLES;
     }
 
     uint16_t std_opcode::execute() {
+        b->set(a->get());
+
+        --cpu.i;
+        --cpu.j;
+
         return CYCLES;
     }
 
     uint16_t jsr_opcode::execute() {
+        cpu.push(cpu.pc);
+        cpu.pc = a->get();
+
         return CYCLES;
     }
 
