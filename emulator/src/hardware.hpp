@@ -5,6 +5,7 @@
 namespace dcpu { namespace emulator {
 
 	class hardware_device {
+	protected:
 		dcpu &cpu;
 		uint32_t manufacturer_id;
 		uint32_t hardware_id;

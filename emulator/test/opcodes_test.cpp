@@ -8,6 +8,7 @@
 
 using namespace std;
 
+using dcpu::emulator::hardware_device;
 using dcpu::emulator::argument;
 using dcpu::emulator::literal_argument;
 using dcpu::emulator::register_argument;
@@ -16,6 +17,11 @@ using dcpu::emulator::registers;
 
 #define EXECUTE_BASIC_OPCODE(op, cpu, a, b) { \
 dcpu::emulator::op ## _opcode opcode(cpu, a, b); \
+opcode.execute(); \
+}
+
+#define EXECUTE_SPECIAL_OPCODE(op, cpu, a) { \
+dcpu::emulator::op ## _opcode opcode(cpu, a); \
 opcode.execute(); \
 }
 
@@ -568,4 +574,198 @@ TEST(Opcodes, Std) {
 	EXPECT_EQ(0xff, cpu.registers.a);
 	EXPECT_EQ(41, cpu.registers.i);
 	EXPECT_EQ(0, cpu.registers.j);
+}
+
+TEST(Opcodes, Jsr) {
+	dcpu::emulator::dcpu cpu;
+
+	cpu.registers.pc = 0x001c;
+	unique_ptr<argument> a = create_literal_arg(0x00ff);
+
+	EXECUTE_SPECIAL_OPCODE(jsr, cpu, a)
+
+	EXPECT_EQ(0x00ff, cpu.registers.pc);
+	EXPECT_EQ(0x001c, cpu.stack.peek());
+}
+
+TEST(Opcodes, Hcf) {
+	dcpu::emulator::dcpu cpu;
+
+	unique_ptr<argument> a = create_literal_arg(0x00ff);
+
+	EXECUTE_SPECIAL_OPCODE(hcf, cpu, a)
+
+	EXPECT_TRUE(cpu.is_on_fire());
+}
+
+TEST(Opcodes, Int) {
+	dcpu::emulator::dcpu cpu;
+
+	cpu.registers.a = 42;
+	cpu.registers.pc = 0x001c;
+	cpu.registers.ia = 0x00a3;
+	unique_ptr<argument> a = create_literal_arg(0x00ff);
+
+	EXECUTE_SPECIAL_OPCODE(int, cpu, a)
+
+	EXPECT_TRUE(cpu.interrupt_handler.is_queue_enabled());
+	EXPECT_EQ(0x00a3, cpu.registers.pc);
+	EXPECT_EQ(0x00ff, cpu.registers.a);
+	EXPECT_EQ(42, cpu.stack.pick(0));
+	EXPECT_EQ(0x001c, cpu.stack.pick(1));
+}
+
+TEST(Opcodes, IntWithNoHandler) {
+	dcpu::emulator::dcpu cpu;
+
+	cpu.registers.pc = 0x001c;
+	unique_ptr<argument> a = create_literal_arg(0x00ff);
+
+	EXECUTE_SPECIAL_OPCODE(int, cpu, a)
+
+	EXPECT_EQ(0x001c, cpu.registers.pc);
+	EXPECT_EQ(0, cpu.registers.sp);
+}
+
+TEST(Opcodes, Iag) {
+	dcpu::emulator::dcpu cpu;
+
+	cpu.registers.ia = 42;
+	unique_ptr<argument> a = create_register_arg(cpu, 0);
+
+	EXECUTE_SPECIAL_OPCODE(iag, cpu, a)
+
+	EXPECT_EQ(42, cpu.registers.a);
+	EXPECT_EQ(42, cpu.registers.ia);
+}
+
+TEST(Opcodes, Ias) {
+	dcpu::emulator::dcpu cpu;
+
+	cpu.registers.ia = 42;
+	unique_ptr<argument> a = create_register_arg(cpu, 0xff);
+
+	EXECUTE_SPECIAL_OPCODE(ias, cpu, a)
+
+	EXPECT_EQ(0xff, cpu.registers.a);
+	EXPECT_EQ(0xff, cpu.registers.ia);
+}
+
+TEST(Opcodes, Iaq) {
+	dcpu::emulator::dcpu cpu;
+
+	unique_ptr<argument> a = create_literal_arg(1);
+
+	EXECUTE_SPECIAL_OPCODE(iaq, cpu, a)
+	EXPECT_TRUE(cpu.interrupt_handler.is_queue_enabled());
+
+	a = create_literal_arg(0);
+
+	EXECUTE_SPECIAL_OPCODE(iaq, cpu, a)
+	EXPECT_FALSE(cpu.interrupt_handler.is_queue_enabled());
+}
+
+class dummy_hardware : public hardware_device {
+	enum { HARDWARE_ID = 0x01020304, MANUFACTURER_ID = 0x1a2b3c4d, VERSION = 0x03};
+public:
+	bool interrupt_called;
+	dummy_hardware(dcpu::emulator::dcpu &cpu) : hardware_device(cpu, MANUFACTURER_ID, HARDWARE_ID, VERSION),
+		interrupt_called(false) {
+
+	}
+
+	virtual void tick() {
+
+	}
+
+	virtual uint16_t interrupt() {
+		interrupt_called = true;
+		cpu.registers.z = 32;
+
+		return 0;
+	}
+};
+
+TEST(Opcodes, Hwn) {
+	dcpu::emulator::dcpu cpu;
+
+	cpu.hardware_manager.register_device(make_shared<dummy_hardware>(cpu));
+
+	unique_ptr<argument> a = create_register_arg(cpu, 30);
+
+	EXECUTE_SPECIAL_OPCODE(hwn, cpu, a)
+	
+	EXPECT_EQ(1, cpu.registers.a);
+}
+
+TEST(Opcodes, HwnWithNoHardware) {
+	dcpu::emulator::dcpu cpu;
+
+	unique_ptr<argument> a = create_register_arg(cpu, 30);
+
+	EXECUTE_SPECIAL_OPCODE(hwn, cpu, a)
+
+	EXPECT_EQ(0, cpu.registers.a);
+}
+
+TEST(Opcodes, Hwq) {
+	dcpu::emulator::dcpu cpu;
+
+	cpu.hardware_manager.register_device(make_shared<dummy_hardware>(cpu));
+
+	unique_ptr<argument> a = create_literal_arg(0);
+
+	EXECUTE_SPECIAL_OPCODE(hwq, cpu, a)
+	
+	EXPECT_EQ(0x0304, cpu.registers.a);
+	EXPECT_EQ(0x0102, cpu.registers.b);
+	EXPECT_EQ(0x0003, cpu.registers.c);
+	EXPECT_EQ(0x3c4d, cpu.registers.x);
+	EXPECT_EQ(0x1a2b, cpu.registers.y);
+}
+
+TEST(Opcodes, HwqOutOfBounds) {
+	dcpu::emulator::dcpu cpu;
+
+	cpu.hardware_manager.register_device(make_shared<dummy_hardware>(cpu));
+
+	unique_ptr<argument> a = create_literal_arg(1);
+
+	EXECUTE_SPECIAL_OPCODE(hwq, cpu, a)
+	
+	EXPECT_EQ(0, cpu.registers.a);
+	EXPECT_EQ(0, cpu.registers.b);
+	EXPECT_EQ(0, cpu.registers.c);
+	EXPECT_EQ(0, cpu.registers.x);
+	EXPECT_EQ(0, cpu.registers.y);
+}
+
+TEST(Opcodes, Hwi) {
+	dcpu::emulator::dcpu cpu;
+
+	auto device = make_shared<dummy_hardware>(cpu);
+	cpu.hardware_manager.register_device(device);
+
+	unique_ptr<argument> a = create_literal_arg(0);
+
+	EXECUTE_SPECIAL_OPCODE(hwi, cpu, a)
+	
+	// dummy hardware 
+	EXPECT_TRUE(device->interrupt_called);
+	EXPECT_EQ(32, cpu.registers.z);
+}
+
+TEST(Opcodes, HwiOutOfBounds) {
+	dcpu::emulator::dcpu cpu;
+
+	auto device = make_shared<dummy_hardware>(cpu);
+	cpu.hardware_manager.register_device(device);
+
+	unique_ptr<argument> a = create_literal_arg(1);
+
+	EXECUTE_SPECIAL_OPCODE(hwi, cpu, a)
+	
+	// dummy hardware 
+	EXPECT_FALSE(device->interrupt_called);
+	EXPECT_EQ(0, cpu.registers.z);
 }

@@ -147,7 +147,7 @@ namespace dcpu { namespace emulator {
 	}
 
 	bool dcpu_interrupt_handler::is_queue_enabled() {
-		return 	queue_enabled = true;
+		return queue_enabled;
 	}
 
 	void dcpu_interrupt_handler::send(uint16_t message) {
