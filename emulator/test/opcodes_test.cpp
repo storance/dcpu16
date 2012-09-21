@@ -20,7 +20,7 @@ opcode.execute(); \
 }
 
 static unique_ptr<argument> create_register_arg(dcpu::emulator::dcpu &cpu, uint16_t initial_value) {
-	cpu.a = initial_value;
+	cpu.registers.a = initial_value;
 
 	return unique_ptr<argument>(new register_argument(cpu, registers::A));
 }
@@ -37,7 +37,7 @@ TEST(Opcodes, Set) {
 
 	EXECUTE_BASIC_OPCODE(set, cpu, a, b)
 
-	EXPECT_EQ(17, cpu.a);
+	EXPECT_EQ(17, cpu.registers.a);
 }
 
 TEST(Opcodes, Add) {
@@ -48,8 +48,8 @@ TEST(Opcodes, Add) {
 
 	EXECUTE_BASIC_OPCODE(add, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ(40, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ(40, cpu.registers.a);
 }
 
 
@@ -61,8 +61,8 @@ TEST(Opcodes, AddWithOverflow) {
 
 	EXECUTE_BASIC_OPCODE(add, cpu, a, b)
 
-	EXPECT_EQ(1, cpu.ex);
-	EXPECT_EQ(4464, cpu.a);
+	EXPECT_EQ(1, cpu.registers.ex);
+	EXPECT_EQ(4464, cpu.registers.a);
 }
 
 TEST(Opcodes, Sub) {
@@ -73,8 +73,8 @@ TEST(Opcodes, Sub) {
 
 	EXECUTE_BASIC_OPCODE(sub, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ(4, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ(4, cpu.registers.a);
 }
 
 
@@ -86,8 +86,8 @@ TEST(Opcodes, SubWithUnderflow) {
 
 	EXECUTE_BASIC_OPCODE(sub, cpu, a, b)
 
-	EXPECT_EQ(0xffff, cpu.ex);
-	EXPECT_EQ(0xffff, cpu.a);
+	EXPECT_EQ(0xffff, cpu.registers.ex);
+	EXPECT_EQ(0xffff, cpu.registers.a);
 }
 
 TEST(Opcodes, Mul) {
@@ -98,8 +98,8 @@ TEST(Opcodes, Mul) {
 
 	EXECUTE_BASIC_OPCODE(mul, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ(4, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ(4, cpu.registers.a);
 }
 
 TEST(Opcodes, MulWithOverflow) {
@@ -110,8 +110,8 @@ TEST(Opcodes, MulWithOverflow) {
 
 	EXECUTE_BASIC_OPCODE(mul, cpu, a, b)
 
-	EXPECT_EQ(0x4000, cpu.ex);
-	EXPECT_EQ(0, cpu.a);
+	EXPECT_EQ(0x4000, cpu.registers.ex);
+	EXPECT_EQ(0, cpu.registers.a);
 }
 
 TEST(Opcodes, Mli) {
@@ -122,8 +122,8 @@ TEST(Opcodes, Mli) {
 
 	EXECUTE_BASIC_OPCODE(mli, cpu, a, b)
 
-	EXPECT_EQ(0xffff, cpu.ex);
-	EXPECT_EQ((uint16_t)-4, cpu.a);
+	EXPECT_EQ(0xffff, cpu.registers.ex);
+	EXPECT_EQ((uint16_t)-4, cpu.registers.a);
 }
 
 TEST(Opcodes, MliWithUnderflow) {
@@ -134,8 +134,8 @@ TEST(Opcodes, MliWithUnderflow) {
 
 	EXECUTE_BASIC_OPCODE(mli, cpu, a, b)
 
-	EXPECT_EQ(0xffff, cpu.ex);
-	EXPECT_EQ(0xfffc, cpu.a);
+	EXPECT_EQ(0xffff, cpu.registers.ex);
+	EXPECT_EQ(0xfffc, cpu.registers.a);
 }
 
 TEST(Opcodes, MliWithOverflow) {
@@ -146,8 +146,8 @@ TEST(Opcodes, MliWithOverflow) {
 
 	EXECUTE_BASIC_OPCODE(mli, cpu, a, b)
 
-	EXPECT_EQ(4, cpu.ex);
-	EXPECT_EQ(0, cpu.a);
+	EXPECT_EQ(4, cpu.registers.ex);
+	EXPECT_EQ(0, cpu.registers.a);
 }
 
 TEST(Opcodes, Div) {
@@ -158,8 +158,8 @@ TEST(Opcodes, Div) {
 
 	EXECUTE_BASIC_OPCODE(div, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ(40, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ(40, cpu.registers.a);
 }
 
 TEST(Opcodes, DivByZero) {
@@ -170,8 +170,8 @@ TEST(Opcodes, DivByZero) {
 
 	EXECUTE_BASIC_OPCODE(div, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ(0, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ(0, cpu.registers.a);
 }
 
 TEST(Opcodes, DivWithFractionalPart) {
@@ -182,8 +182,8 @@ TEST(Opcodes, DivWithFractionalPart) {
 
 	EXECUTE_BASIC_OPCODE(div, cpu, a, b)
 
-	EXPECT_EQ(0x2762, cpu.ex);
-	EXPECT_EQ(0x13b1, cpu.a);
+	EXPECT_EQ(0x2762, cpu.registers.ex);
+	EXPECT_EQ(0x13b1, cpu.registers.a);
 }
 
 TEST(Opcodes, Dvi) {
@@ -194,8 +194,8 @@ TEST(Opcodes, Dvi) {
 
 	EXECUTE_BASIC_OPCODE(dvi, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ((uint16_t)-40, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ((uint16_t)-40, cpu.registers.a);
 }
 
 TEST(Opcodes, DviByZero) {
@@ -206,8 +206,8 @@ TEST(Opcodes, DviByZero) {
 
 	EXECUTE_BASIC_OPCODE(dvi, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ(0, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ(0, cpu.registers.a);
 }
 
 TEST(Opcodes, DviWithFractionalPart) {
@@ -218,8 +218,8 @@ TEST(Opcodes, DviWithFractionalPart) {
 
 	EXECUTE_BASIC_OPCODE(dvi, cpu, a, b)
 
-	EXPECT_EQ(0x8000, cpu.ex);
-	EXPECT_EQ(0xc000, cpu.a);
+	EXPECT_EQ(0x8000, cpu.registers.ex);
+	EXPECT_EQ(0xc000, cpu.registers.a);
 }
 
 TEST(Opcodes, Mod) {
@@ -230,7 +230,7 @@ TEST(Opcodes, Mod) {
 
 	EXECUTE_BASIC_OPCODE(mod, cpu, a, b)
 
-	EXPECT_EQ(5, cpu.a);
+	EXPECT_EQ(5, cpu.registers.a);
 }
 
 TEST(Opcodes, Mdi) {
@@ -241,7 +241,7 @@ TEST(Opcodes, Mdi) {
 
 	EXECUTE_BASIC_OPCODE(mdi, cpu, a, b)
 
-	EXPECT_EQ((uint16_t)-7, cpu.a);
+	EXPECT_EQ((uint16_t)-7, cpu.registers.a);
 }
 
 TEST(Opcodes, And) {
@@ -252,7 +252,7 @@ TEST(Opcodes, And) {
 
 	EXECUTE_BASIC_OPCODE(and, cpu, a, b)
 
-	EXPECT_EQ(0x7030, cpu.a);
+	EXPECT_EQ(0x7030, cpu.registers.a);
 }
 
 TEST(Opcodes, Bor) {
@@ -263,7 +263,7 @@ TEST(Opcodes, Bor) {
 
 	EXECUTE_BASIC_OPCODE(bor, cpu, a, b)
 
-	EXPECT_EQ(0xfaff, cpu.a);
+	EXPECT_EQ(0xfaff, cpu.registers.a);
 }
 
 TEST(Opcodes, Xor) {
@@ -274,7 +274,7 @@ TEST(Opcodes, Xor) {
 
 	EXECUTE_BASIC_OPCODE(xor, cpu, a, b)
 
-	EXPECT_EQ(0x0fff, cpu.a);
+	EXPECT_EQ(0x0fff, cpu.registers.a);
 }
 
 TEST(Opcodes, Shr) {
@@ -285,8 +285,8 @@ TEST(Opcodes, Shr) {
 
 	EXECUTE_BASIC_OPCODE(shr, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ(2, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ(2, cpu.registers.a);
 }
 
 TEST(Opcodes, ShrWithUnderflow) {
@@ -297,8 +297,8 @@ TEST(Opcodes, ShrWithUnderflow) {
 
 	EXECUTE_BASIC_OPCODE(shr, cpu, a, b)
 
-	EXPECT_EQ(0xc000, cpu.ex);
-	EXPECT_EQ(1, cpu.a);
+	EXPECT_EQ(0xc000, cpu.registers.ex);
+	EXPECT_EQ(1, cpu.registers.a);
 }
 
 TEST(Opcodes, Asr) {
@@ -309,8 +309,8 @@ TEST(Opcodes, Asr) {
 
 	EXECUTE_BASIC_OPCODE(asr, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ((uint16_t)-2, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ((uint16_t)-2, cpu.registers.a);
 }
 
 TEST(Opcodes, AsrWithUnderflow) {
@@ -321,8 +321,8 @@ TEST(Opcodes, AsrWithUnderflow) {
 
 	EXECUTE_BASIC_OPCODE(asr, cpu, a, b)
 
-	EXPECT_EQ(0x4000, cpu.ex);
-	EXPECT_EQ((uint16_t)-2, cpu.a);
+	EXPECT_EQ(0x4000, cpu.registers.ex);
+	EXPECT_EQ((uint16_t)-2, cpu.registers.a);
 }
 
 TEST(Opcodes, Shl) {
@@ -333,8 +333,8 @@ TEST(Opcodes, Shl) {
 
 	EXECUTE_BASIC_OPCODE(shl, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ(32, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ(32, cpu.registers.a);
 }
 
 TEST(Opcodes, ShlWithOverflow) {
@@ -345,8 +345,8 @@ TEST(Opcodes, ShlWithOverflow) {
 
 	EXECUTE_BASIC_OPCODE(shl, cpu, a, b)
 
-	EXPECT_EQ(0x0001, cpu.ex);
-	EXPECT_EQ(0x00f0, cpu.a);
+	EXPECT_EQ(0x0001, cpu.registers.ex);
+	EXPECT_EQ(0x00f0, cpu.registers.a);
 }
 
 TEST(Opcodes, Ifb) {
@@ -489,83 +489,83 @@ TEST(Opcodes, Ifu) {
 TEST(Opcodes, Adx) {
 	dcpu::emulator::dcpu cpu;
 
-	cpu.ex = 10;
+	cpu.registers.ex = 10;
 	unique_ptr<argument> b = create_register_arg(cpu, 22);
 	unique_ptr<argument> a = create_literal_arg(18);
 
 	EXECUTE_BASIC_OPCODE(adx, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ(50, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ(50, cpu.registers.a);
 }
 
 
 TEST(Opcodes, AdxWithOverflow) {
 	dcpu::emulator::dcpu cpu;
 
-	cpu.ex = 3;
+	cpu.registers.ex = 3;
 	unique_ptr<argument> b = create_register_arg(cpu, 65035);
 	unique_ptr<argument> a = create_literal_arg(500);
 
 	EXECUTE_BASIC_OPCODE(adx, cpu, a, b)
 
-	EXPECT_EQ(1, cpu.ex);
-	EXPECT_EQ(2, cpu.a);
+	EXPECT_EQ(1, cpu.registers.ex);
+	EXPECT_EQ(2, cpu.registers.a);
 }
 
 TEST(Opcodes, Sbx) {
 	dcpu::emulator::dcpu cpu;
 
-	cpu.ex = 4;
+	cpu.registers.ex = 4;
 	unique_ptr<argument> b = create_register_arg(cpu, 22);
 	unique_ptr<argument> a = create_literal_arg(18);
 
 	EXECUTE_BASIC_OPCODE(sbx, cpu, a, b)
 
-	EXPECT_EQ(0, cpu.ex);
-	EXPECT_EQ(8, cpu.a);
+	EXPECT_EQ(0, cpu.registers.ex);
+	EXPECT_EQ(8, cpu.registers.a);
 }
 
 
 TEST(Opcodes, SbxWithUnderflow) {
 	dcpu::emulator::dcpu cpu;
 
-	cpu.ex = 1;
+	cpu.registers.ex = 1;
 	unique_ptr<argument> b = create_register_arg(cpu, 0);
 	unique_ptr<argument> a = create_literal_arg(2);
 
 	EXECUTE_BASIC_OPCODE(sbx, cpu, a, b)
 
-	EXPECT_EQ(0xffff, cpu.ex);
-	EXPECT_EQ(0xffff, cpu.a);
+	EXPECT_EQ(0xffff, cpu.registers.ex);
+	EXPECT_EQ(0xffff, cpu.registers.a);
 }
 
 TEST(Opcodes, Sti) {
 	dcpu::emulator::dcpu cpu;
 
-	cpu.i = 42;
-	cpu.j = 1;
+	cpu.registers.i = 42;
+	cpu.registers.j = 1;
 	unique_ptr<argument> b = create_register_arg(cpu, 0);
 	unique_ptr<argument> a = create_literal_arg(0xff);
 
 	EXECUTE_BASIC_OPCODE(sti, cpu, a, b)
 
-	EXPECT_EQ(0xff, cpu.a);
-	EXPECT_EQ(43, cpu.i);
-	EXPECT_EQ(2, cpu.j);
+	EXPECT_EQ(0xff, cpu.registers.a);
+	EXPECT_EQ(43, cpu.registers.i);
+	EXPECT_EQ(2, cpu.registers.j);
 }
 
 TEST(Opcodes, Std) {
 	dcpu::emulator::dcpu cpu;
 
-	cpu.i = 42;
-	cpu.j = 1;
+	cpu.registers.i = 42;
+	cpu.registers.j = 1;
 	unique_ptr<argument> b = create_register_arg(cpu, 0);
 	unique_ptr<argument> a = create_literal_arg(0xff);
 
 	EXECUTE_BASIC_OPCODE(std, cpu, a, b)
 
-	EXPECT_EQ(0xff, cpu.a);
-	EXPECT_EQ(41, cpu.i);
-	EXPECT_EQ(0, cpu.j);
+	EXPECT_EQ(0xff, cpu.registers.a);
+	EXPECT_EQ(41, cpu.registers.i);
+	EXPECT_EQ(0, cpu.registers.j);
 }

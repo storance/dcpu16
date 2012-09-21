@@ -28,34 +28,43 @@ namespace dcpu { namespace emulator {
 
 	}
 
+    uint16_t argument::get_cycles() const {
+        return 0;
+    }
+
     /*************************************************************************
      *
      * writable_argument
      *
      *************************************************************************/
-
-    writable_argument::writable_argument() : address(nullptr) {
-
-    }
-
-	writable_argument::writable_argument(uint16_t* address) : address(address) {
+	writable_argument::writable_argument(uint16_t &value) : value(value) {
 
 	}
 
 	uint16_t writable_argument::get() {
-        assert(address);
-
-		return *address;
+		return value;
 	}
 
 	void writable_argument::set(uint16_t value) {
-        assert(address);
-
-		*this->address = value;
+		this->value = value;
 	}
 
-    void writable_argument::set_address(uint16_t* address) {
-        this->address = address;
+    /*************************************************************************
+     *
+     * readonly_argument
+     *
+     *************************************************************************/
+
+    readonly_argument::readonly_argument(uint16_t value) : value(value) {
+
+    }
+
+    uint16_t readonly_argument::get() {
+        return value;
+    }
+    
+    void readonly_argument::set(uint16_t) {
+        // no-op
     }
 
     /*************************************************************************
@@ -65,8 +74,7 @@ namespace dcpu { namespace emulator {
      *************************************************************************/
     
     register_argument::register_argument(dcpu &cpu, registers _register) 
-        : writable_argument(), _register(_register) {
-        set_address(cpu.registers + static_cast<uint8_t>(_register));
+            : writable_argument(cpu.registers[_register]), _register(_register) {
     }
 
     bool register_argument::matches(uint8_t code, bool isA) {
@@ -96,10 +104,8 @@ namespace dcpu { namespace emulator {
      *
      *************************************************************************/
     
-    register_indirect_argument::register_indirect_argument(dcpu &cpu, registers _register)
-        : writable_argument(), _register(_register) {
-        uint16_t register_value = cpu.registers[static_cast<uint8_t>(_register)];
-        set_address(cpu.memory + register_value);
+    register_indirect_argument::register_indirect_argument(dcpu &cpu, registers _register) 
+            : writable_argument(cpu.registers.indirect(_register)), _register(_register) {
     }
  
     bool register_indirect_argument::matches(uint8_t code, bool isA) {
@@ -119,10 +125,12 @@ namespace dcpu { namespace emulator {
      *************************************************************************/
 
     register_indirect_offset_argument::register_indirect_offset_argument(dcpu &cpu, registers _register,
-            uint16_t offset) : writable_argument(), _register(_register), offset(offset) {
+            uint16_t offset) : writable_argument(cpu.registers.indirect(_register,  offset)), _register(_register),
+            offset(offset) {
+    }
 
-        uint16_t register_value = cpu.registers[static_cast<uint8_t>(_register)];
-        set_address(cpu.memory + register_value + offset);
+    uint16_t register_indirect_offset_argument::get_cycles() const {
+        return 1;
     }
 
     bool register_indirect_offset_argument::matches(uint8_t code, bool isA) {
@@ -141,7 +149,7 @@ namespace dcpu { namespace emulator {
      *
      *************************************************************************/
     
-    stack_push_argument::stack_push_argument(dcpu &cpu) : writable_argument(cpu.memory + cpu.sp++) {
+    stack_push_argument::stack_push_argument(dcpu &cpu) : writable_argument(cpu.stack.push()) {
 
     }
 
@@ -158,7 +166,7 @@ namespace dcpu { namespace emulator {
      * stack_pop_argument
      *
      *************************************************************************/
-    stack_pop_argument::stack_pop_argument(dcpu &cpu) : writable_argument(cpu.memory + --cpu.sp) {
+    stack_pop_argument::stack_pop_argument(dcpu &cpu) : writable_argument(cpu.stack.pop()) {
 
     }
 
@@ -175,7 +183,7 @@ namespace dcpu { namespace emulator {
      * stack_peek_argument
      *
      *************************************************************************/
-    stack_peek_argument::stack_peek_argument(dcpu &cpu) : writable_argument(cpu.memory + cpu.sp) {
+    stack_peek_argument::stack_peek_argument(dcpu &cpu) : writable_argument(cpu.stack.peek()) {
 
     }
 
@@ -193,7 +201,7 @@ namespace dcpu { namespace emulator {
      *
      *************************************************************************/
     stack_pick_argument::stack_pick_argument(dcpu &cpu, uint16_t offset) 
-        : writable_argument(cpu.memory + cpu.sp + offset), offset(offset)  {
+        : writable_argument(cpu.stack.pick(offset)), offset(offset)  {
 
     }
 
@@ -210,9 +218,12 @@ namespace dcpu { namespace emulator {
      * indirect_next_word_argument
      *
      *************************************************************************/
-    indirect_next_word_argument::indirect_next_word_argument(dcpu &cpu) 
-        : writable_argument(), next_word(cpu.get_next_word()) {
-        set_address(cpu.memory + next_word);
+    indirect_next_word_argument::indirect_next_word_argument(dcpu &cpu, uint16_t next_word) 
+            : writable_argument(cpu.memory[next_word]), next_word(next_word) {
+    }
+
+    uint16_t indirect_next_word_argument::get_cycles() const {
+        return 1;
     }
 
     bool indirect_next_word_argument::matches(uint8_t code, bool isA) {
@@ -220,7 +231,28 @@ namespace dcpu { namespace emulator {
     }
     
     unique_ptr<argument> indirect_next_word_argument::create(dcpu &cpu, uint8_t code, bool isA) {
-        return unique_ptr<argument>(new indirect_next_word_argument(cpu));
+        return unique_ptr<argument>(new indirect_next_word_argument(cpu, cpu.get_next_word()));
+    }
+
+    /*************************************************************************
+     *
+     * next_word_argument
+     *
+     *************************************************************************/
+    next_word_argument::next_word_argument(uint16_t value) : readonly_argument(value) {
+
+    }
+
+    uint16_t next_word_argument::get_cycles() const {
+        return 1;
+    }
+
+    bool next_word_argument::matches(uint8_t code, bool isA) {
+        return code == VALUE;
+    }
+
+    unique_ptr<argument> next_word_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+        return unique_ptr<argument>(new next_word_argument(cpu.get_next_word()));
     }
     
     /*************************************************************************
@@ -229,29 +261,16 @@ namespace dcpu { namespace emulator {
      *
      *************************************************************************/
 
-	literal_argument::literal_argument(uint16_t value) : value(value) {
+	literal_argument::literal_argument(uint16_t value) : readonly_argument(value) {
 
-	}
-
-	uint16_t literal_argument::get() {
-		return value;
-	}
-
-	void literal_argument::set(uint16_t value) {
-		// no-op
 	}
 
     bool literal_argument::matches(uint8_t code, bool isA) {
-        return code == NEXT_WORD || (code >= START && code <= END);
+        return code >= START && code <= END;
     }
     
     unique_ptr<argument> literal_argument::create(dcpu &cpu, uint8_t code, bool isA) {
-        uint16_t value = 0;
-        if (code == NEXT_WORD) {
-            value = cpu.get_next_word();
-        } else {
-            value = code - START - 1;
-        }
+        uint16_t value = code - START - 1;
 
         return unique_ptr<argument>(new literal_argument(value));
     }

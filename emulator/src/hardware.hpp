@@ -14,7 +14,7 @@ namespace dcpu { namespace emulator {
 		virtual ~hardware_device();
 
 		virtual void tick()=0;
-		virtual void interrupt()=0;
+		virtual uint16_t interrupt()=0;
 
 		uint32_t get_hardware_id();
 		uint32_t get_manufacturer_id();

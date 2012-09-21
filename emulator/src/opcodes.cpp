@@ -2,6 +2,12 @@
 
 using namespace std;
 
+#define BASIC_OPCODE_CASE(o) case o ## _opcode ::OPCODE: \
+    return std::unique_ptr<opcode>(new o ## _opcode (cpu, arg_a, arg_b));
+
+#define SPECIAL_OPCODE_CASE(o) case o ## _opcode ::OPCODE: \
+    return std::unique_ptr<opcode>(new o ## _opcode (cpu, arg_a));
+
 namespace dcpu { namespace emulator {
     unique_ptr<opcode> opcode::parse(dcpu &cpu, uint16_t instruction) {
         if ((instruction & 0x1f) != 0) {
@@ -20,33 +26,33 @@ namespace dcpu { namespace emulator {
         unique_ptr<argument> arg_b = argument::parse(cpu, b, false);
 
         switch (o) {
-        BASIC_OPCODE_CASE(set, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(add, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(sub, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(mul, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(mli, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(div, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(dvi, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(mod, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(mdi, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(and, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(bor, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(xor, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(shr, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(asr, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(shl, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(ifb, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(ifc, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(ife, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(ifn, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(ifg, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(ifa, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(ifl, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(ifu, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(adx, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(sbx, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(sti, cpu, arg_a, arg_b)
-        BASIC_OPCODE_CASE(std, cpu, arg_a, arg_b)
+        BASIC_OPCODE_CASE(set)
+        BASIC_OPCODE_CASE(add)
+        BASIC_OPCODE_CASE(sub)
+        BASIC_OPCODE_CASE(mul)
+        BASIC_OPCODE_CASE(mli)
+        BASIC_OPCODE_CASE(div)
+        BASIC_OPCODE_CASE(dvi)
+        BASIC_OPCODE_CASE(mod)
+        BASIC_OPCODE_CASE(mdi)
+        BASIC_OPCODE_CASE(and)
+        BASIC_OPCODE_CASE(bor)
+        BASIC_OPCODE_CASE(xor)
+        BASIC_OPCODE_CASE(shr)
+        BASIC_OPCODE_CASE(asr)
+        BASIC_OPCODE_CASE(shl)
+        BASIC_OPCODE_CASE(ifb)
+        BASIC_OPCODE_CASE(ifc)
+        BASIC_OPCODE_CASE(ife)
+        BASIC_OPCODE_CASE(ifn)
+        BASIC_OPCODE_CASE(ifg)
+        BASIC_OPCODE_CASE(ifa)
+        BASIC_OPCODE_CASE(ifl)
+        BASIC_OPCODE_CASE(ifu)
+        BASIC_OPCODE_CASE(adx)
+        BASIC_OPCODE_CASE(sbx)
+        BASIC_OPCODE_CASE(sti)
+        BASIC_OPCODE_CASE(std)
         default:
             // throw not supported
             break;
@@ -60,27 +66,30 @@ namespace dcpu { namespace emulator {
         unique_ptr<argument> arg_a = argument::parse(cpu, a, true);
         
         switch (o) {
-        SPECIAL_OPCODE_CASE(jsr, cpu, arg_a)
-        SPECIAL_OPCODE_CASE(hcf, cpu, arg_a)
-        SPECIAL_OPCODE_CASE(int, cpu, arg_a)
-        SPECIAL_OPCODE_CASE(iag, cpu, arg_a)
-        SPECIAL_OPCODE_CASE(ias, cpu, arg_a)
-        SPECIAL_OPCODE_CASE(rfi, cpu, arg_a)
-        SPECIAL_OPCODE_CASE(iaq, cpu, arg_a)
-        SPECIAL_OPCODE_CASE(hwn, cpu, arg_a)
-        SPECIAL_OPCODE_CASE(hwq, cpu, arg_a)
-        SPECIAL_OPCODE_CASE(hwi, cpu, arg_a)
+        SPECIAL_OPCODE_CASE(jsr)
+        SPECIAL_OPCODE_CASE(hcf)
+        SPECIAL_OPCODE_CASE(int)
+        SPECIAL_OPCODE_CASE(iag)
+        SPECIAL_OPCODE_CASE(ias)
+        SPECIAL_OPCODE_CASE(rfi)
+        SPECIAL_OPCODE_CASE(iaq)
+        SPECIAL_OPCODE_CASE(hwn)
+        SPECIAL_OPCODE_CASE(hwq)
+        SPECIAL_OPCODE_CASE(hwi)
         default:
             // throw not supported
             break;
         }
     }
 
-    opcode::opcode(dcpu &cpu, unique_ptr<argument> &a, std::unique_ptr<argument> &b) : cpu(cpu), a(move(a)), b(move(b)) {
+    opcode::opcode(dcpu &cpu, unique_ptr<argument> &a, std::unique_ptr<argument> &b, uint16_t cycles, bool is_cond,
+            const std::string &name) : cpu(cpu), a(move(a)), b(move(b)), base_cycles(cycles), is_cond(is_cond),
+            name(name) {
 
     }
 
-    opcode::opcode(dcpu &cpu, unique_ptr<argument> &a) : cpu(cpu), a(move(a)), b() {
+    opcode::opcode(dcpu &cpu, unique_ptr<argument> &a, uint16_t cycles, bool is_cond, const std::string &name) 
+            : cpu(cpu), a(move(a)), b(), base_cycles(cycles), is_cond(is_cond), name(name) {
 
     }
 
@@ -88,37 +97,49 @@ namespace dcpu { namespace emulator {
 
     }
 
+    uint16_t opcode::calculate_cycles() const {
+        return base_cycles + a->get_cycles() + (b ? b->get_cycles() : 0);
+    }
+
+    std::string opcode::get_name() const {
+        return name;
+    }
+    
+    bool opcode::is_conditional() const {
+        return is_cond;
+    }
+
     uint16_t set_opcode::execute() {
         b->set(a->get());
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t add_opcode::execute() {
         uint32_t result = a->get() + b->get();
         b->set(result);
 
-        cpu.ex = result >> 16;
+        cpu.registers.ex = result >> 16;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t sub_opcode::execute() {
         uint32_t result = b->get() - a->get();
         b->set(result);
 
-        cpu.ex = result >> 16;
+        cpu.registers.ex = result >> 16;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t mul_opcode::execute() {
         uint32_t result = b->get() * a->get();
         b->set(result);
 
-        cpu.ex = (result >> 16) & 0xffff;
+        cpu.registers.ex = (result >> 16) & 0xffff;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t mli_opcode::execute() {
@@ -128,9 +149,9 @@ namespace dcpu { namespace emulator {
         int32_t result = signedA * signedB;
         b->set(result);
 
-        cpu.ex = (result >> 16) & 0xffff;
+        cpu.registers.ex = (result >> 16) & 0xffff;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t div_opcode::execute() {
@@ -138,15 +159,15 @@ namespace dcpu { namespace emulator {
         uint32_t unsignedB = b->get();
 
         if (unsignedA == 0) {
-            cpu.ex = 0;
+            cpu.registers.ex = 0;
             b->set(0);
         } else {
             uint32_t result = (unsignedB << 16) / unsignedA;
-            cpu.ex = result & 0xffff;
+            cpu.registers.ex = result & 0xffff;
             b->set(result >> 16);
-        } 
+        }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t dvi_opcode::execute() {
@@ -154,26 +175,26 @@ namespace dcpu { namespace emulator {
         int32_t signedB = (int16_t)b->get();
 
         if (signedA == 0) {
-            cpu.ex = 0;
+            cpu.registers.ex = 0;
             b->set(0);
         } else {
             int32_t result = (signedB << 16) / signedA;
-            cpu.ex = result & 0xffff;
+            cpu.registers.ex = result & 0xffff;
             b->set(result >> 16);
-        } 
+        }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t mod_opcode::execute() {
         if (a->get() == 0) {
-            cpu.ex = 0;
+            cpu.registers.ex = 0;
             b->set(0);
         } else {
             b->set(b->get() % a->get());
-        } 
+        }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t mdi_opcode::execute() {
@@ -181,31 +202,31 @@ namespace dcpu { namespace emulator {
         int16_t signedB = (int16_t)b->get();
 
         if (signedA == 0) {
-            cpu.ex = 0;
+            cpu.registers.ex = 0;
             b->set(0);
         } else {
             b->set(signedB % signedA);
-        } 
+        }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t and_opcode::execute() {
         b->set(b->get() & a->get());
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t bor_opcode::execute() {
         b->set(b->get() | a->get());
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t xor_opcode::execute() {
         b->set(b->get() ^ a->get());
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t shr_opcode::execute() {
@@ -213,9 +234,9 @@ namespace dcpu { namespace emulator {
         uint16_t unsignedB = b->get();
 
         b->set(unsignedB >> unsignedA);
-        cpu.ex = ((unsignedB << 16) >> unsignedA) & 0xffff;
+        cpu.registers.ex = ((unsignedB << 16) >> unsignedA) & 0xffff;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t asr_opcode::execute() {
@@ -223,9 +244,9 @@ namespace dcpu { namespace emulator {
         int16_t signedB = b->get();
 
         b->set(signedB >> unsignedA);
-        cpu.ex = ((signedB << 16) >> unsignedA) & 0xffff;
+        cpu.registers.ex = ((signedB << 16) >> unsignedA) & 0xffff;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t shl_opcode::execute() {
@@ -234,9 +255,9 @@ namespace dcpu { namespace emulator {
 
         uint32_t result = unsignedB << unsignedA;
         b->set(result);
-        cpu.ex = (result >> 16) & 0xffff;
+        cpu.registers.ex = (result >> 16) & 0xffff;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t ifb_opcode::execute() {
@@ -244,7 +265,7 @@ namespace dcpu { namespace emulator {
             cpu.skip_next_instruction();
         }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t ifc_opcode::execute() {
@@ -252,7 +273,7 @@ namespace dcpu { namespace emulator {
             cpu.skip_next_instruction();
         }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t ife_opcode::execute() {
@@ -260,7 +281,7 @@ namespace dcpu { namespace emulator {
             cpu.skip_next_instruction();
         }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t ifn_opcode::execute() {
@@ -268,7 +289,7 @@ namespace dcpu { namespace emulator {
             cpu.skip_next_instruction();
         }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t ifg_opcode::execute() {
@@ -276,7 +297,7 @@ namespace dcpu { namespace emulator {
             cpu.skip_next_instruction();
         }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t ifa_opcode::execute() {
@@ -287,7 +308,7 @@ namespace dcpu { namespace emulator {
             cpu.skip_next_instruction();
         }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t ifl_opcode::execute() {
@@ -295,7 +316,7 @@ namespace dcpu { namespace emulator {
             cpu.skip_next_instruction();
         }
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t ifu_opcode::execute() {
@@ -306,86 +327,109 @@ namespace dcpu { namespace emulator {
             cpu.skip_next_instruction();
         }
 
-        return CYCLES;
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t adx_opcode::execute() {
-        uint32_t result = b->get() + a->get() + cpu.ex;
+        uint32_t result = b->get() + a->get() + cpu.registers.ex;
 
         b->set(result);
-        cpu.ex = result >> 16;
+        cpu.registers.ex = result >> 16;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t sbx_opcode::execute() {
-        uint32_t result = b->get() - a->get() + cpu.ex;
+        uint32_t result = b->get() - a->get() + cpu.registers.ex;
         b->set(result);
 
-        cpu.ex = result >> 16;
+        cpu.registers.ex = result >> 16;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t sti_opcode::execute() {
         b->set(a->get());
 
-        ++cpu.i;
-        ++cpu.j;
+        ++cpu.registers.i;
+        ++cpu.registers.j;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t std_opcode::execute() {
         b->set(a->get());
 
-        --cpu.i;
-        --cpu.j;
+        --cpu.registers.i;
+        --cpu.registers.j;
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t jsr_opcode::execute() {
-        cpu.push(cpu.pc);
-        cpu.pc = a->get();
+        cpu.stack.push(cpu.registers.pc);
+        cpu.registers.pc = a->get();
 
-        return CYCLES;
+        return calculate_cycles();
     }
 
     uint16_t hcf_opcode::execute() {
-        return CYCLES;
+        cpu.catch_fire();
+
+        return calculate_cycles();
     }
 
     uint16_t int_opcode::execute() {
-        return CYCLES;
+        cpu.interrupt_handler.send(a->get());
+
+        return calculate_cycles();
     }
 
     uint16_t iag_opcode::execute() {
-        return CYCLES;
+        a->set(cpu.registers.ia);
+
+        return calculate_cycles();
     }
 
     uint16_t ias_opcode::execute() {
-        return CYCLES;
+        cpu.registers.ia = a->get();
+
+        return calculate_cycles();
     }
 
     uint16_t rfi_opcode::execute() {
-        return CYCLES;
+        cpu.interrupt_handler.disable_queue();
+        cpu.registers.a = cpu.stack.pop();
+        cpu.registers.pc = cpu.stack.pop();
+
+        return calculate_cycles();
     }
 
     uint16_t iaq_opcode::execute() {
-        return CYCLES;
+        if (a->get() != 0) {
+            cpu.interrupt_handler.enable_queue();
+        } else {
+            cpu.interrupt_handler.disable_queue();
+        }
+
+        return calculate_cycles();
     }
 
     uint16_t hwn_opcode::execute() {
-        return CYCLES;
+        a->set(cpu.hardware_manager.get_count());
+
+        return calculate_cycles();
     }
 
     uint16_t hwq_opcode::execute() {
-        return CYCLES;
+        cpu.hardware_manager.query(a->get());
+
+        return calculate_cycles();
     }
 
     uint16_t hwi_opcode::execute() {
-        return CYCLES;
+        uint16_t extra_cycles = cpu.hardware_manager.interrupt(a->get());
+
+        return calculate_cycles() + extra_cycles;
     }
 }}
