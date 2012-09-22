@@ -19,6 +19,7 @@ namespace dcpu { namespace emulator {
         HANDLE_ARGUMENT(stack_peek_argument, cpu, code, isA)
         HANDLE_ARGUMENT(stack_pick_argument, cpu, code, isA)
         HANDLE_ARGUMENT(indirect_next_word_argument, cpu, code, isA)
+        HANDLE_ARGUMENT(next_word_argument, cpu, code, isA)
         HANDLE_ARGUMENT(literal_argument, cpu, code, isA)
 
         // throw exception
