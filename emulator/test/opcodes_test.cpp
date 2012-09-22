@@ -4,8 +4,6 @@
 #include <argument.hpp>
 #include <opcodes.hpp>
 
-#include <iostream>
-
 using namespace std;
 
 using dcpu::emulator::hardware_device;
@@ -35,7 +33,7 @@ static unique_ptr<argument> create_literal_arg(uint16_t value) {
 	return unique_ptr<argument>(new literal_argument(value));
 }
 
-TEST(Opcodes, Set) {
+TEST(OpcodesTest, Set) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0);
@@ -46,7 +44,7 @@ TEST(Opcodes, Set) {
 	EXPECT_EQ(17, cpu.registers.a);
 }
 
-TEST(Opcodes, Add) {
+TEST(OpcodesTest, Add) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 22);
@@ -59,7 +57,7 @@ TEST(Opcodes, Add) {
 }
 
 
-TEST(Opcodes, AddWithOverflow) {
+TEST(OpcodesTest, AddWithOverflow) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 40000);
@@ -71,7 +69,7 @@ TEST(Opcodes, AddWithOverflow) {
 	EXPECT_EQ(4464, cpu.registers.a);
 }
 
-TEST(Opcodes, Sub) {
+TEST(OpcodesTest, Sub) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 22);
@@ -84,7 +82,7 @@ TEST(Opcodes, Sub) {
 }
 
 
-TEST(Opcodes, SubWithUnderflow) {
+TEST(OpcodesTest, SubWithUnderflow) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0);
@@ -96,7 +94,7 @@ TEST(Opcodes, SubWithUnderflow) {
 	EXPECT_EQ(0xffff, cpu.registers.a);
 }
 
-TEST(Opcodes, Mul) {
+TEST(OpcodesTest, Mul) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 2);
@@ -108,7 +106,7 @@ TEST(Opcodes, Mul) {
 	EXPECT_EQ(4, cpu.registers.a);
 }
 
-TEST(Opcodes, MulWithOverflow) {
+TEST(OpcodesTest, MulWithOverflow) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0x8000);
@@ -120,7 +118,7 @@ TEST(Opcodes, MulWithOverflow) {
 	EXPECT_EQ(0, cpu.registers.a);
 }
 
-TEST(Opcodes, Mli) {
+TEST(OpcodesTest, Mli) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, -2);
@@ -132,7 +130,7 @@ TEST(Opcodes, Mli) {
 	EXPECT_EQ((uint16_t)-4, cpu.registers.a);
 }
 
-TEST(Opcodes, MliWithUnderflow) {
+TEST(OpcodesTest, MliWithUnderflow) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0xfffe);
@@ -144,7 +142,7 @@ TEST(Opcodes, MliWithUnderflow) {
 	EXPECT_EQ(0xfffc, cpu.registers.a);
 }
 
-TEST(Opcodes, MliWithOverflow) {
+TEST(OpcodesTest, MliWithOverflow) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0x4000);
@@ -156,7 +154,7 @@ TEST(Opcodes, MliWithOverflow) {
 	EXPECT_EQ(0, cpu.registers.a);
 }
 
-TEST(Opcodes, Div) {
+TEST(OpcodesTest, Div) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 80);
@@ -168,7 +166,7 @@ TEST(Opcodes, Div) {
 	EXPECT_EQ(40, cpu.registers.a);
 }
 
-TEST(Opcodes, DivByZero) {
+TEST(OpcodesTest, DivByZero) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 80);
@@ -180,7 +178,7 @@ TEST(Opcodes, DivByZero) {
 	EXPECT_EQ(0, cpu.registers.a);
 }
 
-TEST(Opcodes, DivWithFractionalPart) {
+TEST(OpcodesTest, DivWithFractionalPart) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0xffff);
@@ -192,7 +190,7 @@ TEST(Opcodes, DivWithFractionalPart) {
 	EXPECT_EQ(0x13b1, cpu.registers.a);
 }
 
-TEST(Opcodes, Dvi) {
+TEST(OpcodesTest, Dvi) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, -80);
@@ -204,7 +202,7 @@ TEST(Opcodes, Dvi) {
 	EXPECT_EQ((uint16_t)-40, cpu.registers.a);
 }
 
-TEST(Opcodes, DviByZero) {
+TEST(OpcodesTest, DviByZero) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 80);
@@ -216,7 +214,7 @@ TEST(Opcodes, DviByZero) {
 	EXPECT_EQ(0, cpu.registers.a);
 }
 
-TEST(Opcodes, DviWithFractionalPart) {
+TEST(OpcodesTest, DviWithFractionalPart) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0x8001);
@@ -228,7 +226,7 @@ TEST(Opcodes, DviWithFractionalPart) {
 	EXPECT_EQ(0xc000, cpu.registers.a);
 }
 
-TEST(Opcodes, Mod) {
+TEST(OpcodesTest, Mod) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 21);
@@ -239,7 +237,7 @@ TEST(Opcodes, Mod) {
 	EXPECT_EQ(5, cpu.registers.a);
 }
 
-TEST(Opcodes, Mdi) {
+TEST(OpcodesTest, Mdi) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, -7);
@@ -250,7 +248,7 @@ TEST(Opcodes, Mdi) {
 	EXPECT_EQ((uint16_t)-7, cpu.registers.a);
 }
 
-TEST(Opcodes, And) {
+TEST(OpcodesTest, And) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0xf0f0);
@@ -261,7 +259,7 @@ TEST(Opcodes, And) {
 	EXPECT_EQ(0x7030, cpu.registers.a);
 }
 
-TEST(Opcodes, Bor) {
+TEST(OpcodesTest, Bor) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0xf0f0);
@@ -272,7 +270,7 @@ TEST(Opcodes, Bor) {
 	EXPECT_EQ(0xfaff, cpu.registers.a);
 }
 
-TEST(Opcodes, Xor) {
+TEST(OpcodesTest, Xor) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0xff0f);
@@ -283,7 +281,7 @@ TEST(Opcodes, Xor) {
 	EXPECT_EQ(0x0fff, cpu.registers.a);
 }
 
-TEST(Opcodes, Shr) {
+TEST(OpcodesTest, Shr) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 8);
@@ -295,7 +293,7 @@ TEST(Opcodes, Shr) {
 	EXPECT_EQ(2, cpu.registers.a);
 }
 
-TEST(Opcodes, ShrWithUnderflow) {
+TEST(OpcodesTest, ShrWithUnderflow) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 7);
@@ -307,7 +305,7 @@ TEST(Opcodes, ShrWithUnderflow) {
 	EXPECT_EQ(1, cpu.registers.a);
 }
 
-TEST(Opcodes, Asr) {
+TEST(OpcodesTest, Asr) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, -8);
@@ -319,7 +317,7 @@ TEST(Opcodes, Asr) {
 	EXPECT_EQ((uint16_t)-2, cpu.registers.a);
 }
 
-TEST(Opcodes, AsrWithUnderflow) {
+TEST(OpcodesTest, AsrWithUnderflow) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, -7);
@@ -331,7 +329,7 @@ TEST(Opcodes, AsrWithUnderflow) {
 	EXPECT_EQ((uint16_t)-2, cpu.registers.a);
 }
 
-TEST(Opcodes, Shl) {
+TEST(OpcodesTest, Shl) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 8);
@@ -343,7 +341,7 @@ TEST(Opcodes, Shl) {
 	EXPECT_EQ(32, cpu.registers.a);
 }
 
-TEST(Opcodes, ShlWithOverflow) {
+TEST(OpcodesTest, ShlWithOverflow) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> b = create_register_arg(cpu, 0x100f);
@@ -355,7 +353,7 @@ TEST(Opcodes, ShlWithOverflow) {
 	EXPECT_EQ(0x00f0, cpu.registers.a);
 }
 
-TEST(Opcodes, Ifb) {
+TEST(OpcodesTest, Ifb) {
 	dcpu::emulator::dcpu cpu;
 	unique_ptr<argument> a, b;
 
@@ -372,7 +370,7 @@ TEST(Opcodes, Ifb) {
 	EXPECT_TRUE(cpu.is_skip_next());
 }
 
-TEST(Opcodes, Ifc) {
+TEST(OpcodesTest, Ifc) {
 	dcpu::emulator::dcpu cpu;
 	unique_ptr<argument> a, b;
 
@@ -389,7 +387,7 @@ TEST(Opcodes, Ifc) {
 	EXPECT_TRUE(cpu.is_skip_next());
 }
 
-TEST(Opcodes, Ife) {
+TEST(OpcodesTest, Ife) {
 	dcpu::emulator::dcpu cpu;
 	unique_ptr<argument> a, b;
 
@@ -406,7 +404,7 @@ TEST(Opcodes, Ife) {
 	EXPECT_TRUE(cpu.is_skip_next());
 }
 
-TEST(Opcodes, Ifn) {
+TEST(OpcodesTest, Ifn) {
 	dcpu::emulator::dcpu cpu;
 	unique_ptr<argument> a, b;
 
@@ -424,7 +422,7 @@ TEST(Opcodes, Ifn) {
 }
 
 
-TEST(Opcodes, Ifg) {
+TEST(OpcodesTest, Ifg) {
 	dcpu::emulator::dcpu cpu;
 	unique_ptr<argument> a, b;
 
@@ -441,7 +439,7 @@ TEST(Opcodes, Ifg) {
 	EXPECT_TRUE(cpu.is_skip_next());
 }
 
-TEST(Opcodes, Ifa) {
+TEST(OpcodesTest, Ifa) {
 	dcpu::emulator::dcpu cpu;
 	unique_ptr<argument> a, b;
 
@@ -458,7 +456,7 @@ TEST(Opcodes, Ifa) {
 	EXPECT_TRUE(cpu.is_skip_next());
 }
 
-TEST(Opcodes, Ifl) {
+TEST(OpcodesTest, Ifl) {
 	dcpu::emulator::dcpu cpu;
 	unique_ptr<argument> a, b;
 
@@ -475,7 +473,7 @@ TEST(Opcodes, Ifl) {
 	EXPECT_TRUE(cpu.is_skip_next());
 }
 
-TEST(Opcodes, Ifu) {
+TEST(OpcodesTest, Ifu) {
 	dcpu::emulator::dcpu cpu;
 	unique_ptr<argument> a, b;
 
@@ -492,7 +490,7 @@ TEST(Opcodes, Ifu) {
 	EXPECT_TRUE(cpu.is_skip_next());
 }
 
-TEST(Opcodes, Adx) {
+TEST(OpcodesTest, Adx) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.ex = 10;
@@ -506,7 +504,7 @@ TEST(Opcodes, Adx) {
 }
 
 
-TEST(Opcodes, AdxWithOverflow) {
+TEST(OpcodesTest, AdxWithOverflow) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.ex = 3;
@@ -519,7 +517,7 @@ TEST(Opcodes, AdxWithOverflow) {
 	EXPECT_EQ(2, cpu.registers.a);
 }
 
-TEST(Opcodes, Sbx) {
+TEST(OpcodesTest, Sbx) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.ex = 4;
@@ -533,7 +531,7 @@ TEST(Opcodes, Sbx) {
 }
 
 
-TEST(Opcodes, SbxWithUnderflow) {
+TEST(OpcodesTest, SbxWithUnderflow) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.ex = 1;
@@ -546,7 +544,7 @@ TEST(Opcodes, SbxWithUnderflow) {
 	EXPECT_EQ(0xffff, cpu.registers.a);
 }
 
-TEST(Opcodes, Sti) {
+TEST(OpcodesTest, Sti) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.i = 42;
@@ -561,7 +559,7 @@ TEST(Opcodes, Sti) {
 	EXPECT_EQ(2, cpu.registers.j);
 }
 
-TEST(Opcodes, Std) {
+TEST(OpcodesTest, Std) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.i = 42;
@@ -576,7 +574,7 @@ TEST(Opcodes, Std) {
 	EXPECT_EQ(0, cpu.registers.j);
 }
 
-TEST(Opcodes, Jsr) {
+TEST(OpcodesTest, Jsr) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.pc = 0x001c;
@@ -588,7 +586,7 @@ TEST(Opcodes, Jsr) {
 	EXPECT_EQ(0x001c, cpu.stack.peek());
 }
 
-TEST(Opcodes, Hcf) {
+TEST(OpcodesTest, Hcf) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> a = create_literal_arg(0x00ff);
@@ -598,7 +596,7 @@ TEST(Opcodes, Hcf) {
 	EXPECT_TRUE(cpu.is_on_fire());
 }
 
-TEST(Opcodes, Int) {
+TEST(OpcodesTest, Int) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.a = 42;
@@ -615,7 +613,7 @@ TEST(Opcodes, Int) {
 	EXPECT_EQ(0x001c, cpu.stack.pick(1));
 }
 
-TEST(Opcodes, IntWithNoHandler) {
+TEST(OpcodesTest, IntWithNoHandler) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.pc = 0x001c;
@@ -627,7 +625,7 @@ TEST(Opcodes, IntWithNoHandler) {
 	EXPECT_EQ(0, cpu.registers.sp);
 }
 
-TEST(Opcodes, Iag) {
+TEST(OpcodesTest, Iag) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.ia = 42;
@@ -639,7 +637,7 @@ TEST(Opcodes, Iag) {
 	EXPECT_EQ(42, cpu.registers.ia);
 }
 
-TEST(Opcodes, Ias) {
+TEST(OpcodesTest, Ias) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.registers.ia = 42;
@@ -651,7 +649,7 @@ TEST(Opcodes, Ias) {
 	EXPECT_EQ(0xff, cpu.registers.ia);
 }
 
-TEST(Opcodes, Iaq) {
+TEST(OpcodesTest, Iaq) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> a = create_literal_arg(1);
@@ -686,7 +684,7 @@ public:
 	}
 };
 
-TEST(Opcodes, Hwn) {
+TEST(OpcodesTest, Hwn) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.hardware_manager.register_device(make_shared<dummy_hardware>(cpu));
@@ -698,7 +696,7 @@ TEST(Opcodes, Hwn) {
 	EXPECT_EQ(1, cpu.registers.a);
 }
 
-TEST(Opcodes, HwnWithNoHardware) {
+TEST(OpcodesTest, HwnWithNoHardware) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<argument> a = create_register_arg(cpu, 30);
@@ -708,7 +706,7 @@ TEST(Opcodes, HwnWithNoHardware) {
 	EXPECT_EQ(0, cpu.registers.a);
 }
 
-TEST(Opcodes, Hwq) {
+TEST(OpcodesTest, Hwq) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.hardware_manager.register_device(make_shared<dummy_hardware>(cpu));
@@ -724,7 +722,7 @@ TEST(Opcodes, Hwq) {
 	EXPECT_EQ(0x1a2b, cpu.registers.y);
 }
 
-TEST(Opcodes, HwqOutOfBounds) {
+TEST(OpcodesTest, HwqOutOfBounds) {
 	dcpu::emulator::dcpu cpu;
 
 	cpu.hardware_manager.register_device(make_shared<dummy_hardware>(cpu));
@@ -740,7 +738,7 @@ TEST(Opcodes, HwqOutOfBounds) {
 	EXPECT_EQ(0, cpu.registers.y);
 }
 
-TEST(Opcodes, Hwi) {
+TEST(OpcodesTest, Hwi) {
 	dcpu::emulator::dcpu cpu;
 
 	auto device = make_shared<dummy_hardware>(cpu);
@@ -755,7 +753,7 @@ TEST(Opcodes, Hwi) {
 	EXPECT_EQ(32, cpu.registers.z);
 }
 
-TEST(Opcodes, HwiOutOfBounds) {
+TEST(OpcodesTest, HwiOutOfBounds) {
 	dcpu::emulator::dcpu cpu;
 
 	auto device = make_shared<dummy_hardware>(cpu);
