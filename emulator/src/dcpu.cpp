@@ -80,7 +80,7 @@ namespace dcpu { namespace emulator {
 		case registers::EX:
 			return ex;
 		case registers::IA:
-			return a;
+			return ia;
 		}
 	}
 
@@ -210,5 +210,34 @@ namespace dcpu { namespace emulator {
 		}
 
 		hardware.push_back(device);
+	}
+
+	ostream &operator<<(std::ostream &stream, registers reg) {
+		switch (reg) {
+		case registers::A:
+			return stream << "A";
+		case registers::B:
+			return stream << "B";
+		case registers::C:
+			return stream << "C";
+		case registers::X:
+			return stream << "X";
+		case registers::Y:
+			return stream << "Y";
+		case registers::Z:
+			return stream << "Z";
+		case registers::I:
+			return stream << "I";
+		case registers::J:
+			return stream << "J";
+		case registers::PC:
+			return stream << "PC";
+		case registers::SP:
+			return stream << "SP";
+		case registers::EX:
+			return stream << "EX";
+		case registers::IA:
+			return stream << "IA";
+		}
 	}
 }}

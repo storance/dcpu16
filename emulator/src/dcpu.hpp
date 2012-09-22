@@ -4,6 +4,7 @@
 #include <vector>
 #include <queue>
 #include <memory>
+#include <ostream>
 
 namespace dcpu { namespace emulator {
 	enum class registers : std::uint8_t {
@@ -99,5 +100,5 @@ namespace dcpu { namespace emulator {
 		bool is_on_fire();
 	};
 
-	
+	std::ostream &operator<<(std::ostream &stream, registers reg);
 }}
