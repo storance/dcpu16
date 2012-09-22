@@ -1,6 +1,11 @@
+#include <stdexcept>
+#include <boost/format.hpp>
+
 #include "opcodes.hpp"
 
 using namespace std;
+using boost::format;
+using boost::str;
 
 #define BASIC_OPCODE_CASE(o) case o ## _opcode ::OPCODE: \
     return std::unique_ptr<opcode>(new o ## _opcode (cpu, arg_a, arg_b));
@@ -54,7 +59,7 @@ namespace dcpu { namespace emulator {
         BASIC_OPCODE_CASE(sti)
         BASIC_OPCODE_CASE(std)
         default:
-            // throw not supported
+            throw invalid_argument(str(format("Invalid basic opcode: %02x") % instruction));
             break;
         }
     }
@@ -77,7 +82,7 @@ namespace dcpu { namespace emulator {
         SPECIAL_OPCODE_CASE(hwq)
         SPECIAL_OPCODE_CASE(hwi)
         default:
-            // throw not supported
+            throw invalid_argument(str(format("Invalid special opcode: %02x") % instruction));
             break;
         }
     }

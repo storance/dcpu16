@@ -1,8 +1,13 @@
+#include <cstring>
+#include <stdexcept>
+#include <boost/format.hpp>
+
 #include "dcpu.hpp"
 #include "hardware.hpp"
-#include <cstring>
 
 using namespace std;
+using boost::format;
+using boost::str;
 
 namespace dcpu { namespace emulator {
 	/*************************************************************************
@@ -169,6 +174,17 @@ namespace dcpu { namespace emulator {
 
 	/*************************************************************************
      *
+     * max_hardware_devices
+     *
+     *************************************************************************/
+
+	max_hardware_devices::max_hardware_devices() 
+		: runtime_error("The maximum number of hardware devices (65,535) have already been registered") {
+
+	}
+
+	/*************************************************************************
+     *
      * dcpu_hardware_manager
      *
      *************************************************************************/
@@ -206,7 +222,7 @@ namespace dcpu { namespace emulator {
 
 	void dcpu_hardware_manager::register_device(shared_ptr<hardware_device> device) {
 		if (hardware.size() >= MAX_DEVICES) {
-			// throw exception
+			throw max_hardware_devices();
 		}
 
 		hardware.push_back(device);
@@ -238,6 +254,8 @@ namespace dcpu { namespace emulator {
 			return stream << "EX";
 		case registers::IA:
 			return stream << "IA";
+		default:
+			return stream << "<Unknown Register>";
 		}
 	}
 }}

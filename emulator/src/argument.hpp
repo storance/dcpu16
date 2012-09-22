@@ -5,10 +5,6 @@
 #include <vector>
 #include <functional>
 
-#define HANDLE_ARGUMENT(arg, cpu, code, isA) if (arg::matches(code, isA)) { \
-    return arg::create(cpu, code, isA); \
-}
-
 namespace dcpu { namespace emulator {
 	class argument {
 	public:
@@ -16,7 +12,7 @@ namespace dcpu { namespace emulator {
 
 		virtual ~argument();
 
-		virtual uint16_t get()=0;
+		virtual uint16_t get()  const=0;
 		virtual void set(uint16_t)=0;
         virtual uint16_t get_cycles() const;
 	};
@@ -26,7 +22,7 @@ namespace dcpu { namespace emulator {
     protected:
         readonly_argument(uint16_t value);
     public:
-        virtual uint16_t get();
+        virtual uint16_t get() const;
         virtual void set(uint16_t);
     };
 
@@ -35,7 +31,7 @@ namespace dcpu { namespace emulator {
     protected:
         writable_argument(uint16_t &value);
     public:
-        virtual uint16_t get();
+        virtual uint16_t get() const;
         virtual void set(uint16_t);
     };
 

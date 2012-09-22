@@ -1,7 +1,15 @@
+#include <stdexcept>
+#include <boost/format.hpp>
+
 #include "argument.hpp"
-#include <cassert>
 
 using namespace std;
+using boost::format;
+using boost::str;
+
+#define HANDLE_ARGUMENT(arg, cpu, code, isA) if (arg::matches(code, isA)) { \
+    return arg::create(cpu, code, isA); \
+}
 
 namespace dcpu { namespace emulator {
     /*************************************************************************
@@ -22,7 +30,7 @@ namespace dcpu { namespace emulator {
         HANDLE_ARGUMENT(next_word_argument, cpu, code, isA)
         HANDLE_ARGUMENT(literal_argument, cpu, code, isA)
 
-        // throw exception
+        throw invalid_argument(str(format("Invalid argument code: %02x") % code));
 	}
 
 	argument::~argument() {
@@ -42,7 +50,7 @@ namespace dcpu { namespace emulator {
 
 	}
 
-	uint16_t writable_argument::get() {
+	uint16_t writable_argument::get()  const {
 		return value;
 	}
 
@@ -60,7 +68,7 @@ namespace dcpu { namespace emulator {
 
     }
 
-    uint16_t readonly_argument::get() {
+    uint16_t readonly_argument::get() const {
         return value;
     }
     

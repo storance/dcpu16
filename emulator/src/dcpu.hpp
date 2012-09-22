@@ -5,6 +5,7 @@
 #include <queue>
 #include <memory>
 #include <ostream>
+#include <stdexcept>
 
 namespace dcpu { namespace emulator {
 	enum class registers : std::uint8_t {
@@ -57,6 +58,11 @@ namespace dcpu { namespace emulator {
 		void send(uint16_t message);
 	};
 
+	class max_hardware_devices : public std::runtime_error {
+	public:
+		max_hardware_devices();
+	};
+
 	class dcpu_hardware_manager {
 		enum { MAX_DEVICES = 65535 };
 
@@ -72,7 +78,6 @@ namespace dcpu { namespace emulator {
 		void register_device(std::shared_ptr<hardware_device> device);
 	};
 	
-
 	class dcpu {
 		enum { TOTAL_MEMORY=65536 };
 
