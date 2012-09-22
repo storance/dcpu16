@@ -12,13 +12,19 @@ else
 	OUTPUT_DIR = target/release
 endif
 
+HARDWARE_DEPS=src/dcpu.hpp src/hardware.hpp
+DCPU_DEPS=src/dcpu.hpp src/hardware.hpp
+ARGUMENT_DEPS=src/dcpu.hpp src/argument.hpp
+OPCODES_DEPS=src/dcpu.hpp src/argument.hpp src/opcodes.hpp
+
 OBJECTS = $(OUTPUT_DIR)/dcpu.o \
 	$(OUTPUT_DIR)/hardware.o \
 	$(OUTPUT_DIR)/opcodes.o \
 	$(OUTPUT_DIR)/argument.o
 
 TEST_OBJECTS = $(OBJECTS) \
-	$(OUTPUT_DIR)/opcodes_test.o
+	$(OUTPUT_DIR)/opcodes_test.o \
+	$(OUTPUT_DIR)/arguments_test.o
 
 TEST_FILTER = *
 
@@ -30,22 +36,25 @@ emulator: $(OUTPUT_DIR)/emulator.o $(OBJECTS)
 $(OUTPUT_DIR)/emulator.o: src/emulator.cpp src/emulator.h | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/hardware.o: src/hardware.cpp src/hardware.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/hardware.o: src/hardware.cpp $(HARDWARE_DEPS)| $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/dcpu.o: src/dcpu.cpp src/dcpu.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/dcpu.o: src/dcpu.cpp $(DCPU_DEPS) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/opcodes.o: src/opcodes.cpp src/opcodes.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/opcodes.o: src/opcodes.cpp $(OPCODES_DEPS) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 
-$(OUTPUT_DIR)/argument.o: src/argument.cpp src/argument.hpp | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/argument.o: src/argument.cpp $(ARGUMENT_DEPS) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR):
 	mkdir -p $@
 
-$(OUTPUT_DIR)/opcodes_test.o: test/opcodes_test.cpp $(LEXER_DEPS) | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/opcodes_test.o: test/opcodes_test.cpp $(OPCODES_DEPS) | $(OUTPUT_DIR)
+	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/arguments_test.o: test/arguments_test.cpp $(ARGUMENT_DEPS) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 unittest: $(TEST_OBJECTS)
