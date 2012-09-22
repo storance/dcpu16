@@ -14,7 +14,7 @@ using dcpu::emulator::registers;
 class ArgumentTester {
 public:
 	virtual void setup(dcpu::emulator::dcpu &cpu)=0;
-	virtual void verify(dcpu::emulator::dcpu &cpu)=0;
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg)=0;
 	virtual uint16_t get_initial_value() {
 		return 0x20;
 	}
@@ -45,7 +45,7 @@ public:
 		cpu.registers[reg] = get_initial_value();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu) {
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
 		EXPECT_EQ(0x30, cpu.registers[reg]);
 	}
 
@@ -64,7 +64,7 @@ public:
 		cpu.memory[0x001f] = get_initial_value();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu) {
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
 		EXPECT_EQ(0x30, cpu.memory[0x001f]);
 	}
 
@@ -84,7 +84,7 @@ public:
 		cpu.memory[0x002f] = get_initial_value();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu) {
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
 		EXPECT_EQ(1, cpu.registers.pc);
 		EXPECT_EQ(0x30, cpu.memory[0x002f]);
 	}
@@ -100,7 +100,7 @@ public:
 		cpu.memory[0xffff] = get_initial_value();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu) {
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
 		EXPECT_EQ(0xffff, cpu.registers.sp);
 		EXPECT_EQ(0x30, cpu.memory[0xffff]);
 	}
@@ -116,7 +116,7 @@ public:
 		cpu.stack.push(get_initial_value());
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu) {
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
 		EXPECT_EQ(0, cpu.registers.sp);
 		EXPECT_EQ(0x30, cpu.memory[0xffff]);
 	}
@@ -132,7 +132,7 @@ public:
 		cpu.stack.push(get_initial_value());
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu) {
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
 		EXPECT_EQ(0xffff, cpu.registers.sp);
 		EXPECT_EQ(0x30, cpu.memory[0xffff]);
 	}
@@ -154,7 +154,7 @@ public:
 		cpu.registers.pc = 0;
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu) {
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
 		EXPECT_EQ(1, cpu.registers.pc);
 		EXPECT_EQ(0xfffc, cpu.registers.sp);
 		EXPECT_EQ(0x30, cpu.memory[0xfffe]);
@@ -173,7 +173,7 @@ public:
 		cpu.memory[0x030a] = get_initial_value();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu) {
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
 		EXPECT_EQ(1, cpu.registers.pc);
 		EXPECT_EQ(0x030a, cpu.memory[0]);
 		EXPECT_EQ(0x30, cpu.memory[0x030a]);
@@ -191,7 +191,7 @@ public:
 		cpu.memory[0x30] = get_initial_value();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu) {
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
 		EXPECT_EQ(0x31, cpu.registers.pc);
 		EXPECT_EQ(get_initial_value(), cpu.memory[0x30]);
 	}
@@ -213,7 +213,8 @@ public:
 		return literal_value;
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu) {
+	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
+		EXPECT_EQ(literal_value, arg->get());
 	}
 
 	virtual void print(ostream &stream) const {
@@ -230,7 +231,7 @@ TEST_P(ArgumentTest, Parse) {
 	EXPECT_EQ(tester->get_initial_value(), arg->get());
 
 	arg->set(0x30);
-	tester->verify(cpu);
+	tester->verify(cpu, arg);
 }
 
 INSTANTIATE_TEST_CASE_P(All, ArgumentTest, ::testing::Values(
