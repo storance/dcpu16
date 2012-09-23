@@ -24,7 +24,9 @@ OBJECTS = $(OUTPUT_DIR)/dcpu.o \
 
 TEST_OBJECTS = $(OBJECTS) \
 	$(OUTPUT_DIR)/opcodes_test.o \
-	$(OUTPUT_DIR)/arguments_test.o
+	$(OUTPUT_DIR)/opcodes_parse_test.o \
+	$(OUTPUT_DIR)/arguments_test.o \
+	$(OUTPUT_DIR)/test_hardware.o
 
 TEST_FILTER = *
 
@@ -54,7 +56,13 @@ $(OUTPUT_DIR):
 $(OUTPUT_DIR)/opcodes_test.o: test/opcodes_test.cpp $(OPCODES_DEPS) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
+$(OUTPUT_DIR)/opcodes_parse_test.o: test/opcodes_parse_test.cpp $(OPCODES_DEPS) | $(OUTPUT_DIR)
+	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
+
 $(OUTPUT_DIR)/arguments_test.o: test/arguments_test.cpp $(ARGUMENT_DEPS) | $(OUTPUT_DIR)
+	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
+
+$(OUTPUT_DIR)/test_hardware.o: test/utils/test_hardware.cpp test/utils/test_hardware.hpp $(HARDWARE_DEPS) | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) $(TEST_CXX_FLAGS) -c -o $@ $<
 
 unittest: $(TEST_OBJECTS)
