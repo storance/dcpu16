@@ -26,9 +26,6 @@ TEST_P(OpcodesParserTest, Parse) {
 	EXPECT_EQ(expected_string, op->to_str());
 }
 
-// 0000 00-00 111-0 0000
-// 0  0  e  0
-
 INSTANTIATE_TEST_CASE_P(All, OpcodesParserTest, ::testing::Values(
 	make_tuple((uint16_t)0x0001, string("set A, A")),
 	make_tuple((uint16_t)0x0002, string("add A, A")),
