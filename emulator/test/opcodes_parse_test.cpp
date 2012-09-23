@@ -19,7 +19,7 @@ protected:
 	string expected_string;
 };
 
-TEST_P(OpcodesParserTest, Parse) {
+TEST_P(OpcodesParserTest, ValidInstruction) {
 	dcpu::emulator::dcpu cpu;
 
 	unique_ptr<opcode> op = opcode::parse(cpu, instruction);
@@ -64,5 +64,24 @@ INSTANTIATE_TEST_CASE_P(All, OpcodesParserTest, ::testing::Values(
 	make_tuple((uint16_t)0x0200, string("hwn A")),
 	make_tuple((uint16_t)0x0220, string("hwq A")),
 	make_tuple((uint16_t)0x0240, string("hwi A"))
-
 ));
+
+class OpcodesParserNegativeTest: public ::testing::TestWithParam<uint16_t> {
+public:
+	void SetUp() {
+		instruction = GetParam();
+	}
+protected:
+	uint16_t instruction;
+};
+
+TEST_P(OpcodesParserNegativeTest, InvalidInstruction) {
+	dcpu::emulator::dcpu cpu;
+	EXPECT_THROW({
+		opcode::parse(cpu, instruction);
+	}, invalid_argument);
+}
+
+INSTANTIATE_TEST_CASE_P(All, OpcodesParserNegativeTest, ::testing::Values(
+	0x0000, 0x0018, 0x0019, 0x001c, 0x001d, 0x0040, 0x0060, 0x0080, 0x00a0, 0x00c0, 0x01a0, 0x01c0, 0x01e0,
+	0x0260, 0x0280, 0x02a0, 0x02c0, 0x02e0, 0x0300, 0x0320, 0x0340, 0x0360, 0x0380, 0x03a0, 0x03c0, 0x03e0));
