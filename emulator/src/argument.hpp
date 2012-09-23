@@ -2,8 +2,7 @@
 
 #include "dcpu.hpp"
 #include <memory>
-#include <vector>
-#include <functional>
+#include <string>
 
 namespace dcpu { namespace emulator {
 	class argument {
@@ -15,11 +14,12 @@ namespace dcpu { namespace emulator {
 		virtual uint16_t get()  const=0;
 		virtual void set(uint16_t)=0;
         virtual uint16_t get_cycles() const;
+        virtual std::string to_str() const=0;
 	};
 
     class readonly_argument : public argument {
-        uint16_t value;
     protected:
+        uint16_t value;
         readonly_argument(uint16_t value);
     public:
         virtual uint16_t get() const;
@@ -27,8 +27,8 @@ namespace dcpu { namespace emulator {
     };
 
     class writable_argument : public argument {
-        uint16_t &value;
     protected:
+        uint16_t &value;
         writable_argument(uint16_t &value);
     public:
         virtual uint16_t get() const;
@@ -41,6 +41,7 @@ namespace dcpu { namespace emulator {
         registers _register;
     public:
         register_argument(dcpu &cpu, registers _register);
+        virtual std::string to_str() const;
     
         static bool matches(uint8_t code, bool isA);
         static std::unique_ptr<argument> create(dcpu &cpu, uint8_t code, bool isA);
@@ -52,6 +53,7 @@ namespace dcpu { namespace emulator {
         registers _register;
     public:
         register_indirect_argument(dcpu &cpu, registers _register);
+        virtual std::string to_str() const;
     
         static bool matches(uint8_t code, bool isA);
         static std::unique_ptr<argument> create(dcpu &cpu, uint8_t code, bool isA);
@@ -66,6 +68,7 @@ namespace dcpu { namespace emulator {
         register_indirect_offset_argument(dcpu &cpu, registers _register, uint16_t offset);
 
         virtual uint16_t get_cycles() const;
+        virtual std::string to_str() const;
     
         static bool matches(uint8_t code, bool isA);
         static std::unique_ptr<argument> create(dcpu &cpu, uint8_t code, bool isA);
@@ -76,6 +79,7 @@ namespace dcpu { namespace emulator {
         
     public:
         stack_push_argument(dcpu &cpu);
+        virtual std::string to_str() const;
 
         static bool matches(uint8_t code, bool isA);
         static std::unique_ptr<argument> create(dcpu &cpu, uint8_t code, bool isA);
@@ -86,6 +90,7 @@ namespace dcpu { namespace emulator {
         
     public:
         stack_pop_argument(dcpu &cpu);
+        virtual std::string to_str() const;
 
         static bool matches(uint8_t code, bool isA);
         static std::unique_ptr<argument> create(dcpu &cpu, uint8_t code, bool isA);
@@ -96,6 +101,7 @@ namespace dcpu { namespace emulator {
     
     public:    
         stack_peek_argument(dcpu &cpu);
+        virtual std::string to_str() const;
     
         static bool matches(uint8_t code, bool isA);
         static std::unique_ptr<argument> create(dcpu &cpu, uint8_t code, bool isA);
@@ -107,6 +113,7 @@ namespace dcpu { namespace emulator {
         uint16_t offset;
     public:
         stack_pick_argument(dcpu &cpu, uint16_t offset);
+        virtual std::string to_str() const;
 
         static bool matches(uint8_t code, bool isA);
         static std::unique_ptr<argument> create(dcpu &cpu, uint8_t code, bool isA);
@@ -118,6 +125,7 @@ namespace dcpu { namespace emulator {
         uint16_t next_word;
     public:
         indirect_next_word_argument(dcpu &cpu, uint16_t next_word);
+        virtual std::string to_str() const;
 
         virtual uint16_t get_cycles() const;
     
@@ -129,6 +137,7 @@ namespace dcpu { namespace emulator {
         enum { VALUE = 0x1f };
     public:
         next_word_argument(uint16_t value);
+        virtual std::string to_str() const;
 
         virtual uint16_t get_cycles() const;
 
@@ -140,6 +149,7 @@ namespace dcpu { namespace emulator {
         enum { START=0x20, END=0x3f};
     public:
         literal_argument(uint16_t value);
+        virtual std::string to_str() const;
 
         static bool matches(uint8_t code, bool isA);
         static std::unique_ptr<argument> create(dcpu &cpu, uint8_t code, bool isA);

@@ -86,6 +86,10 @@ namespace dcpu { namespace emulator {
             : writable_argument(cpu.registers[_register]), _register(_register) {
     }
 
+    string register_argument::to_str() const {
+        return str(format("%s") % _register);
+    }
+
     bool register_argument::matches(uint8_t code, bool isA) {
         return (code >= START && code <= END) || code == PC || code == EX || code == SP;
     }
@@ -116,6 +120,10 @@ namespace dcpu { namespace emulator {
     register_indirect_argument::register_indirect_argument(dcpu &cpu, registers _register) 
             : writable_argument(cpu.registers.indirect(_register)), _register(_register) {
     }
+
+    string register_indirect_argument::to_str() const {
+        return str(format("[%s]") % _register);
+    }
  
     bool register_indirect_argument::matches(uint8_t code, bool isA) {
         return (code >= START && code <= END);
@@ -142,6 +150,10 @@ namespace dcpu { namespace emulator {
         return 1;
     }
 
+    string register_indirect_offset_argument::to_str() const {
+        return str(format("[%s + %d]") % _register % offset);
+    }
+
     bool register_indirect_offset_argument::matches(uint8_t code, bool isA) {
         return (code >= START && code <= END);
     }
@@ -162,6 +174,10 @@ namespace dcpu { namespace emulator {
 
     }
 
+    string stack_push_argument::to_str() const {
+        return "PUSH";
+    }
+
     bool stack_push_argument::matches(uint8_t code, bool isA) {
         return !isA && code == VALUE;
     }
@@ -177,6 +193,10 @@ namespace dcpu { namespace emulator {
      *************************************************************************/
     stack_pop_argument::stack_pop_argument(dcpu &cpu) : writable_argument(cpu.stack.pop()) {
 
+    }
+
+    string stack_pop_argument::to_str() const {
+        return "POP";
     }
 
     bool stack_pop_argument::matches(uint8_t code, bool isA) {
@@ -196,6 +216,10 @@ namespace dcpu { namespace emulator {
 
     }
 
+    string stack_peek_argument::to_str() const {
+        return "PEEK";
+    }
+
     bool stack_peek_argument::matches(uint8_t code, bool isA) {
         return code == VALUE;
     }
@@ -212,6 +236,10 @@ namespace dcpu { namespace emulator {
     stack_pick_argument::stack_pick_argument(dcpu &cpu, uint16_t offset) 
         : writable_argument(cpu.stack.pick(offset)), offset(offset)  {
 
+    }
+
+    string stack_pick_argument::to_str() const {
+        return str(format("PICK %d") % offset);
     }
 
     bool stack_pick_argument::matches(uint8_t code, bool isA) {
@@ -235,6 +263,10 @@ namespace dcpu { namespace emulator {
         return 1;
     }
 
+    string indirect_next_word_argument::to_str() const {
+        return str(format("[%d]") % next_word);
+    }
+
     bool indirect_next_word_argument::matches(uint8_t code, bool isA) {
         return code == VALUE;
     }
@@ -256,6 +288,10 @@ namespace dcpu { namespace emulator {
         return 1;
     }
 
+    string next_word_argument::to_str() const {
+        return str(format("%d") % value);
+    }
+
     bool next_word_argument::matches(uint8_t code, bool isA) {
         return code == VALUE;
     }
@@ -273,6 +309,10 @@ namespace dcpu { namespace emulator {
 	literal_argument::literal_argument(uint16_t value) : readonly_argument(value) {
 
 	}
+
+    string literal_argument::to_str() const {
+        return str(format("%d") % value);
+    }
 
     bool literal_argument::matches(uint8_t code, bool isA) {
         return code >= START && code <= END;

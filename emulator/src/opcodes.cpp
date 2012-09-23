@@ -1,4 +1,5 @@
 #include <stdexcept>
+
 #include <boost/format.hpp>
 
 #include "opcodes.hpp"
@@ -12,6 +13,7 @@ using boost::str;
 
 #define SPECIAL_OPCODE_CASE(o) case o ## _opcode ::OPCODE: \
     return std::unique_ptr<opcode>(new o ## _opcode (cpu, arg_a));
+
 
 namespace dcpu { namespace emulator {
     unique_ptr<opcode> opcode::parse(dcpu &cpu, uint16_t instruction) {
@@ -112,6 +114,14 @@ namespace dcpu { namespace emulator {
     
     bool opcode::is_conditional() const {
         return is_cond;
+    }
+
+    std::string opcode::to_str() const {
+        if (b) {
+            return str(format("%s %s, %s") % name % b->to_str() % a->to_str());
+        } else {
+            return str(format("%s %s") % name % a->to_str());
+        }
     }
 
     uint16_t set_opcode::execute() {

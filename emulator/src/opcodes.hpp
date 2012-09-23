@@ -46,6 +46,8 @@ namespace dcpu { namespace emulator {
 		bool is_conditional() const;
 
 		virtual uint16_t execute()=0;
+
+		std::string to_str() const;
 	};
 
 	DECLARE_BASIC_OPCODE(set, 0x01, 1, false)
