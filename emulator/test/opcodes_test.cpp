@@ -3,6 +3,10 @@
 #include <hardware.hpp>
 #include <argument.hpp>
 #include <opcodes.hpp>
+#include <tuple>
+#include <functional>
+
+#include "utils/test_hardware.hpp"
 
 using namespace std;
 
@@ -663,31 +667,10 @@ TEST(OpcodesTest, Iaq) {
 	EXPECT_FALSE(cpu.interrupt_handler.is_queue_enabled());
 }
 
-class dummy_hardware : public hardware_device {
-	enum { HARDWARE_ID = 0x01020304, MANUFACTURER_ID = 0x1a2b3c4d, VERSION = 0x03};
-public:
-	bool interrupt_called;
-	dummy_hardware(dcpu::emulator::dcpu &cpu) : hardware_device(cpu, MANUFACTURER_ID, HARDWARE_ID, VERSION),
-		interrupt_called(false) {
-
-	}
-
-	virtual void tick() {
-
-	}
-
-	virtual uint16_t interrupt() {
-		interrupt_called = true;
-		cpu.registers.z = 32;
-
-		return 0;
-	}
-};
-
 TEST(OpcodesTest, Hwn) {
 	dcpu::emulator::dcpu cpu;
 
-	cpu.hardware_manager.register_device(make_shared<dummy_hardware>(cpu));
+	cpu.hardware_manager.register_device(make_shared<test_hardware>(cpu));
 
 	unique_ptr<argument> a = create_register_arg(cpu, 30);
 
@@ -709,7 +692,7 @@ TEST(OpcodesTest, HwnWithNoHardware) {
 TEST(OpcodesTest, Hwq) {
 	dcpu::emulator::dcpu cpu;
 
-	cpu.hardware_manager.register_device(make_shared<dummy_hardware>(cpu));
+	cpu.hardware_manager.register_device(make_shared<test_hardware>(cpu));
 
 	unique_ptr<argument> a = create_literal_arg(0);
 
@@ -725,7 +708,7 @@ TEST(OpcodesTest, Hwq) {
 TEST(OpcodesTest, HwqOutOfBounds) {
 	dcpu::emulator::dcpu cpu;
 
-	cpu.hardware_manager.register_device(make_shared<dummy_hardware>(cpu));
+	cpu.hardware_manager.register_device(make_shared<test_hardware>(cpu));
 
 	unique_ptr<argument> a = create_literal_arg(1);
 
@@ -741,22 +724,20 @@ TEST(OpcodesTest, HwqOutOfBounds) {
 TEST(OpcodesTest, Hwi) {
 	dcpu::emulator::dcpu cpu;
 
-	auto device = make_shared<dummy_hardware>(cpu);
+	auto device = make_shared<test_hardware>(cpu);
 	cpu.hardware_manager.register_device(device);
 
 	unique_ptr<argument> a = create_literal_arg(0);
 
 	EXECUTE_SPECIAL_OPCODE(hwi, cpu, a)
 	
-	// dummy hardware 
 	EXPECT_TRUE(device->interrupt_called);
-	EXPECT_EQ(32, cpu.registers.z);
 }
 
 TEST(OpcodesTest, HwiOutOfBounds) {
 	dcpu::emulator::dcpu cpu;
 
-	auto device = make_shared<dummy_hardware>(cpu);
+	auto device = make_shared<test_hardware>(cpu);
 	cpu.hardware_manager.register_device(device);
 
 	unique_ptr<argument> a = create_literal_arg(1);
