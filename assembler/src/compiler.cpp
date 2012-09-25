@@ -1,6 +1,5 @@
 #include <boost/variant.hpp>
 #include <boost/format.hpp>
-
 #include <cstring>
 
 #include "compiler.hpp"
@@ -488,8 +487,8 @@ namespace dcpu { namespace assembler {
 
 	void compiler::write(vector<uint16_t> &output, ostream &out, endianness format) {
 		for (auto word : output) {
-	        uint8_t b1 = word & 0xff;
-	        uint8_t b2 = (word >> 8) & 0xff;
+	        uint8_t b1 = (word >> 8) & 0xff;
+	        uint8_t b2 = word & 0xff;
 
 	        if (format == endianness::BIG) {
 	            out.put(b1);
