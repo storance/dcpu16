@@ -1,9 +1,11 @@
 #include <cstring>
 #include <stdexcept>
+#include <iomanip>
 #include <boost/format.hpp>
 
 #include "dcpu.hpp"
 #include "hardware.hpp"
+#include "opcodes.hpp"
 
 using namespace std;
 using boost::format;
@@ -18,7 +20,7 @@ namespace dcpu { namespace emulator {
 
 	dcpu::dcpu() : skip_next(false), on_fire(false), cycles(0), stack(*this), registers(*this),
 			interrupt_handler(*this), hardware_manager(*this) {
-		memset(memory, 0, TOTAL_MEMORY);
+		memset(memory, 0, TOTAL_MEMORY * sizeof(uint16_t));
 	}
 
 	uint16_t dcpu::get_next_word() {
@@ -39,6 +41,67 @@ namespace dcpu { namespace emulator {
 
 	bool dcpu::is_on_fire() {
 		return on_fire;
+	}
+
+	void dcpu::run() {
+		while (!on_fire) {
+			uint16_t cycles = 0;
+			unique_ptr<opcode> instruction = opcode::parse(*this, get_next_word());
+
+			if (skip_next) {
+				if (!instruction->is_conditional()) {
+					skip_next = false;
+				}
+
+				cycles = 1;
+			} else {
+				cycles = instruction->execute();
+			}
+
+			add_cycles(cycles, true);
+		}
+	}
+
+	void dcpu::dump(ostream& out) const {
+		out << "Cycles: " << cycles << endl
+			<< "======= Registers =======" << endl
+			<< hex << setfill('0') << "A: " << setw(4) << registers.a
+			<< "  B: " << setw(4) << registers.b
+			<< "  C: " << setw(4) << registers.c
+			<< "  X: " << setw(4) << registers.x
+			<< "  Y: " << setw(4) << registers.y
+			<< "  Z: " << setw(4) << registers.z << endl
+			<< "I: " << setw(4) << registers.i
+			<< "  J: " << setw(4) << registers.j
+			<< " SP: " << setw(4) << registers.sp
+			<< " PC: " << setw(4) << registers.pc
+			<< " EX: " << setw(4) << registers.ex << endl
+			<< "======= Memory =======" << endl;
+		for (int i = 0; i < TOTAL_MEMORY; i += 8) {
+			if (!memory[i+0] && !memory[i+1] && !memory[i+2]
+				&& !memory[i+3] && !memory[i+4] && !memory[i+5]
+				&& !memory[i+6] && !memory[i+7]) {
+				continue;
+			}
+
+			out << setw(4) << i << ": "
+				<< setw(4) << memory[i] << " "
+				<< setw(4) << memory[i+1] << " "
+				<< setw(4) << memory[i+2] << " "
+				<< setw(4) << memory[i+3] << " "
+				<< setw(4) << memory[i+4] << " "
+				<< setw(4) << memory[i+5] << " "
+				<< setw(4) << memory[i+6] << " "
+				<< setw(4) << memory[i+7] << " " << endl;
+		}
+	}
+
+	void dcpu::add_cycles(uint16_t cycles_amount, bool simulate_cpu_speed) {
+		cycles += cycles_amount;
+
+		if (simulate_cpu_speed) {
+			
+		}
 	}
 
 	/*************************************************************************

@@ -77,7 +77,7 @@ namespace dcpu { namespace emulator {
 
 		void register_device(std::shared_ptr<hardware_device> device);
 	};
-	
+
 	class dcpu {
 		enum { TOTAL_MEMORY=65536 };
 
@@ -85,7 +85,7 @@ namespace dcpu { namespace emulator {
 		bool on_fire;
 		std::uint64_t cycles;
 
-		void add_cycles(bool simulate_cpu_speed);
+		void add_cycles(std::uint16_t cycles_amount, bool simulate_cpu_speed);
 	public:
 		std::uint16_t memory[TOTAL_MEMORY];
 		dcpu_stack stack;
@@ -96,13 +96,15 @@ namespace dcpu { namespace emulator {
 		dcpu();
 
 		std::uint16_t get_next_word();
-		bool is_interrupt_queue_enabled();
 		bool is_skip_next();
 
 		void skip_next_instruction();
 
 		void catch_fire();
 		bool is_on_fire();
+
+		void run();
+		void dump(std::ostream& out) const;
 	};
 
 	std::ostream &operator<<(std::ostream &stream, registers reg);
