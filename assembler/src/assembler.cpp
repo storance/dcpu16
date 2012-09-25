@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
 		} else {
 			output_file = input_file + ".bin";
 		}
-	} else {
+	} else if (mode != compiler_mode::NORMAL) {
 		output_file = "-";
 	}
 
