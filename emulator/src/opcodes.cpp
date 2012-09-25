@@ -1,5 +1,4 @@
 #include <stdexcept>
-
 #include <boost/format.hpp>
 
 #include "opcodes.hpp"
@@ -61,7 +60,7 @@ namespace dcpu { namespace emulator {
         BASIC_OPCODE_CASE(sti)
         BASIC_OPCODE_CASE(std)
         default:
-            throw invalid_argument(str(format("Invalid basic opcode: %02x") % instruction));
+            throw invalid_argument(str(format("Invalid basic opcode: %02x") % (uint16_t)o));
             break;
         }
     }
@@ -84,7 +83,7 @@ namespace dcpu { namespace emulator {
         SPECIAL_OPCODE_CASE(hwq)
         SPECIAL_OPCODE_CASE(hwi)
         default:
-            throw invalid_argument(str(format("Invalid special opcode: %02x") % instruction));
+            throw invalid_argument(str(format("Invalid special opcode: %02x") % (uint16_t)o));
             break;
         }
     }
