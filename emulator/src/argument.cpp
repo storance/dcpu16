@@ -14,87 +14,87 @@ using boost::str;
 namespace dcpu { namespace emulator {
     /*************************************************************************
      *
-     * argument
+     * Argument
      *
      *************************************************************************/
 
-	unique_ptr<argument> argument::parse(dcpu &cpu, uint8_t code, bool isA) {
-        HANDLE_ARGUMENT(register_argument, cpu, code, isA)
-        HANDLE_ARGUMENT(register_indirect_argument, cpu, code, isA)
-        HANDLE_ARGUMENT(register_indirect_offset_argument, cpu, code, isA)
-        HANDLE_ARGUMENT(stack_push_argument, cpu, code, isA)
-        HANDLE_ARGUMENT(stack_pop_argument, cpu, code, isA)
-        HANDLE_ARGUMENT(stack_peek_argument, cpu, code, isA)
-        HANDLE_ARGUMENT(stack_pick_argument, cpu, code, isA)
-        HANDLE_ARGUMENT(indirect_next_word_argument, cpu, code, isA)
-        HANDLE_ARGUMENT(next_word_argument, cpu, code, isA)
-        HANDLE_ARGUMENT(literal_argument, cpu, code, isA)
+	ArgumentPtr Argument::parse(Dcpu &cpu, uint8_t code, bool isA) {
+        HANDLE_ARGUMENT(RegisterArgument, cpu, code, isA)
+        HANDLE_ARGUMENT(RegisterIndirectArgument, cpu, code, isA)
+        HANDLE_ARGUMENT(RegisterIndirectOffsetArgument, cpu, code, isA)
+        HANDLE_ARGUMENT(StackPushArgument, cpu, code, isA)
+        HANDLE_ARGUMENT(StackPopArgument, cpu, code, isA)
+        HANDLE_ARGUMENT(StackPeekArgument, cpu, code, isA)
+        HANDLE_ARGUMENT(StackPickArgument, cpu, code, isA)
+        HANDLE_ARGUMENT(IndirectNextWordArgument, cpu, code, isA)
+        HANDLE_ARGUMENT(NextWordArgument, cpu, code, isA)
+        HANDLE_ARGUMENT(LiteralArgument, cpu, code, isA)
 
-        throw invalid_argument(str(format("Invalid argument code: %02x") % code));
+        throw invalid_argument(::str(format("Invalid Argument code: %02x") % code));
 	}
 
-	argument::~argument() {
+	Argument::~Argument() {
 
 	}
 
-    uint16_t argument::get_cycles() const {
+    uint16_t Argument::getCycles() const {
         return 0;
     }
 
     /*************************************************************************
      *
-     * writable_argument
+     * WritableArgument
      *
      *************************************************************************/
-	writable_argument::writable_argument(uint16_t &value) : value(value) {
+	WritableArgument::WritableArgument(uint16_t &value) : value(value) {
 
 	}
 
-	uint16_t writable_argument::get()  const {
+	uint16_t WritableArgument::get()  const {
 		return value;
 	}
 
-	void writable_argument::set(uint16_t value) {
+	void WritableArgument::set(uint16_t value) {
 		this->value = value;
 	}
 
     /*************************************************************************
      *
-     * readonly_argument
+     * ReadOnlyArgument
      *
      *************************************************************************/
 
-    readonly_argument::readonly_argument(uint16_t value) : value(value) {
+    ReadOnlyArgument::ReadOnlyArgument(uint16_t value) : value(value) {
 
     }
 
-    uint16_t readonly_argument::get() const {
+    uint16_t ReadOnlyArgument::get() const {
         return value;
     }
     
-    void readonly_argument::set(uint16_t) {
+    void ReadOnlyArgument::set(uint16_t) {
         // no-op
     }
 
     /*************************************************************************
      *
-     * register_argument
+     * RegisterArgument
      *
      *************************************************************************/
     
-    register_argument::register_argument(dcpu &cpu, registers _register) 
-            : writable_argument(cpu.registers[_register]), _register(_register) {
+    RegisterArgument::RegisterArgument(Dcpu &cpu, registers _register) 
+            : WritableArgument(cpu.registers[_register]), _register(_register) {
     }
 
-    string register_argument::to_str() const {
-        return str(format("%s") % _register);
+    string RegisterArgument::str() const {
+        return ::str(format("%s") % _register);
     }
 
-    bool register_argument::matches(uint8_t code, bool isA) {
+    bool RegisterArgument::matches(uint8_t code, bool isA) {
         return (code >= START && code <= END) || code == PC || code == EX || code == SP;
     }
 
-    unique_ptr<argument> register_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+    ArgumentPtr RegisterArgument::create(Dcpu &cpu, uint8_t code, bool isA) {
         registers reg;
         if (code >= START && code <= END) {
             reg =  static_cast<registers>(code - START);
@@ -108,219 +108,219 @@ namespace dcpu { namespace emulator {
             // invalid arg
         }
 
-        return unique_ptr<argument>(new register_argument(cpu, reg));
+        return ArgumentPtr(new RegisterArgument(cpu, reg));
     }
 
     /*************************************************************************
      *
-     * register_indirect_argument
+     * RegisterIndirectArgument
      *
      *************************************************************************/
     
-    register_indirect_argument::register_indirect_argument(dcpu &cpu, registers _register) 
-            : writable_argument(cpu.registers.indirect(_register)), _register(_register) {
+    RegisterIndirectArgument::RegisterIndirectArgument(Dcpu &cpu, registers _register) 
+            : WritableArgument(cpu.registers.indirect(_register)), _register(_register) {
     }
 
-    string register_indirect_argument::to_str() const {
-        return str(format("[%s]") % _register);
+    string RegisterIndirectArgument::str() const {
+        return ::str(format("[%s]") % _register);
     }
  
-    bool register_indirect_argument::matches(uint8_t code, bool isA) {
+    bool RegisterIndirectArgument::matches(uint8_t code, bool isA) {
         return (code >= START && code <= END);
     }
     
-    unique_ptr<argument> register_indirect_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+    ArgumentPtr RegisterIndirectArgument::create(Dcpu &cpu, uint8_t code, bool isA) {
         registers reg = static_cast<registers>(code - START);
         
-        return unique_ptr<argument>(new register_indirect_argument(cpu, reg));
+        return ArgumentPtr(new RegisterIndirectArgument(cpu, reg));
     }
 
     /*************************************************************************
      *
-     * register_indirect_offset_argument
+     * RegisterIndirectOffsetArgument
      *
      *************************************************************************/
 
-    register_indirect_offset_argument::register_indirect_offset_argument(dcpu &cpu, registers _register,
-            uint16_t offset) : writable_argument(cpu.registers.indirect(_register,  offset)), _register(_register),
+    RegisterIndirectOffsetArgument::RegisterIndirectOffsetArgument(Dcpu &cpu, registers _register,
+            uint16_t offset) : WritableArgument(cpu.registers.indirect(_register,  offset)), _register(_register),
             offset(offset) {
     }
 
-    uint16_t register_indirect_offset_argument::get_cycles() const {
+    uint16_t RegisterIndirectOffsetArgument::getCycles() const {
         return 1;
     }
 
-    string register_indirect_offset_argument::to_str() const {
-        return str(format("[%s + %d]") % _register % offset);
+    string RegisterIndirectOffsetArgument::str() const {
+        return ::str(format("[%s + %d]") % _register % offset);
     }
 
-    bool register_indirect_offset_argument::matches(uint8_t code, bool isA) {
+    bool RegisterIndirectOffsetArgument::matches(uint8_t code, bool isA) {
         return (code >= START && code <= END);
     }
     
-    unique_ptr<argument> register_indirect_offset_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+    ArgumentPtr RegisterIndirectOffsetArgument::create(Dcpu &cpu, uint8_t code, bool isA) {
         registers reg = static_cast<registers>(code - START);
         
-        return unique_ptr<argument>(new register_indirect_offset_argument(cpu, reg, cpu.get_next_word()));
+        return ArgumentPtr(new RegisterIndirectOffsetArgument(cpu, reg, cpu.getNextWord()));
     }
 
     /*************************************************************************
      *
-     * stack_push_argument
+     * StackPushArgument
      *
      *************************************************************************/
     
-    stack_push_argument::stack_push_argument(dcpu &cpu) : writable_argument(cpu.stack.push()) {
+    StackPushArgument::StackPushArgument(Dcpu &cpu) : WritableArgument(cpu.stack.push()) {
 
     }
 
-    string stack_push_argument::to_str() const {
+    string StackPushArgument::str() const {
         return "PUSH";
     }
 
-    bool stack_push_argument::matches(uint8_t code, bool isA) {
+    bool StackPushArgument::matches(uint8_t code, bool isA) {
         return !isA && code == VALUE;
     }
     
-    unique_ptr<argument> stack_push_argument::create(dcpu &cpu, uint8_t code, bool isA) {
-        return unique_ptr<argument>(new stack_push_argument(cpu));
+    ArgumentPtr StackPushArgument::create(Dcpu &cpu, uint8_t code, bool isA) {
+        return ArgumentPtr(new StackPushArgument(cpu));
     }
 
     /*************************************************************************
      *
-     * stack_pop_argument
+     * StackPopArgument
      *
      *************************************************************************/
-    stack_pop_argument::stack_pop_argument(dcpu &cpu) : writable_argument(cpu.stack.pop()) {
+    StackPopArgument::StackPopArgument(Dcpu &cpu) : WritableArgument(cpu.stack.pop()) {
 
     }
 
-    string stack_pop_argument::to_str() const {
+    string StackPopArgument::str() const {
         return "POP";
     }
 
-    bool stack_pop_argument::matches(uint8_t code, bool isA) {
+    bool StackPopArgument::matches(uint8_t code, bool isA) {
         return isA && code == VALUE;
     }
     
-    unique_ptr<argument> stack_pop_argument::create(dcpu &cpu, uint8_t code, bool isA) {
-        return unique_ptr<argument>(new stack_pop_argument(cpu));
+    ArgumentPtr StackPopArgument::create(Dcpu &cpu, uint8_t code, bool isA) {
+        return ArgumentPtr(new StackPopArgument(cpu));
     }
     
     /*************************************************************************
      *
-     * stack_peek_argument
+     * StackPeekArgument
      *
      *************************************************************************/
-    stack_peek_argument::stack_peek_argument(dcpu &cpu) : writable_argument(cpu.stack.peek()) {
+    StackPeekArgument::StackPeekArgument(Dcpu &cpu) : WritableArgument(cpu.stack.peek()) {
 
     }
 
-    string stack_peek_argument::to_str() const {
+    string StackPeekArgument::str() const {
         return "PEEK";
     }
 
-    bool stack_peek_argument::matches(uint8_t code, bool isA) {
+    bool StackPeekArgument::matches(uint8_t code, bool isA) {
         return code == VALUE;
     }
     
-    unique_ptr<argument> stack_peek_argument::create(dcpu &cpu, uint8_t code, bool isA) {
-        return unique_ptr<argument>(new stack_peek_argument(cpu));
+    ArgumentPtr StackPeekArgument::create(Dcpu &cpu, uint8_t code, bool isA) {
+        return ArgumentPtr(new StackPeekArgument(cpu));
     }
     
     /*************************************************************************
      *
-     * stack_pick_argument
+     * StackPickArgument
      *
      *************************************************************************/
-    stack_pick_argument::stack_pick_argument(dcpu &cpu, uint16_t offset) 
-        : writable_argument(cpu.stack.pick(offset)), offset(offset)  {
+    StackPickArgument::StackPickArgument(Dcpu &cpu, uint16_t offset) 
+        : WritableArgument(cpu.stack.pick(offset)), offset(offset)  {
 
     }
 
-    string stack_pick_argument::to_str() const {
-        return str(format("PICK %d") % offset);
+    string StackPickArgument::str() const {
+        return ::str(format("PICK %d") % offset);
     }
 
-    bool stack_pick_argument::matches(uint8_t code, bool isA) {
+    bool StackPickArgument::matches(uint8_t code, bool isA) {
         return code == VALUE;
     }
     
-    unique_ptr<argument> stack_pick_argument::create(dcpu &cpu, uint8_t code, bool isA) {
-        return unique_ptr<argument>(new stack_pick_argument(cpu, cpu.get_next_word()));
+    ArgumentPtr StackPickArgument::create(Dcpu &cpu, uint8_t code, bool isA) {
+        return ArgumentPtr(new StackPickArgument(cpu, cpu.getNextWord()));
     }
 
     /*************************************************************************
      *
-     * indirect_next_word_argument
+     * IndirectNextWordArgument
      *
      *************************************************************************/
-    indirect_next_word_argument::indirect_next_word_argument(dcpu &cpu, uint16_t next_word) 
-            : writable_argument(cpu.memory[next_word]), next_word(next_word) {
+    IndirectNextWordArgument::IndirectNextWordArgument(Dcpu &cpu, uint16_t nextWord) 
+            : WritableArgument(cpu.memory[nextWord]), nextWord(nextWord) {
     }
 
-    uint16_t indirect_next_word_argument::get_cycles() const {
+    uint16_t IndirectNextWordArgument::getCycles() const {
         return 1;
     }
 
-    string indirect_next_word_argument::to_str() const {
-        return str(format("[%d]") % next_word);
+    string IndirectNextWordArgument::str() const {
+        return ::str(format("[%d]") % nextWord);
     }
 
-    bool indirect_next_word_argument::matches(uint8_t code, bool isA) {
+    bool IndirectNextWordArgument::matches(uint8_t code, bool isA) {
         return code == VALUE;
     }
     
-    unique_ptr<argument> indirect_next_word_argument::create(dcpu &cpu, uint8_t code, bool isA) {
-        return unique_ptr<argument>(new indirect_next_word_argument(cpu, cpu.get_next_word()));
+    ArgumentPtr IndirectNextWordArgument::create(Dcpu &cpu, uint8_t code, bool isA) {
+        return ArgumentPtr(new IndirectNextWordArgument(cpu, cpu.getNextWord()));
     }
 
     /*************************************************************************
      *
-     * next_word_argument
+     * NextWordArgument
      *
      *************************************************************************/
-    next_word_argument::next_word_argument(uint16_t value) : readonly_argument(value) {
+    NextWordArgument::NextWordArgument(uint16_t value) : ReadOnlyArgument(value) {
 
     }
 
-    uint16_t next_word_argument::get_cycles() const {
+    uint16_t NextWordArgument::getCycles() const {
         return 1;
     }
 
-    string next_word_argument::to_str() const {
-        return str(format("%d") % value);
+    string NextWordArgument::str() const {
+        return ::str(format("%d") % value);
     }
 
-    bool next_word_argument::matches(uint8_t code, bool isA) {
+    bool NextWordArgument::matches(uint8_t code, bool isA) {
         return code == VALUE;
     }
 
-    unique_ptr<argument> next_word_argument::create(dcpu &cpu, uint8_t code, bool isA) {
-        return unique_ptr<argument>(new next_word_argument(cpu.get_next_word()));
+    ArgumentPtr NextWordArgument::create(Dcpu &cpu, uint8_t code, bool isA) {
+        return ArgumentPtr(new NextWordArgument(cpu.getNextWord()));
     }
     
     /*************************************************************************
      *
-     * literal_argument
+     * LiteralArgument
      *
      *************************************************************************/
 
-	literal_argument::literal_argument(uint16_t value) : readonly_argument(value) {
+	LiteralArgument::LiteralArgument(uint16_t value) : ReadOnlyArgument(value) {
 
 	}
 
-    string literal_argument::to_str() const {
-        return str(format("%d") % value);
+    string LiteralArgument::str() const {
+        return ::str(format("%d") % value);
     }
 
-    bool literal_argument::matches(uint8_t code, bool isA) {
+    bool LiteralArgument::matches(uint8_t code, bool isA) {
         return code >= START && code <= END;
     }
     
-    unique_ptr<argument> literal_argument::create(dcpu &cpu, uint8_t code, bool isA) {
+    ArgumentPtr LiteralArgument::create(Dcpu &cpu, uint8_t code, bool isA) {
         uint16_t value = code - START - 1;
 
-        return unique_ptr<argument>(new literal_argument(value));
+        return ArgumentPtr(new LiteralArgument(value));
     }
 }}

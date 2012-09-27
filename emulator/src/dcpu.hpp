@@ -8,103 +8,106 @@
 #include <stdexcept>
 
 namespace dcpu { namespace emulator {
-	enum class registers : std::uint8_t {
+	enum class registers : uint8_t {
 		A, B, C, X, Y, Z, I, J, SP, PC, EX, IA
 	};
 
-	class dcpu;
-	class hardware_device;
+	class Dcpu;
+	class HardwareDevice;
 
-	class dcpu_stack {
-		dcpu &cpu;
+	class DcpuStack {
+		Dcpu &cpu;
 	public:
-		dcpu_stack(dcpu &cpu);
+		DcpuStack(Dcpu &cpu);
 
-		void push(std::uint16_t value);
-		std::uint16_t &push();
-		std::uint16_t &pop();
-		std::uint16_t &peek();
-		std::uint16_t &pick(uint16_t offset);
+		void push(uint16_t value);
+		uint16_t &push();
+		uint16_t &pop();
+		uint16_t &peek();
+		uint16_t &pick(uint16_t offset);
 	};
 
-	class dcpu_registers {
-		dcpu &cpu;
-		std::uint16_t &get(registers reg);
+	class DcpuRegisters {
+		Dcpu &cpu;
+		uint16_t &get(registers reg);
 	public:
-		std::uint16_t a, b, c, x, y, z, i, j, sp, pc, ex, ia;
+		uint16_t a, b, c, x, y, z, i, j, sp, pc, ex, ia;
 
-		dcpu_registers(dcpu &cpu);
+		DcpuRegisters(Dcpu &cpu);
 
-		std::uint16_t &operator[] (registers reg);
-		std::uint16_t &indirect(registers reg, uint16_t offset=0);
+		uint16_t &operator[] (registers reg);
+		uint16_t &indirect(registers reg, uint16_t offset=0);
+		void clear();
 	};
 
-	class dcpu_interrupt_handler {
+	class DcpuInterrupts {
 		enum { QUEUE_MAX_SIZE = 256 };
 
-		dcpu &cpu;
-		bool queue_enabled;
+		Dcpu &cpu;
+		bool queueEnabled;
 		std::queue<uint16_t> queue;
 
 		void trigger(uint16_t message);
 	public:
-		dcpu_interrupt_handler(dcpu &cpu);
+		DcpuInterrupts(Dcpu &cpu);
 
-		void disable_queue();
-		void enable_queue();
+		void disableQueue();
+		void enableQueue();
 
-		bool is_queue_enabled();
+		bool isQueueEnabled();
 
 		void send(uint16_t message);
 	};
 
-	class max_hardware_devices : public std::runtime_error {
+	class MaxHardwareDevicesException : public std::runtime_error {
 	public:
-		max_hardware_devices();
+		MaxHardwareDevicesException();
 	};
 
-	class dcpu_hardware_manager {
+	class DcpuHardwareManager {
 		enum { MAX_DEVICES = 65535 };
 
-		dcpu &cpu;
-		std::vector<std::shared_ptr<hardware_device>> hardware;
+		Dcpu &cpu;
+		std::vector<std::shared_ptr<HardwareDevice>> hardware;
 	public:
-		dcpu_hardware_manager(dcpu &cpu);
+		DcpuHardwareManager(Dcpu &cpu);
 
-		uint16_t get_count();
+		uint16_t getCount();
 		void query(uint16_t index);
 		uint16_t interrupt(uint16_t index);
 
-		void register_device(std::shared_ptr<hardware_device> device);
+		void registerDevice(std::shared_ptr<HardwareDevice> device);
 	};
 
-	class dcpu {
+	class Dcpu {
 		enum { TOTAL_MEMORY=65536 };
 
-		bool skip_next;
-		bool on_fire;
-		std::uint64_t cycles;
+		bool skipNext;
+		bool onFire;
+		uint64_t cycles;
 
-		void add_cycles(std::uint16_t cycles_amount, bool simulate_cpu_speed);
+		void addCycles(uint16_t cyclesAmount, bool simulateCpuSpeed);
 	public:
-		std::uint16_t memory[TOTAL_MEMORY];
-		dcpu_stack stack;
-		dcpu_registers registers;
-		dcpu_interrupt_handler interrupt_handler;
-		dcpu_hardware_manager hardware_manager;
+		uint16_t memory[TOTAL_MEMORY];
+		DcpuStack stack;
+		DcpuRegisters registers;
+		DcpuInterrupts interrupts;
+		DcpuHardwareManager hardwareManager;
 
-		dcpu();
+		Dcpu();
 
-		std::uint16_t get_next_word();
-		bool is_skip_next();
+		uint16_t getNextWord();
+		bool isSkipNext();
 
-		void skip_next_instruction();
+		void skipNextInstruction();
 
-		void catch_fire();
-		bool is_on_fire();
+		void catchFire();
+		bool isOnFire();
 
 		void run();
+		void load(const char *filename);
 		void dump(std::ostream& out) const;
+		void clear();
 	};
 
 	std::ostream &operator<<(std::ostream &stream, registers reg);

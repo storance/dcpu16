@@ -6,48 +6,50 @@
 #include "dcpu.hpp"
 #include "argument.hpp"
 
-#define DECLARE_BASIC_OPCODE(name, value, cycles, is_cond) class name ## _opcode : public opcode { \
+#define DECLARE_BASIC_OPCODE(name, value, cycles, conditional) class name ## Opcode : public Opcode { \
 public: \
 	enum { OPCODE = value }; \
-	name ## _opcode(dcpu &cpu, std::unique_ptr<argument> &a, std::unique_ptr<argument> &b) \
-		: opcode(cpu, a, b, cycles, is_cond, #name) {} \
+	name ## Opcode(Dcpu &cpu, ArgumentPtr &a, ArgumentPtr &b) \
+		: Opcode(cpu, a, b, cycles, conditional, #name) {} \
 	virtual uint16_t execute(); \
 };
 
-#define DECLARE_SPECIAL_OPCODE(name, value, cycles) class name ## _opcode : public opcode { \
+#define DECLARE_SPECIAL_OPCODE(name, value, cycles) class name ## Opcode : public Opcode { \
 public: \
 	enum { OPCODE = value }; \
-	name ## _opcode(dcpu &cpu, std::unique_ptr<argument> &a) : opcode(cpu, a, cycles, is_cond, #name) {} \
+	name ## Opcode(Dcpu &cpu, ArgumentPtr &a) : Opcode(cpu, a, cycles, false, #name) {} \
 	virtual uint16_t execute(); \
 };
 
 namespace dcpu { namespace emulator {
-	class opcode {
-		static std::unique_ptr<opcode> parse_basic(dcpu &cpu, uint16_t instruction);
-		static std::unique_ptr<opcode> parse_special(dcpu &cpu, uint16_t instruction);
+	class Opcode;
+	typedef std::unique_ptr<Opcode> OpcodePtr;
+
+	class Opcode {
+		static OpcodePtr parseBasic(Dcpu &cpu, uint16_t instruction);
+		static OpcodePtr parseSpecial(Dcpu &cpu, uint16_t instruction);
 	protected:
-		dcpu &cpu;
-		std::unique_ptr<argument> a, b;
-		uint16_t base_cycles;
-		bool is_cond;
+		Dcpu &cpu;
+		ArgumentPtr a, b;
+		uint16_t baseCycles;
+		bool conditional;
 		std::string name;
 
-		opcode(dcpu &cpu, std::unique_ptr<argument> &a, std::unique_ptr<argument> &b, uint16_t cycles, bool is_cond,
+		Opcode(Dcpu &cpu, ArgumentPtr &a, ArgumentPtr &b, uint16_t cycles, bool conditional,
 				const std::string &name);
-		opcode(dcpu &cpu, std::unique_ptr<argument> &a, uint16_t cycles, bool is_cond, const std::string &name);
+		Opcode(Dcpu &cpu, ArgumentPtr &a, uint16_t cycles, bool conditional, const std::string &name);
 
-		uint16_t calculate_cycles() const;
+		uint16_t calculateCycles() const;
 	public:
-		static std::unique_ptr<opcode> parse(dcpu &cpu, uint16_t instruction);
+		static OpcodePtr parse(Dcpu &cpu, uint16_t instruction);
 
-		virtual ~opcode();
+		virtual ~Opcode();
 
-		std::string get_name() const;
-		bool is_conditional() const;
+		std::string getName() const;
+		bool isConditional() const;
+		std::string str() const;
 
 		virtual uint16_t execute()=0;
-
-		std::string to_str() const;
 	};
 
 	DECLARE_BASIC_OPCODE(set, 0x01, 1, false)

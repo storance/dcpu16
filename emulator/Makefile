@@ -35,7 +35,7 @@ all: emulator test
 emulator: $(OUTPUT_DIR)/emulator.o $(OBJECTS)
 	$(CXX) $(CXX_FLAGS) $^ $(LIBS) -o $@
 	
-$(OUTPUT_DIR)/emulator.o: src/emulator.cpp src/emulator.h | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/emulator.o: src/emulator.cpp src/emulator.hpp | $(OUTPUT_DIR)
 	$(CXX) $(CXX_FLAGS) -c -o $@ $<
 
 $(OUTPUT_DIR)/hardware.o: src/hardware.cpp $(HARDWARE_DEPS)| $(OUTPUT_DIR)

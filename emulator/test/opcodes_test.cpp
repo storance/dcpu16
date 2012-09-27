@@ -9,39 +9,34 @@
 #include "utils/test_hardware.hpp"
 
 using namespace std;
-
-using dcpu::emulator::hardware_device;
-using dcpu::emulator::argument;
-using dcpu::emulator::literal_argument;
-using dcpu::emulator::register_argument;
-using dcpu::emulator::registers;
+using namespace dcpu::emulator;
 
 
 #define EXECUTE_BASIC_OPCODE(op, cpu, a, b) { \
-dcpu::emulator::op ## _opcode opcode(cpu, a, b); \
+op ## Opcode opcode(cpu, a, b); \
 opcode.execute(); \
 }
 
 #define EXECUTE_SPECIAL_OPCODE(op, cpu, a) { \
-dcpu::emulator::op ## _opcode opcode(cpu, a); \
+op ## Opcode opcode(cpu, a); \
 opcode.execute(); \
 }
 
-static unique_ptr<argument> create_register_arg(dcpu::emulator::dcpu &cpu, uint16_t initial_value) {
+static ArgumentPtr createRegisterArgument(Dcpu &cpu, uint16_t initial_value) {
 	cpu.registers.a = initial_value;
 
-	return unique_ptr<argument>(new register_argument(cpu, registers::A));
+	return ArgumentPtr(new RegisterArgument(cpu, registers::A));
 }
 
-static unique_ptr<argument> create_literal_arg(uint16_t value) {
-	return unique_ptr<argument>(new literal_argument(value));
+static ArgumentPtr createLiteralArgument(uint16_t value) {
+	return ArgumentPtr(new LiteralArgument(value));
 }
 
 TEST(OpcodesTest, Set) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0);
-	unique_ptr<argument> a = create_literal_arg(17);
+	ArgumentPtr b = createRegisterArgument(cpu, 0);
+	ArgumentPtr a = createLiteralArgument(17);
 
 	EXECUTE_BASIC_OPCODE(set, cpu, a, b)
 
@@ -49,10 +44,10 @@ TEST(OpcodesTest, Set) {
 }
 
 TEST(OpcodesTest, Add) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 22);
-	unique_ptr<argument> a = create_literal_arg(18);
+	ArgumentPtr b = createRegisterArgument(cpu, 22);
+	ArgumentPtr a = createLiteralArgument(18);
 
 	EXECUTE_BASIC_OPCODE(add, cpu, a, b)
 
@@ -62,10 +57,10 @@ TEST(OpcodesTest, Add) {
 
 
 TEST(OpcodesTest, AddWithOverflow) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 40000);
-	unique_ptr<argument> a = create_literal_arg(30000);
+	ArgumentPtr b = createRegisterArgument(cpu, 40000);
+	ArgumentPtr a = createLiteralArgument(30000);
 
 	EXECUTE_BASIC_OPCODE(add, cpu, a, b)
 
@@ -74,10 +69,10 @@ TEST(OpcodesTest, AddWithOverflow) {
 }
 
 TEST(OpcodesTest, Sub) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 22);
-	unique_ptr<argument> a = create_literal_arg(18);
+	ArgumentPtr b = createRegisterArgument(cpu, 22);
+	ArgumentPtr a = createLiteralArgument(18);
 
 	EXECUTE_BASIC_OPCODE(sub, cpu, a, b)
 
@@ -87,10 +82,10 @@ TEST(OpcodesTest, Sub) {
 
 
 TEST(OpcodesTest, SubWithUnderflow) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0);
-	unique_ptr<argument> a = create_literal_arg(1);
+	ArgumentPtr b = createRegisterArgument(cpu, 0);
+	ArgumentPtr a = createLiteralArgument(1);
 
 	EXECUTE_BASIC_OPCODE(sub, cpu, a, b)
 
@@ -99,10 +94,10 @@ TEST(OpcodesTest, SubWithUnderflow) {
 }
 
 TEST(OpcodesTest, Mul) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 2);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, 2);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(mul, cpu, a, b)
 
@@ -111,10 +106,10 @@ TEST(OpcodesTest, Mul) {
 }
 
 TEST(OpcodesTest, MulWithOverflow) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0x8000);
-	unique_ptr<argument> a = create_literal_arg(0x8000);
+	ArgumentPtr b = createRegisterArgument(cpu, 0x8000);
+	ArgumentPtr a = createLiteralArgument(0x8000);
 
 	EXECUTE_BASIC_OPCODE(mul, cpu, a, b)
 
@@ -123,10 +118,10 @@ TEST(OpcodesTest, MulWithOverflow) {
 }
 
 TEST(OpcodesTest, Mli) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, -2);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, -2);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(mli, cpu, a, b)
 
@@ -135,10 +130,10 @@ TEST(OpcodesTest, Mli) {
 }
 
 TEST(OpcodesTest, MliWithUnderflow) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0xfffe);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, 0xfffe);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(mli, cpu, a, b)
 
@@ -147,10 +142,10 @@ TEST(OpcodesTest, MliWithUnderflow) {
 }
 
 TEST(OpcodesTest, MliWithOverflow) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0x4000);
-	unique_ptr<argument> a = create_literal_arg(0x10);
+	ArgumentPtr b = createRegisterArgument(cpu, 0x4000);
+	ArgumentPtr a = createLiteralArgument(0x10);
 
 	EXECUTE_BASIC_OPCODE(mli, cpu, a, b)
 
@@ -159,10 +154,10 @@ TEST(OpcodesTest, MliWithOverflow) {
 }
 
 TEST(OpcodesTest, Div) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 80);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, 80);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(div, cpu, a, b)
 
@@ -171,10 +166,10 @@ TEST(OpcodesTest, Div) {
 }
 
 TEST(OpcodesTest, DivByZero) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 80);
-	unique_ptr<argument> a = create_literal_arg(0);
+	ArgumentPtr b = createRegisterArgument(cpu, 80);
+	ArgumentPtr a = createLiteralArgument(0);
 
 	EXECUTE_BASIC_OPCODE(div, cpu, a, b)
 
@@ -183,10 +178,10 @@ TEST(OpcodesTest, DivByZero) {
 }
 
 TEST(OpcodesTest, DivWithFractionalPart) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0xffff);
-	unique_ptr<argument> a = create_literal_arg(0xd);
+	ArgumentPtr b = createRegisterArgument(cpu, 0xffff);
+	ArgumentPtr a = createLiteralArgument(0xd);
 
 	EXECUTE_BASIC_OPCODE(div, cpu, a, b)
 
@@ -195,10 +190,10 @@ TEST(OpcodesTest, DivWithFractionalPart) {
 }
 
 TEST(OpcodesTest, Dvi) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, -80);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, -80);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(dvi, cpu, a, b)
 
@@ -207,10 +202,10 @@ TEST(OpcodesTest, Dvi) {
 }
 
 TEST(OpcodesTest, DviByZero) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 80);
-	unique_ptr<argument> a = create_literal_arg(0);
+	ArgumentPtr b = createRegisterArgument(cpu, 80);
+	ArgumentPtr a = createLiteralArgument(0);
 
 	EXECUTE_BASIC_OPCODE(dvi, cpu, a, b)
 
@@ -219,10 +214,10 @@ TEST(OpcodesTest, DviByZero) {
 }
 
 TEST(OpcodesTest, DviWithFractionalPart) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0x8001);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, 0x8001);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(dvi, cpu, a, b)
 
@@ -231,10 +226,10 @@ TEST(OpcodesTest, DviWithFractionalPart) {
 }
 
 TEST(OpcodesTest, Mod) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 21);
-	unique_ptr<argument> a = create_literal_arg(16);
+	ArgumentPtr b = createRegisterArgument(cpu, 21);
+	ArgumentPtr a = createLiteralArgument(16);
 
 	EXECUTE_BASIC_OPCODE(mod, cpu, a, b)
 
@@ -242,10 +237,10 @@ TEST(OpcodesTest, Mod) {
 }
 
 TEST(OpcodesTest, Mdi) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, -7);
-	unique_ptr<argument> a = create_literal_arg(16);
+	ArgumentPtr b = createRegisterArgument(cpu, -7);
+	ArgumentPtr a = createLiteralArgument(16);
 
 	EXECUTE_BASIC_OPCODE(mdi, cpu, a, b)
 
@@ -253,10 +248,10 @@ TEST(OpcodesTest, Mdi) {
 }
 
 TEST(OpcodesTest, And) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0xf0f0);
-	unique_ptr<argument> a = create_literal_arg(0x7031);
+	ArgumentPtr b = createRegisterArgument(cpu, 0xf0f0);
+	ArgumentPtr a = createLiteralArgument(0x7031);
 
 	EXECUTE_BASIC_OPCODE(and, cpu, a, b)
 
@@ -264,10 +259,10 @@ TEST(OpcodesTest, And) {
 }
 
 TEST(OpcodesTest, Bor) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0xf0f0);
-	unique_ptr<argument> a = create_literal_arg(0x7a0f);
+	ArgumentPtr b = createRegisterArgument(cpu, 0xf0f0);
+	ArgumentPtr a = createLiteralArgument(0x7a0f);
 
 	EXECUTE_BASIC_OPCODE(bor, cpu, a, b)
 
@@ -275,10 +270,10 @@ TEST(OpcodesTest, Bor) {
 }
 
 TEST(OpcodesTest, Xor) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0xff0f);
-	unique_ptr<argument> a = create_literal_arg(0xf0f0);
+	ArgumentPtr b = createRegisterArgument(cpu, 0xff0f);
+	ArgumentPtr a = createLiteralArgument(0xf0f0);
 
 	EXECUTE_BASIC_OPCODE(xor, cpu, a, b)
 
@@ -286,10 +281,10 @@ TEST(OpcodesTest, Xor) {
 }
 
 TEST(OpcodesTest, Shr) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 8);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, 8);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(shr, cpu, a, b)
 
@@ -298,10 +293,10 @@ TEST(OpcodesTest, Shr) {
 }
 
 TEST(OpcodesTest, ShrWithUnderflow) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 7);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, 7);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(shr, cpu, a, b)
 
@@ -310,10 +305,10 @@ TEST(OpcodesTest, ShrWithUnderflow) {
 }
 
 TEST(OpcodesTest, Asr) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, -8);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, -8);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(asr, cpu, a, b)
 
@@ -322,10 +317,10 @@ TEST(OpcodesTest, Asr) {
 }
 
 TEST(OpcodesTest, AsrWithUnderflow) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, -7);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, -7);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(asr, cpu, a, b)
 
@@ -334,10 +329,10 @@ TEST(OpcodesTest, AsrWithUnderflow) {
 }
 
 TEST(OpcodesTest, Shl) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 8);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, 8);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(shl, cpu, a, b)
 
@@ -346,10 +341,10 @@ TEST(OpcodesTest, Shl) {
 }
 
 TEST(OpcodesTest, ShlWithOverflow) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> b = create_register_arg(cpu, 0x100f);
-	unique_ptr<argument> a = create_literal_arg(4);
+	ArgumentPtr b = createRegisterArgument(cpu, 0x100f);
+	ArgumentPtr a = createLiteralArgument(4);
 
 	EXECUTE_BASIC_OPCODE(shl, cpu, a, b)
 
@@ -358,148 +353,148 @@ TEST(OpcodesTest, ShlWithOverflow) {
 }
 
 TEST(OpcodesTest, Ifb) {
-	dcpu::emulator::dcpu cpu;
-	unique_ptr<argument> a, b;
+	Dcpu cpu;
+	ArgumentPtr a, b;
 
-	b = create_register_arg(cpu, 0x000f);
-	a = create_literal_arg(0x000f);
-
-	EXECUTE_BASIC_OPCODE(ifb, cpu, a, b)
-	EXPECT_FALSE(cpu.is_skip_next());
-
-	b = create_register_arg(cpu, 0x000f);
-	a = create_literal_arg(0xfff0);
+	b = createRegisterArgument(cpu, 0x000f);
+	a = createLiteralArgument(0x000f);
 
 	EXECUTE_BASIC_OPCODE(ifb, cpu, a, b)
-	EXPECT_TRUE(cpu.is_skip_next());
+	EXPECT_FALSE(cpu.isSkipNext());
+
+	b = createRegisterArgument(cpu, 0x000f);
+	a = createLiteralArgument(0xfff0);
+
+	EXECUTE_BASIC_OPCODE(ifb, cpu, a, b)
+	EXPECT_TRUE(cpu.isSkipNext());
 }
 
 TEST(OpcodesTest, Ifc) {
-	dcpu::emulator::dcpu cpu;
-	unique_ptr<argument> a, b;
+	Dcpu cpu;
+	ArgumentPtr a, b;
 
-	b = create_register_arg(cpu, 0x000f);
-	a = create_literal_arg(0xfff0);
-
-	EXECUTE_BASIC_OPCODE(ifc, cpu, a, b)
-	EXPECT_FALSE(cpu.is_skip_next());
-
-	b = create_register_arg(cpu, 0xfff0);
-	a = create_literal_arg(0xfff0);
+	b = createRegisterArgument(cpu, 0x000f);
+	a = createLiteralArgument(0xfff0);
 
 	EXECUTE_BASIC_OPCODE(ifc, cpu, a, b)
-	EXPECT_TRUE(cpu.is_skip_next());
+	EXPECT_FALSE(cpu.isSkipNext());
+
+	b = createRegisterArgument(cpu, 0xfff0);
+	a = createLiteralArgument(0xfff0);
+
+	EXECUTE_BASIC_OPCODE(ifc, cpu, a, b)
+	EXPECT_TRUE(cpu.isSkipNext());
 }
 
 TEST(OpcodesTest, Ife) {
-	dcpu::emulator::dcpu cpu;
-	unique_ptr<argument> a, b;
+	Dcpu cpu;
+	ArgumentPtr a, b;
 
-	b = create_register_arg(cpu, 2);
-	a = create_literal_arg(2);
-
-	EXECUTE_BASIC_OPCODE(ife, cpu, a, b)
-	EXPECT_FALSE(cpu.is_skip_next());
-
-	b = create_register_arg(cpu, 1);
-	a = create_literal_arg(2);
+	b = createRegisterArgument(cpu, 2);
+	a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(ife, cpu, a, b)
-	EXPECT_TRUE(cpu.is_skip_next());
+	EXPECT_FALSE(cpu.isSkipNext());
+
+	b = createRegisterArgument(cpu, 1);
+	a = createLiteralArgument(2);
+
+	EXECUTE_BASIC_OPCODE(ife, cpu, a, b)
+	EXPECT_TRUE(cpu.isSkipNext());
 }
 
 TEST(OpcodesTest, Ifn) {
-	dcpu::emulator::dcpu cpu;
-	unique_ptr<argument> a, b;
+	Dcpu cpu;
+	ArgumentPtr a, b;
 
-	b = create_register_arg(cpu, 1);
-	a = create_literal_arg(2);
-
-	EXECUTE_BASIC_OPCODE(ifn, cpu, a, b)
-	EXPECT_FALSE(cpu.is_skip_next());
-
-	b = create_register_arg(cpu, 2);
-	a = create_literal_arg(2);
+	b = createRegisterArgument(cpu, 1);
+	a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(ifn, cpu, a, b)
-	EXPECT_TRUE(cpu.is_skip_next());
+	EXPECT_FALSE(cpu.isSkipNext());
+
+	b = createRegisterArgument(cpu, 2);
+	a = createLiteralArgument(2);
+
+	EXECUTE_BASIC_OPCODE(ifn, cpu, a, b)
+	EXPECT_TRUE(cpu.isSkipNext());
 }
 
 
 TEST(OpcodesTest, Ifg) {
-	dcpu::emulator::dcpu cpu;
-	unique_ptr<argument> a, b;
+	Dcpu cpu;
+	ArgumentPtr a, b;
 
-	b = create_register_arg(cpu, 3);
-	a = create_literal_arg(2);
-
-	EXECUTE_BASIC_OPCODE(ifg, cpu, a, b)
-	EXPECT_FALSE(cpu.is_skip_next());
-
-	b = create_register_arg(cpu, 1);
-	a = create_literal_arg(2);
+	b = createRegisterArgument(cpu, 3);
+	a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(ifg, cpu, a, b)
-	EXPECT_TRUE(cpu.is_skip_next());
+	EXPECT_FALSE(cpu.isSkipNext());
+
+	b = createRegisterArgument(cpu, 1);
+	a = createLiteralArgument(2);
+
+	EXECUTE_BASIC_OPCODE(ifg, cpu, a, b)
+	EXPECT_TRUE(cpu.isSkipNext());
 }
 
 TEST(OpcodesTest, Ifa) {
-	dcpu::emulator::dcpu cpu;
-	unique_ptr<argument> a, b;
+	Dcpu cpu;
+	ArgumentPtr a, b;
 
-	b = create_register_arg(cpu, -2);
-	a = create_literal_arg(-3);
-
-	EXECUTE_BASIC_OPCODE(ifa, cpu, a, b)
-	EXPECT_FALSE(cpu.is_skip_next());
-
-	b = create_register_arg(cpu, -3);
-	a = create_literal_arg(-2);
+	b = createRegisterArgument(cpu, -2);
+	a = createLiteralArgument(-3);
 
 	EXECUTE_BASIC_OPCODE(ifa, cpu, a, b)
-	EXPECT_TRUE(cpu.is_skip_next());
+	EXPECT_FALSE(cpu.isSkipNext());
+
+	b = createRegisterArgument(cpu, -3);
+	a = createLiteralArgument(-2);
+
+	EXECUTE_BASIC_OPCODE(ifa, cpu, a, b)
+	EXPECT_TRUE(cpu.isSkipNext());
 }
 
 TEST(OpcodesTest, Ifl) {
-	dcpu::emulator::dcpu cpu;
-	unique_ptr<argument> a, b;
+	Dcpu cpu;
+	ArgumentPtr a, b;
 
-	b = create_register_arg(cpu, 2);
-	a = create_literal_arg(3);
-
-	EXECUTE_BASIC_OPCODE(ifl, cpu, a, b)
-	EXPECT_FALSE(cpu.is_skip_next());
-
-	b = create_register_arg(cpu, 2);
-	a = create_literal_arg(1);
+	b = createRegisterArgument(cpu, 2);
+	a = createLiteralArgument(3);
 
 	EXECUTE_BASIC_OPCODE(ifl, cpu, a, b)
-	EXPECT_TRUE(cpu.is_skip_next());
+	EXPECT_FALSE(cpu.isSkipNext());
+
+	b = createRegisterArgument(cpu, 2);
+	a = createLiteralArgument(1);
+
+	EXECUTE_BASIC_OPCODE(ifl, cpu, a, b)
+	EXPECT_TRUE(cpu.isSkipNext());
 }
 
 TEST(OpcodesTest, Ifu) {
-	dcpu::emulator::dcpu cpu;
-	unique_ptr<argument> a, b;
+	Dcpu cpu;
+	ArgumentPtr a, b;
 
-	b = create_register_arg(cpu, -3);
-	a = create_literal_arg(-2);
-
-	EXECUTE_BASIC_OPCODE(ifu, cpu, a, b)
-	EXPECT_FALSE(cpu.is_skip_next());
-
-	b = create_register_arg(cpu, -2);
-	a = create_literal_arg(-3);
+	b = createRegisterArgument(cpu, -3);
+	a = createLiteralArgument(-2);
 
 	EXECUTE_BASIC_OPCODE(ifu, cpu, a, b)
-	EXPECT_TRUE(cpu.is_skip_next());
+	EXPECT_FALSE(cpu.isSkipNext());
+
+	b = createRegisterArgument(cpu, -2);
+	a = createLiteralArgument(-3);
+
+	EXECUTE_BASIC_OPCODE(ifu, cpu, a, b)
+	EXPECT_TRUE(cpu.isSkipNext());
 }
 
 TEST(OpcodesTest, Adx) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.ex = 10;
-	unique_ptr<argument> b = create_register_arg(cpu, 22);
-	unique_ptr<argument> a = create_literal_arg(18);
+	ArgumentPtr b = createRegisterArgument(cpu, 22);
+	ArgumentPtr a = createLiteralArgument(18);
 
 	EXECUTE_BASIC_OPCODE(adx, cpu, a, b)
 
@@ -509,11 +504,11 @@ TEST(OpcodesTest, Adx) {
 
 
 TEST(OpcodesTest, AdxWithOverflow) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.ex = 3;
-	unique_ptr<argument> b = create_register_arg(cpu, 65035);
-	unique_ptr<argument> a = create_literal_arg(500);
+	ArgumentPtr b = createRegisterArgument(cpu, 65035);
+	ArgumentPtr a = createLiteralArgument(500);
 
 	EXECUTE_BASIC_OPCODE(adx, cpu, a, b)
 
@@ -522,11 +517,11 @@ TEST(OpcodesTest, AdxWithOverflow) {
 }
 
 TEST(OpcodesTest, Sbx) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.ex = 4;
-	unique_ptr<argument> b = create_register_arg(cpu, 22);
-	unique_ptr<argument> a = create_literal_arg(18);
+	ArgumentPtr b = createRegisterArgument(cpu, 22);
+	ArgumentPtr a = createLiteralArgument(18);
 
 	EXECUTE_BASIC_OPCODE(sbx, cpu, a, b)
 
@@ -536,11 +531,11 @@ TEST(OpcodesTest, Sbx) {
 
 
 TEST(OpcodesTest, SbxWithUnderflow) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.ex = 1;
-	unique_ptr<argument> b = create_register_arg(cpu, 0);
-	unique_ptr<argument> a = create_literal_arg(2);
+	ArgumentPtr b = createRegisterArgument(cpu, 0);
+	ArgumentPtr a = createLiteralArgument(2);
 
 	EXECUTE_BASIC_OPCODE(sbx, cpu, a, b)
 
@@ -549,12 +544,12 @@ TEST(OpcodesTest, SbxWithUnderflow) {
 }
 
 TEST(OpcodesTest, Sti) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.i = 42;
 	cpu.registers.j = 1;
-	unique_ptr<argument> b = create_register_arg(cpu, 0);
-	unique_ptr<argument> a = create_literal_arg(0xff);
+	ArgumentPtr b = createRegisterArgument(cpu, 0);
+	ArgumentPtr a = createLiteralArgument(0xff);
 
 	EXECUTE_BASIC_OPCODE(sti, cpu, a, b)
 
@@ -564,12 +559,12 @@ TEST(OpcodesTest, Sti) {
 }
 
 TEST(OpcodesTest, Std) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.i = 42;
 	cpu.registers.j = 1;
-	unique_ptr<argument> b = create_register_arg(cpu, 0);
-	unique_ptr<argument> a = create_literal_arg(0xff);
+	ArgumentPtr b = createRegisterArgument(cpu, 0);
+	ArgumentPtr a = createLiteralArgument(0xff);
 
 	EXECUTE_BASIC_OPCODE(std, cpu, a, b)
 
@@ -579,10 +574,10 @@ TEST(OpcodesTest, Std) {
 }
 
 TEST(OpcodesTest, Jsr) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.pc = 0x001c;
-	unique_ptr<argument> a = create_literal_arg(0x00ff);
+	ArgumentPtr a = createLiteralArgument(0x00ff);
 
 	EXECUTE_SPECIAL_OPCODE(jsr, cpu, a)
 
@@ -591,26 +586,26 @@ TEST(OpcodesTest, Jsr) {
 }
 
 TEST(OpcodesTest, Hcf) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> a = create_literal_arg(0x00ff);
+	ArgumentPtr a = createLiteralArgument(0x00ff);
 
 	EXECUTE_SPECIAL_OPCODE(hcf, cpu, a)
 
-	EXPECT_TRUE(cpu.is_on_fire());
+	EXPECT_TRUE(cpu.isOnFire());
 }
 
 TEST(OpcodesTest, Int) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.a = 42;
 	cpu.registers.pc = 0x001c;
 	cpu.registers.ia = 0x00a3;
-	unique_ptr<argument> a = create_literal_arg(0x00ff);
+	ArgumentPtr a = createLiteralArgument(0x00ff);
 
 	EXECUTE_SPECIAL_OPCODE(int, cpu, a)
 
-	EXPECT_TRUE(cpu.interrupt_handler.is_queue_enabled());
+	EXPECT_TRUE(cpu.interrupts.isQueueEnabled());
 	EXPECT_EQ(0x00a3, cpu.registers.pc);
 	EXPECT_EQ(0x00ff, cpu.registers.a);
 	EXPECT_EQ(42, cpu.stack.pick(0));
@@ -618,10 +613,10 @@ TEST(OpcodesTest, Int) {
 }
 
 TEST(OpcodesTest, IntWithNoHandler) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.pc = 0x001c;
-	unique_ptr<argument> a = create_literal_arg(0x00ff);
+	ArgumentPtr a = createLiteralArgument(0x00ff);
 
 	EXECUTE_SPECIAL_OPCODE(int, cpu, a)
 
@@ -630,10 +625,10 @@ TEST(OpcodesTest, IntWithNoHandler) {
 }
 
 TEST(OpcodesTest, Iag) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.ia = 42;
-	unique_ptr<argument> a = create_register_arg(cpu, 0);
+	ArgumentPtr a = createRegisterArgument(cpu, 0);
 
 	EXECUTE_SPECIAL_OPCODE(iag, cpu, a)
 
@@ -642,10 +637,10 @@ TEST(OpcodesTest, Iag) {
 }
 
 TEST(OpcodesTest, Ias) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	cpu.registers.ia = 42;
-	unique_ptr<argument> a = create_register_arg(cpu, 0xff);
+	ArgumentPtr a = createRegisterArgument(cpu, 0xff);
 
 	EXECUTE_SPECIAL_OPCODE(ias, cpu, a)
 
@@ -654,25 +649,25 @@ TEST(OpcodesTest, Ias) {
 }
 
 TEST(OpcodesTest, Iaq) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> a = create_literal_arg(1);
-
-	EXECUTE_SPECIAL_OPCODE(iaq, cpu, a)
-	EXPECT_TRUE(cpu.interrupt_handler.is_queue_enabled());
-
-	a = create_literal_arg(0);
+	ArgumentPtr a = createLiteralArgument(1);
 
 	EXECUTE_SPECIAL_OPCODE(iaq, cpu, a)
-	EXPECT_FALSE(cpu.interrupt_handler.is_queue_enabled());
+	EXPECT_TRUE(cpu.interrupts.isQueueEnabled());
+
+	a = createLiteralArgument(0);
+
+	EXECUTE_SPECIAL_OPCODE(iaq, cpu, a)
+	EXPECT_FALSE(cpu.interrupts.isQueueEnabled());
 }
 
 TEST(OpcodesTest, Hwn) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	cpu.hardware_manager.register_device(make_shared<test_hardware>(cpu));
+	cpu.hardwareManager.registerDevice(make_shared<TestHardware>(cpu));
 
-	unique_ptr<argument> a = create_register_arg(cpu, 30);
+	ArgumentPtr a = createRegisterArgument(cpu, 30);
 
 	EXECUTE_SPECIAL_OPCODE(hwn, cpu, a)
 	
@@ -680,9 +675,9 @@ TEST(OpcodesTest, Hwn) {
 }
 
 TEST(OpcodesTest, HwnWithNoHardware) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<argument> a = create_register_arg(cpu, 30);
+	ArgumentPtr a = createRegisterArgument(cpu, 30);
 
 	EXECUTE_SPECIAL_OPCODE(hwn, cpu, a)
 
@@ -690,11 +685,11 @@ TEST(OpcodesTest, HwnWithNoHardware) {
 }
 
 TEST(OpcodesTest, Hwq) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	cpu.hardware_manager.register_device(make_shared<test_hardware>(cpu));
+	cpu.hardwareManager.registerDevice(make_shared<TestHardware>(cpu));
 
-	unique_ptr<argument> a = create_literal_arg(0);
+	ArgumentPtr a = createLiteralArgument(0);
 
 	EXECUTE_SPECIAL_OPCODE(hwq, cpu, a)
 	
@@ -706,11 +701,11 @@ TEST(OpcodesTest, Hwq) {
 }
 
 TEST(OpcodesTest, HwqOutOfBounds) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	cpu.hardware_manager.register_device(make_shared<test_hardware>(cpu));
+	cpu.hardwareManager.registerDevice(make_shared<TestHardware>(cpu));
 
-	unique_ptr<argument> a = create_literal_arg(1);
+	ArgumentPtr a = createLiteralArgument(1);
 
 	EXECUTE_SPECIAL_OPCODE(hwq, cpu, a)
 	
@@ -722,29 +717,29 @@ TEST(OpcodesTest, HwqOutOfBounds) {
 }
 
 TEST(OpcodesTest, Hwi) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	auto device = make_shared<test_hardware>(cpu);
-	cpu.hardware_manager.register_device(device);
+	auto device = make_shared<TestHardware>(cpu);
+	cpu.hardwareManager.registerDevice(device);
 
-	unique_ptr<argument> a = create_literal_arg(0);
+	ArgumentPtr a = createLiteralArgument(0);
 
 	EXECUTE_SPECIAL_OPCODE(hwi, cpu, a)
 	
-	EXPECT_TRUE(device->interrupt_called);
+	EXPECT_TRUE(device->interruptCalled);
 }
 
 TEST(OpcodesTest, HwiOutOfBounds) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	auto device = make_shared<test_hardware>(cpu);
-	cpu.hardware_manager.register_device(device);
+	auto device = make_shared<TestHardware>(cpu);
+	cpu.hardwareManager.registerDevice(device);
 
-	unique_ptr<argument> a = create_literal_arg(1);
+	ArgumentPtr a = createLiteralArgument(1);
 
 	EXECUTE_SPECIAL_OPCODE(hwi, cpu, a)
 	
 	// dummy hardware 
-	EXPECT_FALSE(device->interrupt_called);
+	EXPECT_FALSE(device->interruptCalled);
 	EXPECT_EQ(0, cpu.registers.z);
 }

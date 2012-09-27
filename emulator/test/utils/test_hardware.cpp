@@ -1,18 +1,18 @@
 #include "test_hardware.hpp"
 
-using dcpu::emulator::hardware_device;
+using dcpu::emulator::HardwareDevice;
 
-test_hardware::test_hardware(dcpu::emulator::dcpu &cpu) : hardware_device(cpu, MANUFACTURER_ID, HARDWARE_ID, VERSION),
-		interrupt_called(false) {
-
-}
-
-void test_hardware::tick() {
+TestHardware::TestHardware(dcpu::emulator::Dcpu &cpu) : HardwareDevice(cpu, MANUFACTURER_ID, HARDWARE_ID, VERSION),
+		interruptCalled(false) {
 
 }
 
-uint16_t test_hardware::interrupt() {
-	interrupt_called = true;
+void TestHardware::tick() {
+
+}
+
+uint16_t TestHardware::interrupt() {
+	interruptCalled = true;
 
 	return 0;
 }

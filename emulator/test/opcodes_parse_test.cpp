@@ -5,25 +5,25 @@
 #include <opcodes.hpp>
 
 using namespace std;
-using dcpu::emulator::opcode;
+using namespace dcpu::emulator;
 
 class OpcodesParserTest: public ::testing::TestWithParam<tuple<uint16_t, string>> {
 public:
 	void SetUp() {
 		auto data = GetParam();
 		instruction = get<0>(data);
-		expected_string = get<1>(data);
+		expectedString = get<1>(data);
 	}
 protected:
 	uint16_t instruction;
-	string expected_string;
+	string expectedString;
 };
 
 TEST_P(OpcodesParserTest, ValidInstruction) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
-	unique_ptr<opcode> op = opcode::parse(cpu, instruction);
-	EXPECT_EQ(expected_string, op->to_str());
+	auto op = Opcode::parse(cpu, instruction);
+	EXPECT_EQ(expectedString, op->str());
 }
 
 INSTANTIATE_TEST_CASE_P(All, OpcodesParserTest, ::testing::Values(
@@ -76,9 +76,9 @@ protected:
 };
 
 TEST_P(OpcodesParserNegativeTest, InvalidInstruction) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 	EXPECT_THROW({
-		opcode::parse(cpu, instruction);
+		Opcode::parse(cpu, instruction);
 	}, invalid_argument);
 }
 

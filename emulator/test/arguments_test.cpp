@@ -6,16 +6,16 @@
 
 using namespace std;
 
-using dcpu::emulator::argument;
-using dcpu::emulator::literal_argument;
-using dcpu::emulator::register_argument;
+using dcpu::emulator::Dcpu;
+using dcpu::emulator::Argument;
+using dcpu::emulator::ArgumentPtr;
 using dcpu::emulator::registers;
 
 class ArgumentTester {
 public:
-	virtual void setup(dcpu::emulator::dcpu &cpu)=0;
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg)=0;
-	virtual uint16_t get_initial_value() {
+	virtual void setup(Dcpu &cpu)=0;
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg)=0;
+	virtual uint16_t getInitialValue() {
 		return 0x20;
 	}
 
@@ -41,11 +41,11 @@ class RegisterArgument : public ArgumentTester {
 public:
 	RegisterArgument(registers reg) : reg(reg) {}
 
-	virtual void setup(dcpu::emulator::dcpu &cpu) {
-		cpu.registers[reg] = get_initial_value();
+	virtual void setup(Dcpu &cpu) {
+		cpu.registers[reg] = getInitialValue();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg) {
 		EXPECT_EQ(0x30, cpu.registers[reg]);
 	}
 
@@ -59,12 +59,12 @@ class RegisterIndirectArgument : public ArgumentTester {
 public:
 	RegisterIndirectArgument(registers reg) : reg(reg) {}
 
-	virtual void setup(dcpu::emulator::dcpu &cpu) {
+	virtual void setup(Dcpu &cpu) {
 		cpu.registers[reg] = 0x001f;
-		cpu.memory[0x001f] = get_initial_value();
+		cpu.memory[0x001f] = getInitialValue();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg) {
 		EXPECT_EQ(0x30, cpu.memory[0x001f]);
 	}
 
@@ -78,13 +78,13 @@ class RegisterIndirectOffsetArgument : public ArgumentTester {
 public:
 	RegisterIndirectOffsetArgument(registers reg) : reg(reg) {}
 
-	virtual void setup(dcpu::emulator::dcpu &cpu) {
+	virtual void setup(Dcpu &cpu) {
 		cpu.memory[0] = 0x0010;
 		cpu.registers[reg] = 0x001f;
-		cpu.memory[0x002f] = get_initial_value();
+		cpu.memory[0x002f] = getInitialValue();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg) {
 		EXPECT_EQ(1, cpu.registers.pc);
 		EXPECT_EQ(0x30, cpu.memory[0x002f]);
 	}
@@ -96,11 +96,11 @@ public:
 
 class StackPushArgument : public ArgumentTester {
 public:
-	virtual void setup(dcpu::emulator::dcpu &cpu) {
-		cpu.memory[0xffff] = get_initial_value();
+	virtual void setup(Dcpu &cpu) {
+		cpu.memory[0xffff] = getInitialValue();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg) {
 		EXPECT_EQ(0xffff, cpu.registers.sp);
 		EXPECT_EQ(0x30, cpu.memory[0xffff]);
 	}
@@ -112,11 +112,11 @@ public:
 
 class StackPopArgument : public ArgumentTester {
 public:
-	virtual void setup(dcpu::emulator::dcpu &cpu) {
-		cpu.stack.push(get_initial_value());
+	virtual void setup(Dcpu &cpu) {
+		cpu.stack.push(getInitialValue());
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg) {
 		EXPECT_EQ(0, cpu.registers.sp);
 		EXPECT_EQ(0x30, cpu.memory[0xffff]);
 	}
@@ -128,11 +128,11 @@ public:
 
 class StackPeekArgument : public ArgumentTester {
 public:
-	virtual void setup(dcpu::emulator::dcpu &cpu) {
-		cpu.stack.push(get_initial_value());
+	virtual void setup(Dcpu &cpu) {
+		cpu.stack.push(getInitialValue());
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg) {
 		EXPECT_EQ(0xffff, cpu.registers.sp);
 		EXPECT_EQ(0x30, cpu.memory[0xffff]);
 	}
@@ -144,9 +144,9 @@ public:
 
 class StackPickArgument : public ArgumentTester {
 public:
-	virtual void setup(dcpu::emulator::dcpu &cpu) {
+	virtual void setup(Dcpu &cpu) {
 		cpu.stack.push(0x1a);
-		cpu.stack.push(get_initial_value());
+		cpu.stack.push(getInitialValue());
 		cpu.stack.push(0x1b);
 		cpu.stack.push(0x1c);
 
@@ -154,7 +154,7 @@ public:
 		cpu.registers.pc = 0;
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg) {
 		EXPECT_EQ(1, cpu.registers.pc);
 		EXPECT_EQ(0xfffc, cpu.registers.sp);
 		EXPECT_EQ(0x30, cpu.memory[0xfffe]);
@@ -167,13 +167,13 @@ public:
 
 class IndirectNextWordArgument : public ArgumentTester {
 public:
-	virtual void setup(dcpu::emulator::dcpu &cpu) {
+	virtual void setup(Dcpu &cpu) {
 		cpu.registers.pc = 0;
 		cpu.memory[0] = 0x030a;
-		cpu.memory[0x030a] = get_initial_value();
+		cpu.memory[0x030a] = getInitialValue();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg) {
 		EXPECT_EQ(1, cpu.registers.pc);
 		EXPECT_EQ(0x030a, cpu.memory[0]);
 		EXPECT_EQ(0x30, cpu.memory[0x030a]);
@@ -186,14 +186,14 @@ public:
 
 class NextWordArgument : public ArgumentTester {
 public:
-	virtual void setup(dcpu::emulator::dcpu &cpu) {
+	virtual void setup(Dcpu &cpu) {
 		cpu.registers.pc = 0x30;
-		cpu.memory[0x30] = get_initial_value();
+		cpu.memory[0x30] = getInitialValue();
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg) {
 		EXPECT_EQ(0x31, cpu.registers.pc);
-		EXPECT_EQ(get_initial_value(), cpu.memory[0x30]);
+		EXPECT_EQ(getInitialValue(), cpu.memory[0x30]);
 	}
 
 	virtual void print(ostream &stream) const {
@@ -202,33 +202,33 @@ public:
 };
 
 class LiteralArgument : public ArgumentTester {
-	uint16_t literal_value;
+	uint16_t literalValue;
 public:
-	LiteralArgument(uint16_t literal_value) : literal_value(literal_value) {}
+	LiteralArgument(uint16_t literalValue) : literalValue(literalValue) {}
 
-	virtual void setup(dcpu::emulator::dcpu &cpu) {
+	virtual void setup(Dcpu &cpu) {
 	}
 
-	virtual uint16_t get_initial_value() {
-		return literal_value;
+	virtual uint16_t getInitialValue() {
+		return literalValue;
 	}
 
-	virtual void verify(dcpu::emulator::dcpu &cpu, const unique_ptr<argument> &arg) {
-		EXPECT_EQ(literal_value, arg->get());
+	virtual void verify(Dcpu &cpu, const ArgumentPtr &arg) {
+		EXPECT_EQ(literalValue, arg->get());
 	}
 
 	virtual void print(ostream &stream) const {
-		stream << "LiteralArgument(" << literal_value << ")";
+		stream << "LiteralArgument(" << literalValue << ")";
 	}
 };
 
 TEST_P(ArgumentTest, Parse) {
-	dcpu::emulator::dcpu cpu;
+	Dcpu cpu;
 
 	tester->setup(cpu);
 
-	auto arg = argument::parse(cpu, code, isA);
-	EXPECT_EQ(tester->get_initial_value(), arg->get());
+	auto arg = Argument::parse(cpu, code, isA);
+	EXPECT_EQ(tester->getInitialValue(), arg->get());
 
 	arg->set(0x30);
 	tester->verify(cpu, arg);
@@ -280,5 +280,6 @@ ostream& operator<<(ostream &stream, const ArgumentTester &tester) {
 }
 
 ostream& operator<<(ostream &stream, const tuple<uint8_t, bool, shared_ptr<ArgumentTester>> &testData) {
-	return stream << "code=" << hex << (int)get<0>(testData) << dec << ", isA=" << (get<1>(testData) ? "true" : "false") << "tester=" << *get<2>(testData);
+	return stream << "code=" << hex << (int)get<0>(testData) << dec 
+		<< ", isA=" << (get<1>(testData) ? "true" : "false") << "tester=" << *get<2>(testData);
 }
