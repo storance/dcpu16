@@ -6,6 +6,7 @@
 #include <memory>
 #include <ostream>
 #include <stdexcept>
+#include <atomic>
 
 namespace dcpu { namespace emulator {
 	enum class registers : uint8_t {
@@ -75,19 +76,20 @@ namespace dcpu { namespace emulator {
 		uint16_t getCount();
 		void query(uint16_t index);
 		uint16_t interrupt(uint16_t index);
+        void tickAll();
 
 		void registerDevice(std::shared_ptr<HardwareDevice> device);
 	};
 
 	class Dcpu {
-		enum { TOTAL_MEMORY=65536 };
-
 		bool skipNext;
 		bool onFire;
 		uint64_t cycles;
 
 		void addCycles(uint16_t cyclesAmount, bool simulateCpuSpeed);
 	public:
+		enum { TOTAL_MEMORY=65536, FREQUENCY=100000 };
+
 		uint16_t memory[TOTAL_MEMORY];
 		DcpuStack stack;
 		DcpuRegisters registers;
@@ -96,15 +98,15 @@ namespace dcpu { namespace emulator {
 
 		Dcpu();
 
+		uint16_t getCycles();
 		uint16_t getNextWord();
+		bool isOnFire();
 		bool isSkipNext();
 
+		void catchFire();
 		void skipNextInstruction();
 
-		void catchFire();
-		bool isOnFire();
-
-		void run();
+		void tick();
 		void load(const char *filename);
 		void dump(std::ostream& out) const;
 		void clear();

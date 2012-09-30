@@ -3,7 +3,6 @@ all:
 	make -C assembler all
 
 clean:
-	rm -Rf target
-	rm emulator
-	rm disassembler
+	make -C emulator clean
+	make -C assembler clean
 

@@ -24,6 +24,10 @@ namespace dcpu { namespace emulator {
 		memset(memory, 0, TOTAL_MEMORY * sizeof(uint16_t));
 	}
 
+	uint16_t Dcpu::getCycles() {
+		return cycles;
+	}
+
 	uint16_t Dcpu::getNextWord() {
 		return memory[registers.pc++];
 	}
@@ -44,26 +48,24 @@ namespace dcpu { namespace emulator {
 		return onFire;
 	}
 
-	void Dcpu::run() {
-		while (!onFire) {
-			uint16_t cycles = 0;
-			auto instruction = Opcode::parse(*this, getNextWord());
+	void Dcpu::tick() {
+		auto instruction = Opcode::parse(*this, getNextWord());
 
-			if (skipNext) {
-				if (!instruction->isConditional()) {
-					skipNext = false;
-				}
-
-				cycles = 1;
-			} else {
-				cycles = instruction->execute();
+		if (skipNext) {
+			if (!instruction->isConditional()) {
+				skipNext = false;
 			}
 
-			addCycles(cycles, true);
+			cycles += 1;
+		} else {
+			cycles += instruction->execute();
 		}
 	}
 
 	void Dcpu::clear() {
+		cycles = 0;
+		onFire = false;
+		skipNext = false;
 		registers.clear();
 		memset(memory, 0, TOTAL_MEMORY * sizeof(uint16_t));
 	}
@@ -95,7 +97,7 @@ namespace dcpu { namespace emulator {
 	}
 
 	void Dcpu::dump(ostream& out) const {
-		out << "Cycles: " << cycles << endl
+		out << "Cycles: " << dec << cycles << endl
 			<< "======= Registers =======" << endl
 			<< hex << setfill('0') << "A: " << setw(4) << registers.a
 			<< "  B: " << setw(4) << registers.b
@@ -324,6 +326,13 @@ namespace dcpu { namespace emulator {
 		}
 
 		hardware.push_back(device);
+	}
+
+    
+	void DcpuHardwareManager::tickAll() {
+		for(auto &device : hardware) {
+			device->tick();
+		}
 	}
 
 	ostream &operator<<(std::ostream &stream, registers reg) {
